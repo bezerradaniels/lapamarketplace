@@ -21,7 +21,7 @@ import { useProducts } from '@/features/products'
 import { useActiveStore } from '@/lib/tenant'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { PLANS } from '@/config/plans'
+import { PLANS, TRIAL_DAYS } from '@/config/plans'
 import type { PlanId, SubscriptionStatus } from '@/types/domain'
 
 const PLAN_FEATURE_TEXT: Record<PlanId, string[]> = {
@@ -36,21 +36,23 @@ const PLAN_FEATURE_TEXT: Record<PlanId, string[]> = {
     'Até 100 produtos',
     '3 vendedores',
     '5 cupons de desconto',
-    'IA para descrições e slogan',
     'Exportação em PDF',
-    'Tema personalizado',
-    'Suporte prioritário',
+    'Suporte presencial',
   ],
   premium: [
     'Produtos ilimitados',
     'Vendedores ilimitados',
     'Cupons ilimitados',
     '4 produtos em destaque',
-    'IA avançada',
-    'Tema personalizado',
     'Exportação em PDF',
-    'Suporte prioritário',
+    'Suporte presencial',
   ],
+}
+
+const PLAN_SUBTITLE: Record<PlanId, string> = {
+  basico: 'Mais flexibilidade',
+  pro: 'Crescimento avançado',
+  premium: 'Crescimento sem limites',
 }
 
 const STATUS_TONE: Record<
@@ -93,7 +95,7 @@ export default function BillingPage() {
   const planList = plans.data ?? []
   const currentPlanId = sub?.plan_id ?? null
 
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('annual')
   const [pendingPlanId, setPendingPlanId] = useState<PlanId | null>(null)
   const startCheckout = useStartCheckout()
   const openPortal = useOpenPortal()
@@ -233,9 +235,21 @@ export default function BillingPage() {
                     : 'border-z-border',
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold">{plan.name}</h2>
-                  {isCurrent && <Badge tone="green">Atual</Badge>}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-black">
+                      Plano {plan.name}
+                    </h2>
+                    {billingPeriod === 'annual' && (
+                      <span className="rounded-full bg-z-green/10 px-2 py-0.5 text-[11px] font-bold text-z-green">
+                        -{Math.round((PLANS[plan.plan_id].priceInCents * 12 - PLANS[plan.plan_id].priceInCentsAnnual) / (PLANS[plan.plan_id].priceInCents * 12) * 100)}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-z-text-muted">
+                    {PLAN_SUBTITLE[plan.plan_id]}
+                  </p>
+                  {isCurrent && <Badge tone="green" className="mt-2 inline-block">Atual</Badge>}
                 </div>
                 <div>
                   <span className="text-3xl font-bold tracking-tighter">
@@ -244,9 +258,22 @@ export default function BillingPage() {
                       : formatMoney(plan.price_in_cents)}
                   </span>
                   <span className="text-sm text-z-text-muted">/mês</span>
+                  <p className="mt-1 text-xs text-z-text-hint">
+                    + {TRIAL_DAYS} dias grátis
+                  </p>
                   {billingPeriod === 'annual' && (
-                    <p className="mt-0.5 text-xs font-medium text-z-green">
-                      {formatMoney(PLANS[plan.plan_id].priceInCentsAnnual)}/ano
+                    <>
+                      <p className="mt-0.5 text-xs font-semibold text-z-green">
+                        Economize {formatMoney(plan.price_in_cents * 12 - PLANS[plan.plan_id].priceInCentsAnnual)}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-black">
+                        Pagamento único por ano {formatMoney(PLANS[plan.plan_id].priceInCentsAnnual)}
+                      </p>
+                    </>
+                  )}
+                  {billingPeriod === 'monthly' && (
+                    <p className="mt-0.5 text-xs text-z-text-muted">
+                      Cancele sem multa
                     </p>
                   )}
                 </div>
@@ -270,6 +297,7 @@ export default function BillingPage() {
                   fullWidth
                   disabled={isCurrent || isPending}
                   onClick={() => handleStartCheckout(plan.plan_id)}
+                  className={cn(!isCurrent && 'bg-green-100 text-green-800 hover:bg-green-200')}
                 >
                   {isCurrent ? 'Plano atual' : 'Mudar para este plano'}
                 </Button>

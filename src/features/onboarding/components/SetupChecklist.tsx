@@ -55,13 +55,13 @@ export function SetupChecklist({ state, loading }: SetupChecklistProps) {
           aria-hidden="true"
         />
       )}
-    <div className="fixed bottom-24 right-5 z-50 lg:bottom-6">
+    <div className="fixed bottom-24 right-5 z-[100] lg:bottom-6">
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-label="Ver tarefas pendentes"
-          className="relative flex h-14 items-center justify-center gap-1.5 rounded-full bg-z-primary px-4 text-white transition-opacity hover:opacity-90"
+          className="relative flex h-14 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full bg-z-primary px-4 text-white transition-opacity hover:opacity-90 active:scale-95"
         >
           <HugeiconsIcon icon={ClipboardListIcon} size={22} className="shrink-0" />
           <span className="text-sm font-semibold leading-none">Tarefas pendentes</span>
