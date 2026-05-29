@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Product, ValidatedCoupon } from '@/types/domain'
+import { track } from '@/features/analytics'
 import { effectivePrice } from '@/features/products/utils/price'
 import { getVariationStock } from '@/features/products/utils/variation'
 
@@ -64,41 +65,53 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       coupon: null,
-      addItem: (product, selectedVariation = null) =>
-        set((state) => {
-          const key = buildCartKey(product.id, selectedVariation)
-          const existing = state.items.find((i) => i.cartKey === key)
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.cartKey === key
-                  ? {
-                      ...i,
-                      quantity: Math.min(
-                        i.quantity + 1,
-                        maxAvailableQuantity(product, selectedVariation),
-                      ),
-                    }
-                  : i,
-              ),
-            }
-          }
-          if (maxAvailableQuantity(product, selectedVariation) <= 0) return state
-          return {
+      addItem: (product, selectedVariation = null) => {
+        const key = buildCartKey(product.id, selectedVariation)
+        const max = maxAvailableQuantity(product, selectedVariation)
+        const existing = get().items.find((i) => i.cartKey === key)
+
+        // Bail out without tracking when nothing is actually added (out of
+        // stock, or the line is already capped at the available quantity).
+        if (existing) {
+          if (existing.quantity >= max) return
+          set((state) => ({
+            items: state.items.map((i) =>
+              i.cartKey === key ? { ...i, quantity: i.quantity + 1 } : i,
+            ),
+          }))
+        } else {
+          if (max <= 0) return
+          set((state) => ({
             items: [
               ...state.items,
               { product, quantity: 1, selectedVariation, cartKey: key },
             ],
-          }
-        }),
-      removeItem: (cartKey) =>
+          }))
+        }
+
+        track('add_to_cart', {
+          item_id: product.id,
+          item_name: product.name,
+          quantity: 1,
+          price: effectivePrice(product) / 100,
+        })
+      },
+      removeItem: (cartKey) => {
+        const removed = get().items.find((i) => i.cartKey === cartKey)
         set((state) => {
           const remaining = state.items.filter((i) => i.cartKey !== cartKey)
           return {
             items: remaining,
             coupon: remaining.length === 0 ? null : state.coupon,
           }
-        }),
+        })
+        if (removed) {
+          track('remove_from_cart', {
+            item_id: removed.product.id,
+            quantity: removed.quantity,
+          })
+        }
+      },
       updateQuantity: (cartKey, quantity) =>
         set((state) => ({
           items: state.items.map((i) => {
@@ -119,8 +132,18 @@ export const useCartStore = create<CartStore>()(
             coupon: filtered.length === 0 ? null : state.coupon,
           }
         }),
-      applyCoupon: (coupon) => set({ coupon }),
-      clearCoupon: () => set({ coupon: null }),
+      applyCoupon: (coupon) => {
+        set({ coupon })
+        track('coupon_applied', {
+          coupon_code: coupon.code,
+          discount_value: coupon.discountInCents / 100,
+        })
+      },
+      clearCoupon: () => {
+        const { coupon } = get()
+        set({ coupon: null })
+        if (coupon) track('coupon_removed', { coupon_code: coupon.code })
+      },
       subtotalInCents: () =>
         get().items.reduce(
           (sum, i) => sum + effectivePrice(i.product) * i.quantity,
