@@ -9,6 +9,7 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg'
   height?: number
   className?: string
+  mobileSrc?: string
 }
 
 const heights: Record<NonNullable<LogoProps['size']>, number> = {
@@ -23,17 +24,20 @@ const srcs: Record<LogoVariant, string> = {
   branca: '/logos/lapamarket-logo-branca.svg',
 }
 
-export function Logo({ dark = false, variant, size = 'md', height: heightProp, className }: LogoProps) {
+export function Logo({ dark = false, variant, size = 'md', height: heightProp, className, mobileSrc }: LogoProps) {
   const h = heightProp ?? heights[size]
   const src = srcs[variant ?? (dark ? 'branca' : 'ambos')]
 
   return (
-    <img
-      src={src}
-      alt="Lapa Marketplace"
-      height={h}
-      style={{ height: h, width: 'auto' }}
-      className={cn('block', className)}
-    />
+    <picture>
+      {mobileSrc && <source media="(max-width: 767px)" srcSet={mobileSrc} />}
+      <img
+        src={src}
+        alt="Lapa Marketplace"
+        height={h}
+        style={{ height: h, width: 'auto' }}
+        className={cn('block h-1/2 md:h-auto', className)}
+      />
+    </picture>
   )
 }

@@ -20,7 +20,7 @@ export function MarketingNavbar() {
     <nav className="sticky top-0 z-40 border-b border-z-border bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 py-3">
         <Link id="lp-nav-logo" to={ROUTES.home} aria-label="Lapa Marketplace">
-          <Logo variant="verde" height={58} className="h-[10px] md:h-[58px]" />
+          <Logo variant="verde" height={58} className="h-[10px] md:h-[58px]" mobileSrc="/logos/logo-market.svg" />
         </Link>
         <div className="hidden items-center gap-7 md:flex">
           {links.map((l) =>
@@ -50,6 +50,7 @@ export function MarketingNavbar() {
             id="lp-nav-btn-login"
             variant={isLoggedIn ? 'primary' : 'ghost'}
             size="sm"
+            className={!isLoggedIn ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
             onClick={() => navigate(isLoggedIn ? ROUTES.dashboard : ROUTES.login)}
           >
             {isLoggedIn ? 'Dashboard' : 'Login'}

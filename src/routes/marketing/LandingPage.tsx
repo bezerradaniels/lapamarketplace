@@ -79,7 +79,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 /* ─── Hero visual ────────────────────────────────────────────────────────── */
 function HeroMarketplaceImage() {
   return (
-    <div className="relative -mt-16 flex h-full translate-x-16 items-end justify-end md:-mt-16 md:translate-x-0 md:justify-end">
+    <div className="relative -mt-16 flex h-full translate-x-16 items-end justify-end md:-mt-16 md:translate-x-0 md:justify-end z-0">
       <img
         src="/images/hero-model-marketplace.svg"
         alt="Modelo usando o Lapa Marketplace"
@@ -122,10 +122,8 @@ function HeroMarketplaceImage() {
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
 const HERO_BENEFITS = [
   'Crie seu catálogo em minutos.',
-  'Crie promoções e cupons.',
   'Divulgue o link da sua loja.',
   'Receba pedidos no Whatsapp.',
-  'Teste grátis sem cartão de crédito.',
 ]
 
 function getUserFirstName(user: User | null) {
@@ -167,7 +165,7 @@ function Hero() {
   const loggedInGreeting = `${getHeroGreeting(now)}, ${getUserFirstName(user)}.`
 
   return (
-    <section className="relative overflow-hidden bg-white px-6 pb-0 pt-4 md:pt-8">
+    <section className="relative overflow-hidden bg-white px-6 pb-0 pt-[26px] md:pt-[42px]">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
         style={{
@@ -176,16 +174,16 @@ function Hero() {
       />
 
       <div className="relative mx-auto max-w-6xl">
-        <div className="grid min-h-[calc(100svh-80px)] items-end gap-4 md:grid-cols-[1fr_420px] md:gap-8 lg:grid-cols-[1fr_500px]">
-          {/* ── Left: copy ── */}
-          <div className="self-center pt-6 text-left md:-translate-y-10 md:pt-0 md:text-left lg:-translate-y-12">
+        <div className="flex flex-col items-center gap-12 md:grid md:grid-cols-[1fr_420px] md:items-end md:gap-8 md:min-h-[600px] lg:grid-cols-[1fr_500px]">
+          {/* ── Copy section ── */}
+          <div className="w-full text-center md:text-left md:self-center md:-translate-y-10 lg:-translate-y-12">
             {/* Headline */}
             <h1
               className={cn(
                 'max-w-[22em] font-black text-z-text md:max-w-none',
                 isLoggedIn
                   ? 'text-[34px] leading-[0.94] md:text-[52px] md:leading-[0.94]'
-                  : 'text-[24px] leading-[1.06] md:text-[36px]',
+                  : 'text-[32px] leading-[1.06] md:text-[36px]',
               )}
             >
               {isLoggedIn ? (
@@ -194,7 +192,7 @@ function Hero() {
                   <span className="block">Que bom ver você novamente.</span>
                 </>
               ) : (
-                'Catálogo digital simples e prático para impulsionar suas vendas em Bom Jesus da Lapa'
+                'Aumente suas vendas em Bom Jesus da Lapa'
               )}
             </h1>
 
@@ -204,7 +202,7 @@ function Hero() {
                 {getLoggedInHeroSub(now)}
               </p>
             ) : (
-              <ul className="mt-5 max-w-xl space-y-3 text-base font-semibold leading-relaxed text-z-text-muted md:text-lg">
+              <ul className="mt-5 max-w-xl space-y-3 text-base font-semibold leading-relaxed text-z-text-muted md:text-lg flex flex-col items-center md:items-start">
                 {HERO_BENEFITS.map((benefit) => (
                   <li key={benefit} className="flex items-start gap-3">
                     <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-z-green text-white md:h-6 md:w-6">
@@ -217,17 +215,17 @@ function Hero() {
             )}
 
             {/* CTA */}
-            <div className="mt-9 flex flex-wrap justify-start gap-3">
-              <Button asChild size="lg" className="bg-sky-500 text-white hover:opacity-85">
+            <div className="mt-9 flex flex-wrap justify-center gap-3 md:justify-start">
+              <Button asChild size="lg" className="bg-sky-600 text-white hover:bg-sky-700">
                 <Link id="lp-hero-cta-signup" to={isLoggedIn ? ROUTES.dashboard : ROUTES.signup}>
-                  {isLoggedIn ? 'Ir para dashboard' : 'Comece grátis'}
+                  {isLoggedIn ? 'Ir para dashboard' : 'Crie seu catálogo de produtos'}
                   <HugeiconsIcon icon={ArrowRight02Icon} size={18} />
                 </Link>
               </Button>
             </div>
           </div>
 
-          {/* ── Right: hero image ── */}
+          {/* ── Hero image ── */}
           <HeroMarketplaceImage />
         </div>
       </div>
