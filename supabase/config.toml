@@ -37,3 +37,14 @@ verify_jwt = true
 # (stripe.webhooks.constructEventAsync). Never set this to true.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Admin billing alerts (trial ended / subscription events). Invoked server-to-
+# server by stripe-webhook and check-trial-completions using the service-role
+# key, which is a valid project JWT — so the gateway gates anonymous callers.
+[functions.billing-notification]
+verify_jwt = true
+
+# Daily trial-completion sweep. Invoked by an external cron with the service-
+# role key; the function additionally checks the bearer equals SERVICE_ROLE_KEY.
+[functions.check-trial-completions]
+verify_jwt = true

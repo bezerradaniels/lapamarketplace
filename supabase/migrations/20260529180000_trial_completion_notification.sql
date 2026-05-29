@@ -1,0 +1,3 @@
+-- This migration is kept for reference but we're using the edge function approach instead
+-- The check-trial-completions edge function handles trial completion detection
+-- No database changes needed for this implementation

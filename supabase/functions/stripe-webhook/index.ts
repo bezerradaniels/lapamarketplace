@@ -16,6 +16,8 @@ import { adminClient } from '../_shared/auth.ts'
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')!
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
@@ -53,6 +55,27 @@ function storeIdFromMetadata(
   metadata: Stripe.Metadata | null | undefined,
 ): string | null {
   return metadata?.store_id ?? null
+}
+
+async function sendBillingNotification(
+  type: 'subscription_created' | 'subscription_updated' | 'subscription_canceled',
+  storeId: string,
+  planId?: string,
+  status?: string,
+) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/billing-notification`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type, storeId, planId, status }),
+    })
+  } catch (err) {
+    // Don't fail webhook if notification fails
+    console.error('Failed to send billing notification:', err)
+  }
 }
 
 Deno.serve(async (req) => {
@@ -136,6 +159,15 @@ Deno.serve(async (req) => {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq('store_id', storeId)
+
+        // Send notification
+        if (event.type === 'customer.subscription.created') {
+          await sendBillingNotification('subscription_created', storeId, planId ?? undefined, status)
+        } else if (event.type === 'customer.subscription.updated') {
+          await sendBillingNotification('subscription_updated', storeId, planId ?? undefined, status)
+        } else if (event.type === 'customer.subscription.deleted') {
+          await sendBillingNotification('subscription_canceled', storeId, planId ?? undefined, status)
+        }
         break
       }
 

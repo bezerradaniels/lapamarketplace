@@ -1,0 +1,19 @@
+name: Check Trial Completions
+
+# Runs daily to detect trials that ended and email the admin
+# (daniel.ddsb@gmail.com) via the check-trial-completions edge function.
+on:
+  schedule:
+    - cron: '0 12 * * *' # 12:00 UTC = 09:00 BRT
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+jobs:
+  check-trials:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call check-trial-completions edge function
+        run: |
+          curl -fsS -X POST \
+            'https://sxpptsimxbspmcjmphas.supabase.co/functions/v1/check-trial-completions' \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H 'Content-Type: application/json'
