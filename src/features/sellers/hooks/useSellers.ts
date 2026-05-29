@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { track } from '@/features/analytics'
 import { listMembers } from '../api/queries'
 import { addSellerByEmail, removeSeller } from '../api/mutations'
 import { sellersKeys } from '../api/keys'
@@ -25,7 +26,8 @@ export function useRemoveSeller(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (userId: string) => removeSeller(storeId, userId),
-    onSuccess: () => {
+    onSuccess: (_data, userId) => {
+      track('seller_deleted', { store_id: storeId, seller_id: userId })
       qc.invalidateQueries({ queryKey: sellersKeys.list(storeId) })
     },
   })

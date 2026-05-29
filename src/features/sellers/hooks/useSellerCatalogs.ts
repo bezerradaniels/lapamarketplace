@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { track } from '@/features/analytics'
 import { createBrowserClient } from '@/lib/supabase'
 import { sellerCatalogKeys } from '../api/sellerCatalogKeys'
 import {
@@ -30,7 +31,14 @@ export function useCreateSellerCatalog(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: SellerCatalogInput) => createSellerCatalog(storeId, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: sellerCatalogKeys.list(storeId) }),
+    onSuccess: (catalog) => {
+      track('seller_created', {
+        store_id: storeId,
+        seller_id: catalog.id,
+        has_dashboard_access: catalog.has_dashboard_access,
+      })
+      qc.invalidateQueries({ queryKey: sellerCatalogKeys.list(storeId) })
+    },
   })
 }
 
