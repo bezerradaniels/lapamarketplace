@@ -144,7 +144,11 @@ export default function OrdersPage() {
                           icon={CheckmarkCircle01Icon}
                           disabled={updateStatus.isPending}
                           onClick={() =>
-                            updateStatus.mutate({ id: o.id, status: 'confirmed' })
+                            updateStatus.mutate({
+                              id: o.id,
+                              status: 'confirmed',
+                              oldStatus: o.status,
+                            })
                           }
                         />
                       )}
@@ -154,7 +158,11 @@ export default function OrdersPage() {
                           icon={ShoppingBagCheckIcon}
                           disabled={updateStatus.isPending}
                           onClick={() =>
-                            updateStatus.mutate({ id: o.id, status: 'completed' })
+                            updateStatus.mutate({
+                              id: o.id,
+                              status: 'completed',
+                              oldStatus: o.status,
+                            })
                           }
                         />
                       )}
@@ -296,7 +304,9 @@ function OrderDetailContent({
               key={status}
               type="button"
               disabled={updateStatus.isPending || o.status === status}
-              onClick={() => updateStatus.mutate({ id: o.id, status })}
+              onClick={() =>
+                updateStatus.mutate({ id: o.id, status, oldStatus: o.status })
+              }
               className={cn(
                 'rounded-full border px-2.5 py-1 text-xs font-medium transition disabled:opacity-60',
                 o.status === status

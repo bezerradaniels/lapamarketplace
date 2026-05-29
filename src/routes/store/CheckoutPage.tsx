@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useNavigate, useOutletContext } from 'react-router-dom'
@@ -6,6 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft02Icon, WhatsappIcon } from '@hugeicons/core-free-icons'
 import type { Store } from '@/types/domain'
 import { useCartStore } from '@/features/cart'
+import { track } from '@/features/analytics'
 import { effectivePrice } from '@/features/products'
 import { checkoutSchema, type CheckoutInput, useCreateOrder } from '@/features/orders'
 import { formatMoney } from '@/lib/format'
@@ -33,6 +34,17 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: { name: '', phone: '', notes: '' },
   })
+
+  // Fire `begin_checkout` once when the page mounts with a non-empty cart.
+  useEffect(() => {
+    const cart = useCartStore.getState()
+    if (cart.items.length === 0) return
+    track('begin_checkout', {
+      store_id: store.id,
+      item_count: cart.items.length,
+      value: cart.totalInCents() / 100,
+    })
+  }, [store.id])
 
   if (items.length === 0) return <Navigate to={cartPath} replace />
 
@@ -90,6 +102,14 @@ export default function CheckoutPage() {
           : null,
       })
       const url = buildWhatsAppLink(store.whatsapp_phone!, message)
+
+      track('order_submitted', {
+        store_id: store.id,
+        order_id: order.id,
+        value: total / 100,
+        item_count: items.length,
+        has_coupon: !!coupon,
+      })
 
       clearCart()
       navigate(buildStorePath(store.slug, `pedido/${order.id}`), {

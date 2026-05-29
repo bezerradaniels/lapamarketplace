@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { Button, Input, Label } from '@/components/ui'
+import { track } from '@/features/analytics'
 import { createBrowserClient } from '@/lib/supabase'
 import { slugify } from '@/lib/utils/slugify'
 import { ROUTES } from '@/config/routes'
@@ -107,6 +108,7 @@ export function OnboardingStep2() {
         ...session,
         storeSlug: values.slug,
       })
+      track('onboarding_step_completed', { step: 2, step_name: 'Sobre o negócio' })
       navigate(ROUTES.onboardingStep3)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Algo deu errado. Tente novamente.'

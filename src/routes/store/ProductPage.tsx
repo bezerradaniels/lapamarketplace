@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ import {
   getVariationStock,
 } from '@/features/products'
 import { useCartStore, buildCartKey } from '@/features/cart'
+import { track } from '@/features/analytics'
 import { formatMoney } from '@/lib/format'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { buildWhatsAppLink } from '@/lib/whatsapp'
@@ -150,6 +151,13 @@ export default function ProductPage() {
     setPrevImagesLen(images.length)
     setActiveImg((current) => Math.min(current, Math.max(images.length - 1, 0)))
   }
+
+  // Fire a single `view_item` per product once its data is available.
+  useEffect(() => {
+    if (!p || p.store_id !== store.id) return
+    track('view_item', { store_id: store.id, item_id: p.id, item_name: p.name })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p?.id, store.id])
 
   if (product.isLoading) {
     return (

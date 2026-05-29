@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { track } from '@/features/analytics'
+import type { OrderStatus } from '@/types/domain'
 import { listOrdersForStore, getOrderById } from '../api/queries'
 import {
   createOrder,
@@ -25,14 +27,32 @@ export function useOrder(id: string | undefined) {
 }
 
 export function useCreateOrder() {
-  return useMutation({ mutationFn: createOrder })
+  return useMutation({
+    mutationFn: createOrder,
+    onSuccess: (order, variables) => {
+      track('order_created', {
+        store_id: variables.storeId,
+        order_id: order.id,
+        total_value: order.total_in_cents / 100,
+        item_count: order.items.length,
+        has_coupon: !!variables.coupon,
+      })
+    },
+  })
 }
 
 export function useCreateManualOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: createManualOrder,
-    onSuccess: () => {
+    onSuccess: (order) => {
+      track('order_created', {
+        store_id: storeId,
+        order_id: order.id,
+        total_value: order.total_in_cents / 100,
+        item_count: order.items.length,
+        has_coupon: false,
+      })
       qc.invalidateQueries({ queryKey: ordersKeys.list(storeId) })
     },
   })
@@ -46,9 +66,17 @@ export function useUpdateOrderStatus() {
       status,
     }: {
       id: string
-      status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+      status: OrderStatus
+      /** Previous status, passed by the caller so we can report the transition. */
+      oldStatus: OrderStatus
     }) => updateOrderStatus(id, status),
-    onSuccess: (order) => {
+    onSuccess: (order, { oldStatus }) => {
+      track('order_status_changed', {
+        store_id: order.store_id,
+        order_id: order.id,
+        old_status: oldStatus,
+        new_status: order.status,
+      })
       qc.invalidateQueries({ queryKey: ordersKeys.list(order.store_id) })
       qc.invalidateQueries({ queryKey: ordersKeys.byId(order.id) })
     },

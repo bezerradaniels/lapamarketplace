@@ -7,6 +7,7 @@ import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { Button, Label } from '@/components/ui'
 import { RoundMultiCheck } from '@/components/forms/RoundMultiCheck'
 import { DeliveryHoursEditor } from '@/components/forms/DeliveryHoursEditor'
+import { track } from '@/features/analytics'
 import { patchStore } from '@/features/catalog'
 import { ROUTES } from '@/config/routes'
 import { loadOnboardingSession } from '../utils/onboardingSession'
@@ -66,6 +67,7 @@ export function OnboardingStep3() {
         accepted_shipping_methods: values.accepted_shipping_methods,
         delivery_hours: values.delivery_hours,
       })
+      track('onboarding_step_completed', { step: 3, step_name: 'Pagamento e entrega' })
       navigate(ROUTES.onboardingStep4)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Algo deu errado. Tente novamente.'

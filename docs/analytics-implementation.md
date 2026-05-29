@@ -252,12 +252,22 @@ Como os botões têm `id` (ver [`landing-page-ids.md`](./landing-page-ids.md)):
 - [x] Container GTM instalado e consent-gated (`index.html`)
 - [x] Módulo tipado `src/features/analytics/` (`track` + catálogo)
 - [x] Exemplo wired: produtos (`useProductMutations.ts`)
-- [ ] Wire vendedores / clientes / categorias / cupons / pedidos (seção 3.1)
-- [ ] Wire login / signup / checkout (seção 3.3)
-- [ ] Wire vitrine pública: `view_item`, `add_to_cart`, `begin_checkout`, `order_submitted`
+- [x] Wire vendedores / clientes / categorias / cupons / pedidos (seção 3.1)
+- [x] Wire login / signup / logout / onboarding (seção 3.3)
+- [x] Wire vitrine pública: `view_item`, `add_to_cart`, `remove_from_cart`, `coupon_applied`, `coupon_removed`, `begin_checkout`, `order_submitted`
 - [ ] GTM: tag base GA4 + tag genérica de evento + variáveis de DL (seção 4)
 - [ ] GA4: Measurement ID, conversões, dimensões personalizadas (seção 5)
 - [ ] Validar no DebugView e publicar o container
+
+> Notas da instrumentação (`feat/analytics-wire-remaining`):
+> - `seller_created` foi disparado em `useCreateSellerCatalog` (fluxo realmente
+>   usado pelo `NewSellerModal`, que carrega `has_dashboard_access`), e não no
+>   `useAddSeller` citado no mapa original — esse hook está exportado mas sem uso.
+> - `order_status_changed` recebe `old_status` via um campo `oldStatus` passado
+>   pelos call sites em `OrdersPage.tsx` (a mutation só retorna o novo status).
+> - `total_time_seconds` do `onboarding_completed` usa
+>   `markOnboardingStarted()` / `getOnboardingElapsedSeconds()` em
+>   `onboardingSession.ts`.
 
 ---
 
