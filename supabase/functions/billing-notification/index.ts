@@ -182,20 +182,24 @@ Deno.serve(async (req) => {
       return new Response('missing_fields', { status: 400, headers: corsHeaders })
     }
 
-    // Fetch store and owner details. Owner email/name live on `profiles`,
-    // joined to `stores` via owner_id.
+    // Fetch store, then owner profile. There is no direct FK between `stores`
+    // and `profiles` (both reference auth.users), so we resolve in two steps.
     const admin = adminClient()
     const { data: storeData } = await admin
       .from('stores')
-      .select('name, owner:profiles!stores_owner_id_fkey ( email, name )')
+      .select('name, owner_id')
       .eq('id', data.storeId)
       .single()
 
     if (storeData) {
-      const owner = (storeData as { owner?: { email?: string; name?: string } }).owner
       data.storeName = storeData.name
-      data.ownerEmail = owner?.email
-      data.ownerName = owner?.name ?? undefined
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('email, name')
+        .eq('id', storeData.owner_id)
+        .maybeSingle()
+      data.ownerEmail = profile?.email ?? undefined
+      data.ownerName = profile?.name ?? undefined
     }
 
     let emailContent: { subject: string; html: string }

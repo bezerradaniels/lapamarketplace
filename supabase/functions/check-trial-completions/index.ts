@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
     const admin = adminClient()
 
     // Find trials that ended in the last 24 hours and haven't been notified yet.
-    // Owner email/name come from `profiles`, joined to `stores` via owner_id.
+    // Owner email/name are resolved separately from `profiles` (no direct FK
+    // between stores and profiles — both reference auth.users).
     const { data: completedTrials, error } = await admin
       .from('subscriptions')
       .select(`
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
         trial_ends_at,
         stores!inner (
           name,
-          owner:profiles!stores_owner_id_fkey ( email, name )
+          owner_id
         )
       `)
       .eq('status', 'trialing')
@@ -59,7 +60,14 @@ Deno.serve(async (req) => {
     let notifiedCount = 0
 
     for (const trial of completedTrials) {
-      const store = trial.stores as { name?: string; owner?: { email?: string; name?: string } }
+      const store = trial.stores as { name?: string; owner_id?: string }
+
+      // Resolve owner email/name from profiles
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('email, name')
+        .eq('id', store.owner_id)
+        .maybeSingle()
 
       // Check if we already notified for this trial end
       const { data: existingEvent } = await admin
@@ -81,8 +89,8 @@ Deno.serve(async (req) => {
         store_id: trial.store_id,
         payload: {
           store_name: store.name,
-          owner_email: store.owner?.email,
-          owner_name: store.owner?.name,
+          owner_email: profile?.email,
+          owner_name: profile?.name,
           plan_id: trial.plan_id,
         },
       })
