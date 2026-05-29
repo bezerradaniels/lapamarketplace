@@ -7,6 +7,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Store01Icon } from '@hugeicons/core-free-icons'
 import { Button, Label } from '@/components/ui'
 import { ImageCropUploader } from '@/components/forms/ImageCropUploader'
+import { track } from '@/features/analytics'
 import { patchStore, catalogKeys } from '@/features/catalog'
 import { ROUTES } from '@/config/routes'
 import { loadOnboardingSession } from '../utils/onboardingSession'
@@ -74,6 +75,7 @@ export function OnboardingStep4() {
         banner_url: values.banner_url || null,
       })
       await queryClient.invalidateQueries({ queryKey: catalogKeys.all })
+      track('onboarding_step_completed', { step: 4, step_name: 'Visual' })
       navigate(ROUTES.onboardComplete)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Algo deu errado. Tente novamente.'

@@ -6,6 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { Button, Combobox, Input, Label } from '@/components/ui'
 import { PhoneInput } from '@/components/forms/PhoneInput'
+import { track } from '@/features/analytics'
 import { STATES, toE164BR } from '@/lib/br'
 import { createStore, SlugTakenError, patchStore } from '@/features/catalog'
 import { slugify } from '@/lib/utils/slugify'
@@ -55,6 +56,7 @@ export function OnboardingStep1() {
   const onSubmit = async (values: Step1Values) => {
     setIsSubmitting(true)
     try {
+      const isNewStore = !onboardingSession
       let store = onboardingSession
         ? {
             id: onboardingSession.storeId,
@@ -102,6 +104,11 @@ export function OnboardingStep1() {
         storeSlug: store.slug,
         storeName: store.name,
       })
+
+      if (isNewStore) {
+        track('store_created', { store_id: store.id, store_slug: store.slug })
+      }
+      track('onboarding_step_completed', { step: 1, step_name: 'Sua loja' })
 
       navigate(ROUTES.onboardingStep2)
     } catch (err) {

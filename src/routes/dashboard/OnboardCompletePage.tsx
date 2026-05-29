@@ -11,8 +11,12 @@ import {
 import { Logo } from '@/components/ui'
 import { ROUTES } from '@/config/routes'
 import { buildStoreUrl, useActiveStore } from '@/lib/tenant'
+import { track } from '@/features/analytics'
 import { clearAllDrafts } from '@/features/onboarding/utils/onboardingDraft'
-import { clearOnboardingSession } from '@/features/onboarding/utils/onboardingSession'
+import {
+  clearOnboardingSession,
+  getOnboardingElapsedSeconds,
+} from '@/features/onboarding/utils/onboardingSession'
 
 declare global {
   interface Window {
@@ -31,6 +35,9 @@ export default function OnboardCompletePage() {
         event: 'event_onboard_complete',
       })
     }
+    track('onboarding_completed', {
+      total_time_seconds: getOnboardingElapsedSeconds(),
+    })
     clearOnboardingSession()
     clearAllDrafts()
   }, [])
