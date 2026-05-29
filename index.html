@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Lapa Marketplace ajuda lojistas brasileiros a criar catálogo digital, vender pelo WhatsApp e gerenciar pedidos em um dashboard simples."
+    />
+    <link rel="canonical" href="https://lapamarketplace.com.br/" />
+    <link
+      rel="preload"
+      as="image"
+      href="/images/hero-model-marketplace.svg"
+      type="image/svg+xml"
+      fetchpriority="high"
+    />
+    <meta name="facebook-domain-verification" content="vho2kwimgbq970idbbfk3efwvjd6sb" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>Lapa Marketplace</title>
+    <script>
+      window.dataLayer = window.dataLayer || []
+      ;(() => {
+        const consentKey = 'lapa_cookie_consent'
+        const loadGtm = () => {
+          if (window.__gtmLoaded) return
+          try {
+            if (window.localStorage.getItem(consentKey) !== 'accepted') return
+          } catch {
+            return
+          }
+          window.__gtmLoaded = true
+          window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' })
+          const script = document.createElement('script')
+          script.async = true
+          script.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-KDTKWS4N'
+          document.head.appendChild(script)
+        }
+        const schedule = () => {
+          try {
+            if (window.localStorage.getItem(consentKey) !== 'accepted') return
+          } catch {
+            return
+          }
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(loadGtm, { timeout: 3500 })
+            return
+          }
+          window.setTimeout(loadGtm, 2500)
+        }
+        window.addEventListener('load', schedule, { once: true })
+        window.addEventListener('lapa:cookie-consent-accepted', schedule)
+        ;['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
+          window.addEventListener(eventName, loadGtm, { once: true, passive: true })
+        })
+      })()
+    </script>
+  </head>
+  <body style="font-family: 'DM Sans', sans-serif !important;">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

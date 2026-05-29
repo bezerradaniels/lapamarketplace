@@ -1,0 +1,241 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar",
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro. Tente novamente.",
+    "required": "Campo obrigatório",
+    "back": "Voltar",
+    "confirm": "Confirmar",
+    "close": "Fechar",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "signup": "Criar conta",
+    "email": "E-mail",
+    "password": "Senha",
+    "forgotPassword": "Esqueci minha senha",
+    "noAccount": "Não tem uma conta?",
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "name": "Nome",
+    "submitting": "Enviando...",
+    "invalidCredentials": "Não foi possível entrar. Verifique e-mail e senha.",
+    "signupFailed": "Não foi possível criar a conta. Tente outro e-mail."
+  },
+  "marketing": {
+    "slogan": "Transforme sua loja em um catálogo zapável.",
+    "ctaStart": "Começar grátis por 14 dias"
+  },
+  "dashboard": {
+    "title": "Painel",
+    "home": "Início",
+    "orders": "Pedidos",
+    "products": "Produtos",
+    "customers": "Clientes",
+    "sellers": "Vendedores",
+    "catalog": "Catálogo",
+    "billing": "Assinatura",
+    "support": "Suporte"
+  },
+  "products": {
+    "title": "Produtos",
+    "new": "Novo produto",
+    "name": "Nome",
+    "description": "Descrição",
+    "price": "Preço",
+    "stock": "Estoque",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "noProducts": "Nenhum produto cadastrado ainda.",
+    "limitReached": "Limite de produtos do seu plano atingido."
+  },
+  "orders": {
+    "title": "Pedidos",
+    "status": {
+      "pending": "Pendente",
+      "confirmed": "Confirmado",
+      "in_preparation": "Em preparação",
+      "shipped": "Enviado",
+      "delivered": "Entregue",
+      "cancelled": "Cancelado"
+    },
+    "noOrders": "Nenhum pedido ainda."
+  },
+  "customers": {
+    "title": "Clientes",
+    "new": "Novo cliente",
+    "noCustomers": "Ainda não há clientes",
+    "noCustomersHint": "Cadastre o primeiro cliente ou aguarde pedidos chegarem pelo catálogo.",
+    "found_one": "{{count}} encontrado",
+    "found_other": "{{count}} encontrados",
+    "search": "Pesquisar nos dados do cliente",
+    "filterBy": "Filtrar por",
+    "tag": "Tag",
+    "sellerResponsible": "Vendedor responsável",
+    "manageSellers": "Gerenciar vendedores",
+    "manageTags": "Gerenciar tags",
+    "personalInfo": "Informações pessoais",
+    "name": "Nome do cliente",
+    "whatsapp": "WhatsApp",
+    "secondaryPhone": "Telefone secundário",
+    "birthday": "Aniversário",
+    "email": "E-mail",
+    "website": "Site",
+    "socialLinks": "Adicione os links das redes sociais do seu cliente",
+    "profileNotes": "Perfil do cliente e observações",
+    "profileNotesHint": "Adicione aqui informações relevantes que podem ser usadas para gerar vendas para este cliente",
+    "generateProfile": "Gerar Perfil",
+    "tags": "Tags",
+    "tagsHint": "Adicione tags para facilitar a categorização dos seus clientes",
+    "tagsPlaceholder": "Digite a tag e pressione enter",
+    "categoryInterests": "Categorias e subcategorias de interesse",
+    "categoryInterestsHint": "Vincule categorias e subcategorias de produtos nos quais seu cliente tem interesse",
+    "productInterests": "Produtos de interesse",
+    "productInterestsHint": "Adicione os produtos de interesse desse cliente",
+    "deleteCustomer": "Excluir cliente",
+    "saveData": "Salvar dados",
+    "intelligence": {
+      "overdueRepurchase": "Com recompra em atraso",
+      "birthdayThisWeek": "Com aniversário esta semana",
+      "possibleRepurchase": "Com possível recompra",
+      "complementaryPurchases": "Com compras complementares",
+      "viewAll": "Ver tudo"
+    },
+    "aiPanel": {
+      "title": "Eu encontro oportunidades de vendas onde você não vê",
+      "description": "Eu analiso os nossos clientes, pedidos e produtos e identifico as melhores oportunidades de negócio entre eles. Só preciso dos cadastros atualizados."
+    }
+  },
+  "catalog": {
+    "title": "Personalizar catálogo",
+    "logo": "Logo",
+    "banner": "Banner",
+    "primaryColor": "Cor principal",
+    "storeName": "Nome da loja",
+    "description": "Descrição da loja"
+  },
+  "billing": {
+    "title": "Assinatura",
+    "currentPlan": "Plano atual",
+    "trialEnds": "Período de teste termina em {{date}}",
+    "manageSubscription": "Gerenciar assinatura",
+    "plans": {
+      "basico": "Básico",
+      "pro": "Pro",
+      "premium": "Premium"
+    },
+    "status": {
+      "trialing": "Em teste",
+      "active": "Ativo",
+      "past_due": "Pagamento pendente",
+      "canceled": "Cancelado",
+      "unpaid": "Não pago"
+    }
+  },
+  "store": {
+    "addToCart": "Adicionar ao carrinho",
+    "buyViaWhatsApp": "Comprar pelo WhatsApp",
+    "cart": "Carrinho",
+    "checkout": "Finalizar pedido",
+    "emptyCart": "Seu carrinho está vazio.",
+    "orderConfirmation": "Pedido confirmado!",
+    "total": "Total",
+    "quantity": "Quantidade",
+    "unavailable": "Esta loja está temporariamente indisponível."
+  },
+  "onboarding": {
+    "loading": "Carregando...",
+    "skip": "Pular por agora →",
+    "skipConfirm": "Tudo bem, você pode adicionar isso depois nas configurações.",
+    "confirm": "Confirmar",
+    "send": "Enviar",
+    "viewStore": "Ver meu catálogo",
+    "goToDashboard": "Ir para o painel",
+    "instagramFound": "Encontrei sua loja! Vou usar esses dados para turbinar as sugestões de IA.",
+    "instagramSaved": "Instagram salvo! Vai ajudar a IA a gerar descrições melhores.",
+    "done": "Prontinho! 🎉 Sua loja está no ar. Vamos adicionar seus primeiros produtos!",
+    "steps": {
+      "storeName": {
+        "question": "Qual é o nome da sua loja?",
+        "placeholder": "Ex: Moda da Ana"
+      },
+      "whatsapp": {
+        "question": "Qual é o WhatsApp para receber os pedidos?",
+        "placeholder": "(11) 99999-9999"
+      },
+      "instagram": {
+        "question": "Qual o @ do Instagram da sua loja?",
+        "placeholder": "@suaLoja"
+      },
+      "city": {
+        "question": "Em qual cidade fica sua loja?",
+        "placeholder": "Ex: São Paulo"
+      },
+      "category": {
+        "question": "Que tipo de produtos você vende?"
+      },
+      "logo": {
+        "question": "Quer adicionar o logo da sua loja?"
+      },
+      "banner": {
+        "question": "E um banner para o catálogo?"
+      },
+      "payment": {
+        "question": "Quais formas de pagamento sua loja aceita?"
+      },
+      "delivery": {
+        "question": "Como você entrega os pedidos?"
+      }
+    }
+  },
+  "errors": {
+    "notFound": "Página não encontrada.",
+    "unauthorized": "Acesso não autorizado.",
+    "generic": "Algo deu errado. Tente novamente mais tarde."
+  },
+  "ai": {
+    "generate": "Gerar com IA",
+    "generating": "Gerando...",
+    "regenerate": "Regenerar",
+    "upgradeRequired": "Recurso exclusivo",
+    "upgradeDescription": "disponível nos planos Pro e Premium",
+    "error": "Não foi possível gerar o conteúdo. Tente novamente.",
+    "description": {
+      "label": "Gerar descrição com IA",
+      "success": "Descrição gerada! Revise e edite se quiser.",
+      "error": "Não foi possível gerar a descrição. Tente novamente.",
+      "upgradeDescription": "A geração de descrições com IA está disponível nos planos Pro e Premium."
+    },
+    "slogan": {
+      "label": "Gerar slogan com IA",
+      "success": "Slogan gerado! Você pode ajustá-lo.",
+      "error": "Não foi possível gerar o slogan. Tente novamente.",
+      "upgradeDescription": "A geração de slogans com IA está disponível nos planos Pro e Premium."
+    },
+    "customerProfile": {
+      "title": "Perfil gerado por IA",
+      "summary": "Resumo do perfil",
+      "tags": "Perfis de comportamento",
+      "generate": "Gerar perfil",
+      "regenerate": "Atualizar análise",
+      "error": "Não foi possível gerar o perfil. Tente novamente.",
+      "upgradeDescription": "O perfil de cliente com IA está disponível nos planos Pro e Premium."
+    },
+    "productAnalysis": {
+      "title": "Análise de produto",
+      "analysis": "Análise competitiva",
+      "suggestions": "Sugestões de melhoria",
+      "generate": "Gerar análise",
+      "regenerate": "Atualizar análise",
+      "error": "Não foi possível gerar a análise. Tente novamente.",
+      "upgradeDescription": "A análise de produto com IA está disponível nos planos Pro e Premium."
+    }
+  }
+}

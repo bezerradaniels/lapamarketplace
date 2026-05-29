@@ -1,0 +1,39 @@
+# Supabase project configuration (versioned).
+# project_id is the linked project ref (lapamarketplace / sxpptsimxbspmcjmphas).
+project_id = "sxpptsimxbspmcjmphas"
+
+# =============================================================================
+# Edge Functions — explicit JWT gating (SECURITY)
+# =============================================================================
+# `verify_jwt = true` makes the Supabase gateway reject any request that does
+# not carry a valid project-issued JWT *before* the function code runs — a free
+# layer of defense in front of the function's own checks. Only the Stripe
+# webhook may disable it, because Stripe authenticates with a stripe-signature
+# header (verified inside the function), not a Supabase JWT.
+
+# Browser-invoked by a logged-in lojista; supabase-js attaches the user access
+# token automatically. The function additionally enforces store membership.
+[functions.stripe-checkout-session]
+verify_jwt = true
+
+[functions.stripe-portal-session]
+verify_jwt = true
+
+[functions.ai-instagram-profile]
+verify_jwt = true
+
+# Called right after sign-in; carries the new user's JWT (requireAuth()).
+[functions.signup-notification]
+verify_jwt = true
+
+# Destructive ops endpoint. Gateway requires a valid project JWT (e.g. a
+# service-role token) AND the function requires a matching x-admin-token.
+# Do NOT loosen this to false — the static token must never be the only control.
+[functions.delete-user-by-email]
+verify_jwt = true
+
+# Stripe → Supabase sync. MUST be false: Stripe does not send a Supabase JWT.
+# Authenticity is enforced by Stripe signature verification inside the function
+# (stripe.webhooks.constructEventAsync). Never set this to true.
+[functions.stripe-webhook]
+verify_jwt = false
