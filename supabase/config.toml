@@ -44,7 +44,8 @@ verify_jwt = false
 [functions.billing-notification]
 verify_jwt = true
 
-# Daily trial-completion sweep. Invoked by an external cron with the service-
-# role key; the function additionally checks the bearer equals SERVICE_ROLE_KEY.
+# Daily trial-completion sweep. MUST be false: the cron caller does not send a
+# Supabase JWT. Authenticity is enforced inside the function via the x-cron-secret
+# header compared against the CRON_SECRET env (same pattern as stripe-webhook).
 [functions.check-trial-completions]
-verify_jwt = true
+verify_jwt = false

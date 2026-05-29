@@ -4,26 +4,23 @@ import { adminClient } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const CRON_SECRET = Deno.env.get('CRON_SECRET')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 }
 
 Deno.serve(async (req) => {
-  // Only allow service role key for security
-  const authHeader = req.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response('unauthorized', { status: 401, headers: corsHeaders })
-  }
-
-  const token = authHeader.replace('Bearer ', '')
-  if (token !== SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response('forbidden', { status: 403, headers: corsHeaders })
-  }
-
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Gate with a dedicated shared secret sent by the cron caller. This avoids
+  // depending on the exact service-role key value/format.
+  const cronSecret = req.headers.get('x-cron-secret')
+  if (!cronSecret || cronSecret !== CRON_SECRET) {
+    return new Response('forbidden', { status: 403, headers: corsHeaders })
   }
 
   if (req.method !== 'POST') {
