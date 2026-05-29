@@ -61,59 +61,57 @@ supabase functions deploy billing-notification
 supabase functions deploy check-trial-completions
 ```
 
-### Step 2: Set Environment Variables
+### Step 2: Set Environment Variables (Supabase function secrets)
 
-Ensure these environment variables are set in your Supabase project:
+Ensure these secrets are set in your Supabase project. `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` are auto-injected by Supabase; you must set the
+rest:
 
+```bash
+supabase secrets set RESEND_API_KEY=re_xxx --project-ref sxpptsimxbspmcjmphas
+supabase secrets set CRON_SECRET=$(openssl rand -hex 32) --project-ref sxpptsimxbspmcjmphas
+# Optional: ADMIN_EMAIL (defaults to daniel.ddsb@gmail.com in code)
 ```
-RESEND_API_KEY=your_resend_api_key
-ADMIN_EMAIL=daniel.ddsb@gmail.com
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
+
+`CRON_SECRET` is a dedicated shared secret used to authenticate the daily cron
+caller. It must match the `CRON_SECRET` GitHub Actions secret (see Step 3).
 
 ### Step 3: Set Up Daily Cron Job
 
 You need to call the `check-trial-completions` function daily. Choose one of these methods:
 
-#### Option A: GitHub Actions (Recommended)
+#### Option A: GitHub Actions (Implemented)
 
-Create a GitHub Action in your repository:
+This is already set up at `.github/workflows/check-trial-completions.yml` and
+runs daily at 12:00 UTC (09:00 BRT). It authenticates via the `x-cron-secret`
+header:
 
 ```yaml
-# .github/workflows/check-trial-completions.yml
-name: Check Trial Completions
-
-on:
-  schedule:
-    - cron: '0 9 * * *' # Runs daily at 9 AM UTC
-  workflow_dispatch: # Allow manual trigger
-
-jobs:
-  check-trials:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call check-trial-completions function
+      - name: Call check-trial-completions edge function
         run: |
-          curl -X POST \
-            '${{ secrets.SUPABASE_URL }}/functions/v1/check-trial-completions' \
-            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+          curl -fsS -X POST \
+            'https://sxpptsimxbspmcjmphas.supabase.co/functions/v1/check-trial-completions' \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H 'Content-Type: application/json'
 ```
 
-Add these secrets to your GitHub repository:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+Required GitHub repository secret:
+- `CRON_SECRET` — must match the `CRON_SECRET` Supabase function secret.
+
+Set it with the GitHub CLI:
+```bash
+printf '%s' "$YOUR_CRON_SECRET" | gh secret set CRON_SECRET --repo bezerradaniels/lapamarketplace
+```
 
 #### Option B: External Cron Service
 
 Use a service like cron-job.org, EasyCron, or similar:
 
 ```
-URL: https://your-project.supabase.co/functions/v1/check-trial-completions
+URL: https://sxpptsimxbspmcjmphas.supabase.co/functions/v1/check-trial-completions
 Method: POST
 Headers:
-  Authorization: Bearer YOUR_SERVICE_ROLE_KEY
+  x-cron-secret: YOUR_CRON_SECRET
   Content-Type: application/json
 ```
 
@@ -161,9 +159,14 @@ Note: This requires the `pg_net` extension and proper configuration.
 1. Manually trigger the check function:
 ```bash
 curl -X POST \
-  'https://your-project.supabase.co/functions/v1/check-trial-completions' \
-  -H 'Authorization: Bearer YOUR_SERVICE_ROLE_KEY' \
+  'https://sxpptsimxbspmcjmphas.supabase.co/functions/v1/check-trial-completions' \
+  -H 'x-cron-secret: YOUR_CRON_SECRET' \
   -H 'Content-Type: application/json'
+```
+
+Or trigger the GitHub Actions workflow manually:
+```bash
+gh workflow run "Check Trial Completions" --repo bezerradaniels/lapamarketplace
 ```
 
 2. Or update a trial's `trial_ends_at` to the past and run the check
