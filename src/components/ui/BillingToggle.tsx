@@ -15,8 +15,8 @@ export function BillingToggle({ value, onChange, className }: Props) {
         className={cn(
           'rounded-full px-4 py-1.5 text-sm font-medium transition-all',
           value === 'monthly'
-            ? 'bg-white text-z-text shadow-sm'
-            : 'text-z-text-muted hover:text-z-text',
+            ? 'bg-green-100 text-green-800 shadow-sm'
+            : cn('text-z-text-muted hover:text-z-text', value === 'annual' && 'font-bold animate-pulse'),
         )}
       >
         Mensal
@@ -27,14 +27,16 @@ export function BillingToggle({ value, onChange, className }: Props) {
         className={cn(
           'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all',
           value === 'annual'
-            ? 'bg-white text-z-text shadow-sm'
-            : 'text-z-text-muted hover:text-z-text',
+            ? 'bg-green-100 text-green-800 shadow-sm'
+            : cn('text-z-text-muted hover:text-z-text', value === 'monthly' && 'font-bold animate-pulse'),
         )}
       >
         Anual
-        <span className="rounded-full bg-z-green/10 px-1.5 py-0.5 text-[11px] font-bold text-z-green">
-          até -30%
-        </span>
+        {value !== 'annual' && (
+          <span className="rounded-full bg-z-green/10 px-1.5 py-0.5 text-[11px] font-bold text-z-green">
+            até -30%
+          </span>
+        )}
       </button>
     </div>
   )
