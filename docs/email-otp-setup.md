@@ -25,20 +25,20 @@ No dashboard do Supabase:
 
 **Assunto:**
 ```
-Seu código de confirmação - Zapable
+Seu código de confirmação - Lapa Marketplace
 ```
 
 **Corpo do Email (HTML):**
 ```html
 <h2>Confirme sua conta</h2>
 <p>Olá {{ .Data.name }},</p>
-<p>Use o código abaixo para confirmar sua conta no Zapable:</p>
+<p>Use o código abaixo para confirmar sua conta no Lapa Marketplace:</p>
 <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
   <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">{{ .Token }}</span>
 </div>
 <p>Este código expira em 1 hora.</p>
 <p>Se você não solicitou esta conta, ignore este email.</p>
-<p style="font-size: 12px; color: #666;">Equipe Zapable</p>
+<p style="font-size: 12px; color: #666;">Equipe Lapa Marketplace</p>
 ```
 
 ### 2. Verificar Configuração SMTP
@@ -51,7 +51,7 @@ Como você já tem o Resend configurado, verifique:
    - **Port:** `587`
    - **Username:** `resend`
    - **Password:** Sua API key do Resend
-   - **Sender Email:** Seu domínio configurado no Resend (ex: `noreply@zapable.com.br`)
+   - **Sender Email:** Seu domínio configurado no Resend (ex: `noreply@lapamarketplace.com.br`)
 3. Teste o envio clicando em "Test SMTP Settings"
 
 ### 3. Habilitar Confirmação de Email

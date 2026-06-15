@@ -37,7 +37,7 @@ supabase secrets set \
   STRIPE_PRICE_BASICO=price_1TQAC11oLw5d2Hz37zjRB0U1 \
   STRIPE_PRICE_PRO=price_1TQAEc1oLw5d2Hz3MY7cucqX \
   STRIPE_PRICE_PREMIUM=price_1TQAF01oLw5d2Hz3WNOYl28z \
-  APP_URL=https://zapable.com.br
+  APP_URL=https://lapamarketplace.com.br
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are

@@ -1,4 +1,4 @@
-# Zapable — status do projeto
+# Lapa Marketplace — status do projeto
 
 _Atualizado em 25/04/2026._
 
@@ -26,7 +26,7 @@ Health check atual: `tsc → 0 erros · lint → 0 erros · build → ok`.
 ### 1.2 Multi-tenancy
 
 - `src/lib/tenant/`:
-  - `resolveStoreSlug()` reconhece prod (`*.zapable.com.br`) **e** dev
+  - `resolveStoreSlug()` reconhece prod (`*.lapamarketplace.com.br`) **e** dev
     (`*.localhost`).
   - `buildStoreUrl(slug)` gera link público respeitando ambiente
     (http/https, porta, root domain).
@@ -113,7 +113,7 @@ Health check atual: `tsc → 0 erros · lint → 0 erros · build → ok`.
 
 - **StoreLayout** — banner sticky com cor da loja, logo (ou ícone
   fallback), nome, slogan, toolbar branca com busca + cart-icon com badge
-  contador. Footer "Powered by zapable".
+  contador. Footer "Powered by Lapa Marketplace".
 - **`UnavailableScreen`** quando: store não existe, **trial expirado**,
   ou subscription inativa (lê `getStoreCatalogStatus` RPC).
 - **StorePage** — chips de categoria sticky no topo, cards com:

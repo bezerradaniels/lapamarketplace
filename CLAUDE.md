@@ -8,11 +8,11 @@ operational rules of the project. Keep it concise, accurate, and up to date.
 
 ## 1. Project Overview
 
-**Name:** Zapable
+**Name:** Lapa Marketplace
 
-**Slogan:** "Transforme sua loja em um catálogo zapável."
+**Slogan:** "Transforme sua loja em um catálogo pronto para o WhatsApp."
 
-**Domain:** zapable.com.br (store URLs: `{slug}.zapable.com.br`)
+**Domain:** lapamarketplace.com.br (store URLs: `{slug}.lapamarketplace.com.br`)
 
 **One-liner:** A multi-tenant SaaS that lets shop owners (lojistas) publish a
 shareable online catalog (unique URL per store) and receive orders via
@@ -30,8 +30,8 @@ expansion is a post-MVP concern.
 - **End customer:** browses the catalog, adds to cart, checks out without
   creating an account. The order is persisted and then opened in WhatsApp.
 
-**Distribution model:** each store is served at `{slug}.zapable.com.br`
-(e.g. `danibezerra.zapable.com.br`), resolved client-side via wildcard DNS.
+**Distribution model:** each store is served at `{slug}.lapamarketplace.com.br`
+(e.g. `danibezerra.lapamarketplace.com.br`), resolved client-side via wildcard DNS.
 
 **Regional defaults:**
 - Locale: `pt-BR` (single locale at launch).
@@ -711,11 +711,11 @@ Aim for confidence, not coverage %. Don't test implementation details.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^ index.html [QSA,L]
   ```
-- **Wildcard DNS:** `*.zapable.com.br` → same host. The same static bundle
+- **Wildcard DNS:** `*.lapamarketplace.com.br` → same host. The same static bundle
   serves every store; the subdomain is resolved client-side by
   `src/lib/tenant/resolveStore.ts`.
 
-`staging` branch deploys to `staging.zapable.com.br` the same way.
+`staging` branch deploys to `staging.lapamarketplace.com.br` the same way.
 
 ---
 
@@ -830,4 +830,4 @@ Explicitly **out** of MVP (do not add without discussion):
 
 ---
 
-_Last updated: 2026-04-24 — React bumped to **19** (estável, adotado pelo ecossistema, traz Actions/`useActionState`/`use()`/ref-as-prop). Stack migrated from Next.js 14+ to **Vite 5 + React 19** (SPA, `dist/` output, React Router DOM v6, i18next, `VITE_` env prefix). Prior update: Product named **Zapable** (zapable.com.br); slogan "Transforme sua loja em um catálogo zapável."_
+_Last updated: 2026-04-24 — React bumped to **19** (estável, adotado pelo ecossistema, traz Actions/`useActionState`/`use()`/ref-as-prop). Stack migrated from Next.js 14+ to **Vite 5 + React 19** (SPA, `dist/` output, React Router DOM v6, i18next, `VITE_` env prefix). Prior update: Product named **Lapa Marketplace** (lapamarketplace.com.br); slogan "Transforme sua loja em um catálogo pronto para o WhatsApp."_

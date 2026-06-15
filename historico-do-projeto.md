@@ -1,12 +1,12 @@
-# Histórico do projeto — Zapable
+# Histórico do projeto — Lapa Marketplace
 
 > **Para que serve este arquivo.** Ele documenta o caminho que percorremos com o Claude até aqui: ideia inicial, decisões tomadas, mudanças de rumo e o que já foi entregue. Se você abrir uma nova conversa (inclusive em outro computador), basta dar a leitura desta pasta ao Claude e pedir pra continuar. O `CLAUDE.md` descreve **o que** o sistema é; este arquivo explica **por que** e **como chegamos** até ele.
 
 **Data:** 22 de abril de 2026
 **Responsável:** Daniel Bezerra (daniel.ddsb@gmail.com)
-**Produto:** Zapable — SaaS de catálogos compartilháveis para lojistas brasileiros.
-**Slogan:** "Transforme sua loja em um catálogo zapável."
-**Domínio:** zapable.com.br · lojas em `{slug}.zapable.com.br`
+**Produto:** Lapa Marketplace — SaaS de catálogos compartilháveis para lojistas brasileiros.
+**Slogan:** "Transforme sua loja em um catálogo pronto para o WhatsApp."
+**Domínio:** lapamarketplace.com.br · lojas em `{slug}.lapamarketplace.com.br`
 
 ---
 
@@ -104,15 +104,15 @@ Ajustes feitos em 22 de abril de 2026:
 - Limites redistribuídos mantendo a mesma lógica (mais produtos/vendedores/features nos planos maiores).
 - Trial de 14 dias agora se aplica a todos os planos, incluindo o Básico (antes: Pro e Business).
 
-### Etapa 8 — Naming: Zapable
+### Etapa 8 — Naming: Lapa Marketplace
 Decisão tomada em 22 de abril de 2026:
 
-- **Nome oficial do produto: Zapable**
-- **Slogan:** "Transforme sua loja em um catálogo zapável."
-- **Domínio principal:** zapable.com.br
-- **URLs das lojas:** `{slug}.zapable.com.br` (ex.: `danibezerra.zapable.com.br`)
-- Origem do nome: Zap (WhatsApp + velocidade) + -able (sufixo EN "capaz de"). Leitura: "sua loja, pronta para ser zapada". Mesmo padrão de Teachable, Printable — adjetivo que virou marca SaaS.
-- Processo: avaliadas ~20 opções em 5 famílias (gírias, trocadilhos, conceito, inventados, ação). Zapable escolhido por equilibrar energia (Zap), tom profissional (-able) e conexão direta com o fluxo do produto (WhatsApp).
+- **Nome oficial do produto: Lapa Marketplace**
+- **Slogan:** "Transforme sua loja em um catálogo pronto para o WhatsApp."
+- **Domínio principal:** lapamarketplace.com.br
+- **URLs das lojas:** `{slug}.lapamarketplace.com.br` (ex.: `danibezerra.lapamarketplace.com.br`)
+- O produto foi renomeado para **Lapa Marketplace**, refletindo a identidade do projeto.
+- Processo: avaliadas várias opções de nome até a escolha final de **Lapa Marketplace**.
 
 ### Etapa 9 — Migração de Next.js para Vite + React
 Decisão tomada em 24 de abril de 2026.
@@ -148,7 +148,7 @@ O projeto estava planejado com Next.js 14+ em modo Static Export. Após reflexã
 | Billing (inicialmente) | Fora do MVP | Dentro do MVP (Stripe Brasil) | Decisão comercial da Etapa 4. |
 | Planos | Free + Pro + Business | Básico + Pro + Premium (todos pagos) | Sem tier gratuito; preços mais acessíveis (R$4,99 / R$9,99 / R$29,99). |
 | Trial | Só Pro e Premium | Todos os planos (14 dias, sem cartão) | Decisão de produto para reduzir fricção no cadastro do Básico. |
-| Nome do produto | Online Catalog Platform (working title) | Zapable | Naming oficial definido na Etapa 8. |
+| Nome do produto | Online Catalog Platform (working title) | Lapa Marketplace | Naming oficial definido na Etapa 8. |
 | Framework front-end | Next.js 14+ (App Router, Static Export) | Vite 5 + React 18 (SPA, `dist/`) | Simplifica a stack; Next.js trazia complexidade sem ganho real numa hospedagem estática. |
 | Roteamento | File-based (App Router `src/app/`) | React Router DOM v6 (`src/routes/`) | Estrutura explícita, sem magia de sistema de arquivos. |
 | i18n | next-intl | i18next + react-i18next | Alinhado à mudança de framework. |
@@ -168,11 +168,11 @@ O projeto estava planejado com Next.js 14+ em modo Static Export. Após reflexã
 
 - Qualquer código do projeto (não escrevemos nada fora dos documentos).
 - Identidade visual (logo, paleta oficial, tipografia) — próxima etapa de branding.
-- Conteúdo das páginas de marketing (copy, imagens) usando o nome e slogan Zapable.
+- Conteúdo das páginas de marketing (copy, imagens) usando o nome e slogan Lapa Marketplace.
 - Migrations e setup real do Supabase.
 - Setup inicial do Stripe Brasil (preços, webhooks).
 - Integração com NFE.io/Enotas.
-- Registro do domínio zapable.com.br.
+- Registro do domínio lapamarketplace.com.br.
 
 ---
 

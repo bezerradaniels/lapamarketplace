@@ -1,4 +1,4 @@
--- Initial schema for Zapable: multi-tenant foundation.
+-- Initial schema for Lapa Marketplace: multi-tenant foundation.
 -- Creates `stores` (one per lojista) and `store_members` (owner/seller bindings),
 -- enables RLS, and adds policies so the anon role can read live catalogs by slug
 -- while authenticated users can only touch stores they're members of.

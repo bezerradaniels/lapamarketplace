@@ -1,6 +1,6 @@
-# GA4 Events Mapping - Zapable
+# GA4 Events Mapping - Lapa Marketplace
 
-Este documento mapeia todos os eventos do Google Analytics 4 (GA4) para rastreamento de ações dos usuários no Zapable.
+Este documento mapeia todos os eventos do Google Analytics 4 (GA4) para rastreamento de ações dos usuários no Lapa Marketplace.
 
 ## Convenções de Nomenclatura
 

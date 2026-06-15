@@ -1,4 +1,4 @@
-# Identidade Visual — Zapable
+# Identidade Visual — Lapa Marketplace
 
 > Guia de referência para uso consistente da marca em todo o produto:
 > dashboard, catálogo público, landing page e materiais de marketing.
@@ -224,4 +224,4 @@ theme: {
 
 ---
 
-_Este documento é a fonte de verdade visual do Zapable. Qualquer novo componente deve seguir estas definições antes de ser implementado._
+_Este documento é a fonte de verdade visual do Lapa Marketplace. Qualquer novo componente deve seguir estas definições antes de ser implementado._

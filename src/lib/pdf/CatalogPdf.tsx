@@ -372,7 +372,7 @@ export function CatalogPdf({ store, products, storeUrl }: CatalogPdfProps) {
             <Text style={styles.footerDate}>Gerado em {formatDate()}</Text>
           </View>
           <View style={styles.footerRight}>
-            <Text style={styles.footerBrand}>Criado com Zapable</Text>
+            <Text style={styles.footerBrand}>Criado com Lapa Marketplace</Text>
             <Text style={styles.footerTotal}>
               {activeProducts.length} produto{activeProducts.length !== 1 ? 's' : ''}
             </Text>

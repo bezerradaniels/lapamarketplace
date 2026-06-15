@@ -9,7 +9,7 @@ Convenção: `lp-{seção}-{elemento}`.
 
 | ID | Elemento | Texto | Destino |
 |----|----------|-------|---------|
-| `lp-nav-logo` | Link | Logo Zapable | `/` |
+| `lp-nav-logo` | Link | Logo Lapa Marketplace | `/` |
 | `lp-nav-link-como-funciona` | `<a>` | Como funciona | `#como-funciona` |
 | `lp-nav-link-funcionalidades` | `<a>` | Funcionalidades | `#funcionalidades` |
 | `lp-nav-link-precos` | `<a>` | Preços | `#precos` |
@@ -74,7 +74,7 @@ Convenção: `lp-{seção}-{elemento}`.
 
 | ID | Elemento | Descrição |
 |----|----------|-----------|
-| `lp-faq-toggle-1` | button | Pergunta: "Preciso saber de tecnologia para usar o Zapable?" |
+| `lp-faq-toggle-1` | button | Pergunta: "Preciso saber de tecnologia para usar o Lapa Marketplace?" |
 | `lp-faq-toggle-2` | button | Pergunta: "Como meus clientes fazem pedidos?" |
 | `lp-faq-toggle-3` | button | Pergunta: "O que acontece após os 14 dias de teste?" |
 | `lp-faq-toggle-4` | button | Pergunta: "Posso trocar de plano ou cancelar quando quiser?" |

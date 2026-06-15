@@ -1,4 +1,4 @@
-# Fluxos, Papéis e Funcionalidades — Zapable
+# Fluxos, Papéis e Funcionalidades — Lapa Marketplace
 
 > Este documento define os papéis do sistema, os fluxos de cada usuário e as
 > funcionalidades esperadas em cada área. Serve como base para o planejamento
@@ -80,7 +80,7 @@ pelo lojista. Cada vendedor pertence a uma única loja.
 
 ### 1.4 Cliente final (sem conta)
 
-Acessa o **Catálogo Público** (`{slug}.zapable.com.br`). Não cria conta.
+Acessa o **Catálogo Público** (`{slug}.lapamarketplace.com.br`). Não cria conta.
 A sessão é mantida apenas no lado do cliente (carrinho em memória / localStorage).
 
 **Pode fazer:**
@@ -156,7 +156,7 @@ Passo 3 — Adicionar o primeiro produto
   - Botão "Pular por agora" NÃO existe — é requisito para publicar o catálogo
 
 Passo 4 — Conclusão
-  - Exibe a URL do catálogo público (`{slug}.zapable.com.br`)
+  - Exibe a URL do catálogo público (`{slug}.lapamarketplace.com.br`)
   - Botão "Ver meu catálogo" e "Ir para o dashboard"
   - Trial começa a contar a partir deste momento
 ```
@@ -326,7 +326,7 @@ A área de personalização do catálogo é dividida em subseções acessadas po
 - Exibidos na página "Sobre nós" do catálogo
 
 **Site do catálogo**
-- Visualizar e editar slug da URL (`{slug}.zapable.com.br`)
+- Visualizar e editar slug da URL (`{slug}.lapamarketplace.com.br`)
 - Aviso de que alterar o slug quebra links já compartilhados
 
 **Código QR**
@@ -379,7 +379,7 @@ O vendedor acessa o mesmo front-end do lojista, mas as rotas e dados são filtra
 
 ---
 
-### 3.4 Catálogo Público (`{slug}.zapable.com.br/*`)
+### 3.4 Catálogo Público (`{slug}.lapamarketplace.com.br/*`)
 
 Sem autenticação. Resolvido client-side pelo subdomínio.
 

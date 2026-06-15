@@ -1,4 +1,4 @@
-# Setup do Projeto Zapable
+# Setup do Projeto Lapa Marketplace
 
 Documentação do ambiente configurado a partir do template `npm create vite@latest` (React + TypeScript).
 
@@ -301,7 +301,7 @@ Contém as três diretivas do Tailwind e as variáveis CSS do shadcn/ui nos toke
 | `VITE_SUPABASE_URL` | `.env.local` | URL do projeto Supabase |
 | `VITE_SUPABASE_ANON_KEY` | `.env.local` | Chave anon pública |
 | `VITE_APP_URL` | `.env.local` | URL raiz da aplicação |
-| `VITE_ROOT_DOMAIN` | `.env.local` | Domínio raiz (`zapable.com.br`) |
+| `VITE_ROOT_DOMAIN` | `.env.local` | Domínio raiz (`lapamarketplace.com.br`) |
 | `VITE_DEFAULT_LOCALE` | `.env.local` | `pt-BR` |
 | `VITE_DEFAULT_CURRENCY` | `.env.local` | `BRL` |
 | `VITE_DEFAULT_TIMEZONE` | `.env.local` | `America/Sao_Paulo` |

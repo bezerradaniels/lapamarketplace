@@ -1,6 +1,6 @@
 -- Seller catalogs: each seller has their own public catalog at /s/{slug}.
 -- Separate from store_members (which handles dashboard access).
--- A seller catalog can exist without a linked Zapable user account;
+-- A seller catalog can exist without a linked Lapa Marketplace user account;
 -- dashboard access is opt-in via has_dashboard_access + linked_user_id.
 
 create table if not exists public.seller_catalogs (
@@ -9,7 +9,7 @@ create table if not exists public.seller_catalogs (
 
   -- Catalog identity
   name                 text        not null,
-  catalog_slug         text        not null,       -- URL: {store}.zapable.com.br/s/{catalog_slug}
+  catalog_slug         text        not null,       -- URL: {store}.lapamarketplace.com.br/s/{catalog_slug}
   avatar_url           text,
 
   -- Contact

@@ -1,6 +1,6 @@
 # Limpeza de Código — 29/05/2026
 
-Relatório da varredura de limpeza, refatoração e otimização do codebase Zapable.
+Relatório da varredura de limpeza, refatoração e otimização do codebase Lapa Marketplace.
 
 **Estado final:** `typecheck` 0 erros · `lint` 0 erros (14 warnings) · 46 testes passando · `build` OK.
 **Saldo:** 35 arquivos alterados, −1.150 linhas líquidas. 9 commits desde o baseline `113e3e2`.
