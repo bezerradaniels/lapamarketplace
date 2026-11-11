@@ -4,16 +4,15 @@ import React, { useState } from "react";
 import Link from "next/link";
 import {
   Search,
-  MapPin,
   Heart,
   User,
   ShoppingBag,
-  Store,
   ChevronDown,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBagHydrated, useBagStore } from "@/store/useBagStore";
+import { LapaWordmark } from "@/components/brand/LapaSymbol";
 
 export const LAPA_NEIGHBORHOODS = [
   "Toda Bom Jesus da Lapa",
@@ -40,8 +39,17 @@ export interface MarketplaceHeaderProps {
   favoritesCount?: number;
   onOpenBag?: () => void;
   onOpenFavorites?: () => void;
+  /**
+   * `full` (padrão): no mobile mostra marca, bairro, favoritos e busca.
+   * `hidden`: a tela tem cabeçalho mobile próprio; o header só aparece do `md` em diante.
+   */
+  mobileVariant?: "full" | "hidden";
+  searchPlaceholder?: string;
   className?: string;
 }
+
+const iconButtonClasses =
+  "relative w-10.5 h-10.5 rounded-[14px] grid place-items-center text-slate-900 transition-colors duration-150 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
 
 export function MarketplaceHeader({
   selectedNeighborhood: controlledNeighborhood,
@@ -53,6 +61,8 @@ export function MarketplaceHeader({
   favoritesCount = 0,
   onOpenBag,
   onOpenFavorites,
+  mobileVariant = "full",
+  searchPlaceholder = "Buscar em lojas da Lapa",
   className,
 }: MarketplaceHeaderProps) {
   const [internalNeighborhood, setInternalNeighborhood] = useState(
@@ -70,6 +80,8 @@ export function MarketplaceHeader({
 
   const neighborhood = controlledNeighborhood ?? internalNeighborhood;
   const query = controlledQuery ?? internalQuery;
+  const neighborhoodLabel =
+    neighborhood === LAPA_NEIGHBORHOODS[0] ? "Toda Lapa" : neighborhood;
 
   const handleNeighborhoodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -93,230 +105,198 @@ export function MarketplaceHeader({
     onSearchSubmit?.(query);
   };
 
-  return (
-    <header
+  /** Chip de bairro: ponto pêssego + nome, com <select> nativo por cima. */
+  const neighborhoodChip = (surface: "white" | "soft") => (
+    <label
       className={cn(
-        "sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-100",
-        className
+        "relative h-10.5 pl-3 pr-2.5 rounded-[14px] inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-900 cursor-pointer transition-colors duration-150 focus-within:ring-2 focus-within:ring-slate-900",
+        surface === "white" ? "bg-white" : "bg-slate-100 hover:bg-slate-200"
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Linha Principal */}
-        <div className="flex items-center justify-between gap-3 h-16 sm:h-18">
-          {/* Logo + Seletor Rápido de Bairro/Cidade */}
-          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+      <span className="w-1.75 h-1.75 rounded-full bg-brand" aria-hidden="true" />
+      <span className="max-w-28 truncate">{neighborhoodLabel}</span>
+      <ChevronDown
+        className="w-3.5 h-3.5 text-slate-500"
+        strokeWidth={1.8}
+        aria-hidden="true"
+      />
+      <select
+        aria-label="Selecionar bairro em Bom Jesus da Lapa"
+        value={neighborhood}
+        onChange={handleNeighborhoodSelect}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {LAPA_NEIGHBORHOODS.map((nb) => (
+          <option key={nb} value={nb}>
+            {nb}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const favoritesDot = favoritesCount > 0 && (
+    <span
+      className="absolute top-2.5 right-2.75 w-2 h-2 rounded-full bg-offer ring-2 ring-white"
+      aria-hidden="true"
+    />
+  );
+
+  const favoritesButton = (surface: "white" | "soft") => {
+    const classes = cn(
+      iconButtonClasses,
+      surface === "white" ? "bg-white" : "bg-slate-100 hover:bg-slate-200"
+    );
+    const label =
+      favoritesCount > 0 ? `Favoritos (${favoritesCount})` : "Favoritos";
+    const icon = (
+      <>
+        <Heart className="w-5 h-5" strokeWidth={1.8} aria-hidden="true" />
+        {favoritesDot}
+      </>
+    );
+
+    return onOpenFavorites ? (
+      <button
+        type="button"
+        onClick={onOpenFavorites}
+        aria-label={label}
+        className={classes}
+      >
+        {icon}
+      </button>
+    ) : (
+      <Link
+        href="/minha-conta?aba=favorites"
+        aria-label={label}
+        className={classes}
+      >
+        {icon}
+      </Link>
+    );
+  };
+
+  const searchForm = (size: "mobile" | "desktop") => (
+    <form
+      onSubmit={handleFormSubmit}
+      role="search"
+      className={cn(
+        "relative flex items-center",
+        size === "desktop" ? "hidden md:flex flex-1 max-w-xl" : "w-full"
+      )}
+    >
+      <Search
+        className="w-4.5 h-4.5 text-slate-500 absolute left-4 pointer-events-none"
+        strokeWidth={1.8}
+        aria-hidden="true"
+      />
+      <input
+        type="search"
+        value={query}
+        onChange={handleQueryChange}
+        placeholder={searchPlaceholder}
+        aria-label="Pesquisar produtos ou lojas"
+        className={cn(
+          "w-full rounded-2xl bg-slate-100 pl-11 pr-11 text-sm text-slate-900 outline-none transition-[background-color,box-shadow] duration-150",
+          "placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 [&::-webkit-search-cancel-button]:hidden",
+          size === "desktop" ? "h-11.5" : "h-12"
+        )}
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={handleClearQuery}
+          aria-label="Limpar pesquisa"
+          className="absolute right-3 w-7 h-7 rounded-lg hover:bg-slate-200 grid place-items-center text-slate-500 cursor-pointer"
+        >
+          <X className="w-4 h-4" strokeWidth={1.8} aria-hidden="true" />
+        </button>
+      )}
+    </form>
+  );
+
+  const bagClasses =
+    "relative inline-flex items-center gap-2 h-10.5 pl-3.5 pr-2.5 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer touch-manipulation";
+  const bagContent = (
+    <>
+      <ShoppingBag className="w-4.5 h-4.5" strokeWidth={1.8} aria-hidden="true" />
+      <span>Sacola</span>
+      <span className="min-w-5 h-5 px-1.5 rounded-full bg-brand text-slate-900 text-[11px] font-bold inline-grid place-items-center">
+        {displayedBagCount}
+      </span>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: barra fixa branca */}
+      <header
+        className={cn(
+          "hidden md:block sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md",
+          className
+        )}
+      >
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 h-18 flex items-center justify-between gap-5">
+          <div className="flex items-center gap-4 shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-2.5 group focus-visible:outline-none"
+              aria-label="Lapa Marketplace — início"
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded-lg"
             >
-              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                <Store className="w-5 h-5" aria-hidden="true" />
-              </div>
-              <div className="leading-none">
-                <span className="block text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                  Lapa<span className="text-emerald-600">Shop</span>
-                </span>
-                <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                  Bom Jesus da Lapa
-                </span>
-              </div>
+              <LapaWordmark symbolSize={30} />
             </Link>
-
-            {/* Seletor rápido de Bairro/Cidade */}
-            <div className="relative hidden md:flex items-center">
-              <MapPin
-                className="w-4 h-4 text-emerald-600 absolute left-3 pointer-events-none"
-                aria-hidden="true"
-              />
-              <select
-                aria-label="Selecionar bairro em Bom Jesus da Lapa"
-                value={neighborhood}
-                onChange={handleNeighborhoodSelect}
-                className={cn(
-                  "appearance-none rounded-full bg-slate-100/80 hover:bg-slate-100 pl-8 pr-8 py-2 text-xs font-semibold text-slate-800 border border-transparent outline-none transition-all cursor-pointer",
-                  "focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10"
-                )}
-              >
-                {LAPA_NEIGHBORHOODS.map((nb) => (
-                  <option key={nb} value={nb}>
-                    {nb}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                className="w-3.5 h-3.5 text-slate-500 absolute right-3 pointer-events-none"
-                aria-hidden="true"
-              />
-            </div>
+            {neighborhoodChip("soft")}
           </div>
 
-          {/* Barra de Pesquisa Global (Desktop) */}
-          <form
-            onSubmit={handleFormSubmit}
-            role="search"
-            className="hidden sm:flex flex-1 max-w-xl relative items-center"
-          >
-            <Search
-              className="w-4 h-4 text-slate-400 absolute left-4 pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={handleQueryChange}
-              placeholder="Buscar produtos, roupas, celulares ou lojas em Lapa..."
-              aria-label="Pesquisar produtos ou lojas"
-              className={cn(
-                "w-full rounded-full bg-slate-100/90 hover:bg-slate-100 pl-10 pr-10 py-2.5 text-sm text-slate-900 border border-transparent outline-none transition-all",
-                "placeholder:text-slate-400 focus:bg-white focus:border-slate-200 focus:ring-2 focus:ring-slate-900/10"
-              )}
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={handleClearQuery}
-                aria-label="Limpar pesquisa"
-                className="absolute right-3 w-6 h-6 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" aria-hidden="true" />
-              </button>
-            )}
-          </form>
+          {searchForm("desktop")}
 
-          {/* Ações à Direita: Favoritos, Conta e Sacola com Badge Numérico */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {onOpenFavorites ? (
-              <button
-                type="button"
-                onClick={onOpenFavorites}
-                aria-label={`Favoritos (${favoritesCount})`}
-                className="relative w-10 h-10 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-              >
-                <Heart className="w-5 h-5" aria-hidden="true" />
-                {favoritesCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
-                    {favoritesCount > 99 ? "99+" : favoritesCount}
-                  </span>
-                )}
-              </button>
-            ) : (
-              <Link
-                href="/minha-conta?aba=favorites"
-                aria-label={`Favoritos (${favoritesCount})`}
-                className="relative w-10 h-10 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-colors touch-manipulation"
-              >
-                <Heart className="w-5 h-5" aria-hidden="true" />
-                {favoritesCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
-                    {favoritesCount > 99 ? "99+" : favoritesCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
+          <div className="flex items-center gap-2 shrink-0">
+            {favoritesButton("soft")}
             <Link
               href="/minha-conta"
-              aria-label="Minha conta ou Painel do Lojista"
-              className="w-10 h-10 sm:w-auto sm:px-3.5 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center gap-2 text-xs font-semibold transition-colors"
+              aria-label="Minha conta ou painel do lojista"
+              className="h-10.5 px-3.5 rounded-[14px] bg-slate-100 hover:bg-slate-200 text-slate-900 inline-flex items-center gap-2 font-display text-sm font-bold transition-colors duration-150"
             >
-              <User className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span className="hidden lg:inline">Minha Conta</span>
+              <User className="w-4.5 h-4.5" strokeWidth={1.8} aria-hidden="true" />
+              <span className="hidden lg:inline">Conta</span>
             </Link>
-
             {onOpenBag ? (
               <button
                 type="button"
                 onClick={onOpenBag}
                 aria-label={`Sacola de compras (${displayedBagCount} itens)`}
-                className="relative inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer touch-manipulation"
+                className={bagClasses}
               >
-                <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span className="hidden sm:inline">Sacola</span>
-                <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold inline-flex items-center justify-center">
-                  {displayedBagCount}
-                </span>
+                {bagContent}
               </button>
             ) : (
               <Link
                 href="/sacola"
                 aria-label={`Sacola de compras (${displayedBagCount} itens)`}
-                className="relative inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors touch-manipulation"
+                className={bagClasses}
               >
-                <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span className="hidden sm:inline">Sacola</span>
-                <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold inline-flex items-center justify-center">
-                  {displayedBagCount}
-                </span>
+                {bagContent}
               </Link>
             )}
           </div>
         </div>
+      </header>
 
-        {/* Linha Mobile: Pesquisa + Seletor de Bairro */}
-        <div className="flex sm:hidden flex-col gap-2 pb-3">
-          <form
-            onSubmit={handleFormSubmit}
-            role="search"
-            className="relative flex items-center w-full"
-          >
-            <Search
-              className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={handleQueryChange}
-              placeholder="Buscar produtos ou lojas em Lapa..."
-              aria-label="Pesquisar produtos ou lojas"
-              className={cn(
-                "w-full rounded-full bg-slate-100 pl-9 pr-9 py-2.5 text-sm text-slate-900 border border-transparent outline-none transition-all",
-                "placeholder:text-slate-400 focus:border-slate-200 focus:bg-white"
-              )}
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={handleClearQuery}
-                aria-label="Limpar pesquisa"
-                className="absolute right-3 w-6 h-6 rounded-full flex items-center justify-center text-slate-500"
-              >
-                <X className="w-3.5 h-3.5" aria-hidden="true" />
-              </button>
-            )}
-          </form>
-
-          <div className="flex items-center justify-between md:hidden">
-            <div className="relative inline-flex items-center">
-              <MapPin
-                className="w-3.5 h-3.5 text-emerald-600 absolute left-2.5 pointer-events-none"
-                aria-hidden="true"
-              />
-              <select
-                aria-label="Selecionar bairro em Bom Jesus da Lapa"
-                value={neighborhood}
-                onChange={handleNeighborhoodSelect}
-                className="appearance-none rounded-full bg-slate-100/80 pl-7 pr-6 py-1 text-[11px] font-semibold text-slate-700 outline-none"
-              >
-                {LAPA_NEIGHBORHOODS.map((nb) => (
-                  <option key={nb} value={nb}>
-                    {nb}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                className="w-3 h-3 text-slate-500 absolute right-2 pointer-events-none"
-                aria-hidden="true"
-              />
+      {/* Mobile: marca + bairro + favoritos, busca logo abaixo */}
+      {mobileVariant === "full" && (
+        <header className="md:hidden w-full">
+          <div className="flex items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-3.5">
+            <Link href="/" aria-label="Lapa Marketplace — início">
+              <LapaWordmark variant="short" symbolSize={30} />
+            </Link>
+            <div className="flex items-center gap-2">
+              {neighborhoodChip("white")}
+              {favoritesButton("white")}
             </div>
-
-            <span className="text-[11px] text-slate-400 font-medium">
-              Entrega rápida & Retirada na loja
-            </span>
           </div>
-        </div>
-      </div>
-    </header>
+          <div className="px-5 pb-4">{searchForm("mobile")}</div>
+        </header>
+      )}
+    </>
   );
 }
-

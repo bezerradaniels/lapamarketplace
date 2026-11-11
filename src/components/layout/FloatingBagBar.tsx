@@ -3,9 +3,32 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, ArrowRight } from "lucide-react";
 import { useBagHydrated, useBagStore } from "@/store/useBagStore";
-import { formatCurrencyBRL } from "@/lib/utils";
+import { cn, formatCurrencyBRL } from "@/lib/utils";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
+import { hasBottomNav } from "@/components/layout/BottomNav";
+
+const RESERVED_ROOTS = new Set([
+  "explorar",
+  "sacola",
+  "minha-conta",
+  "conta",
+  "loja",
+  "painel",
+  "master",
+  "login",
+  "cadastro",
+  "onboarding",
+  "recuperar-senha",
+  "nova-senha",
+  "auth",
+]);
+
+/** `/[storeSlug]/[productSlug]` tem barra fixa própria de compra. */
+function isProductDetailPath(pathname: string): boolean {
+  const segments = pathname.split("/").filter(Boolean);
+  return segments.length === 2 && !RESERVED_ROOTS.has(segments[0]);
+}
 
 export function FloatingBagBar() {
   const pathname = usePathname();
@@ -16,12 +39,16 @@ export function FloatingBagBar() {
     return null;
   }
 
-  // Oculta na própria página da sacola e nos painéis administrativos
+  // Oculta na própria sacola, nos painéis, no fluxo de acesso e no detalhe do produto (mobile)
   if (
     pathname.startsWith("/sacola") ||
     pathname.startsWith("/painel") ||
     pathname.startsWith("/master") ||
-    pathname.startsWith("/onboarding")
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/cadastro") ||
+    pathname.startsWith("/recuperar-senha") ||
+    pathname.startsWith("/nova-senha")
   ) {
     return null;
   }
@@ -37,37 +64,32 @@ export function FloatingBagBar() {
     <div
       role="region"
       aria-label="Resumo da sacola de compras"
-      className="fixed bottom-4 inset-x-4 max-w-md mx-auto z-40 pointer-events-none"
+      className={cn(
+        "fixed inset-x-3 z-40 mx-auto max-w-md pointer-events-none",
+        hasBottomNav(pathname) ? "bottom-25 md:bottom-5" : "bottom-5",
+        isProductDetailPath(pathname) && "hidden md:block"
+      )}
     >
-      <div className="pointer-events-auto rounded-full bg-slate-900 text-white p-2.5 pl-4 shadow-xl border border-white/10 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-            <ShoppingBag className="w-5 h-5" aria-hidden="true" />
-            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center">
-              {totalItems}
-            </span>
-          </div>
+      <div className="pointer-events-auto animate-slide-up h-16 rounded-[22px] bg-slate-900 text-white pl-4 pr-2.5 shadow-bag flex items-center gap-3">
+        <LapaSymbol size={26} ink="#FFFFFF" />
 
-          <div className="min-w-0 leading-tight">
-            <p className="text-xs font-semibold text-slate-300 truncate">
-              {totalItems} {totalItems === 1 ? "item" : "itens"} •{" "}
-              {uniqueStoresCount} {uniqueStoresCount === 1 ? "loja" : "lojas"}
-            </p>
-            <p className="text-sm font-extrabold text-white tracking-tight truncate">
-              {formatCurrencyBRL(totalAmount)}
-            </p>
-          </div>
+        <div className="flex-1 min-w-0 flex flex-col gap-px">
+          <span className="text-xs text-slate-300 truncate">
+            {totalItems} {totalItems === 1 ? "item" : "itens"} ·{" "}
+            {uniqueStoresCount} {uniqueStoresCount === 1 ? "loja" : "lojas"}
+          </span>
+          <span className="font-display text-[17px] font-extrabold leading-tight truncate">
+            {formatCurrencyBRL(totalAmount)}
+          </span>
         </div>
 
         <Link
           href="/sacola"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 text-xs font-extrabold transition-colors"
+          className="shrink-0 inline-flex items-center rounded-[15px] bg-brand hover:bg-brand-strong text-slate-900 px-4 py-3 font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
         >
-          <span>Ver Sacola</span>
-          <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          Ver sacola
         </Link>
       </div>
     </div>
   );
 }
-

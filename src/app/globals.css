@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/*
+ * Lapa Marketplace — tokens do Manual de Identidade Visual.
+ * Pêssego #FDBA74 + slate #0F172A, superfícies suaves e cantos bem arredondados.
+ */
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -8,14 +12,63 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-sans: var(--font-inter-tight), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-figtree), system-ui, -apple-system, sans-serif;
+
+  /* Marca */
+  --color-ink: #0f172a;
+  --color-brand: #fdba74;
+  --color-brand-strong: #fb923c;
+  --color-brand-soft: #ffedd5;
+  --color-brand-tint: #fff7ed;
+  --color-brand-ink: #9a3412;
+  --color-whatsapp: #059669;
+  --color-whatsapp-strong: #047857;
+  --color-offer: #f43f5e;
+
+  /* Sombras do sistema (sem bordas pesadas) */
+  --shadow-nav: 0 -10px 30px -20px rgb(15 23 42 / 0.25);
+  --shadow-bag: 0 16px 30px -12px rgb(15 23 42 / 0.5);
+  --shadow-seg: 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-float: 0 30px 60px -30px rgb(15 23 42 / 0.35);
+
+  --animate-slide-up: slide-up 200ms ease-out both;
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Contorno padrão de pílulas/botões outline: inset 1.5px #E2E8F0 */
+@utility ring-line {
+  box-shadow: inset 0 0 0 1.5px #e2e8f0;
+}
+
+/* Anel de story Premium */
+@utility bg-story-premium {
+  background: conic-gradient(from 200deg, #fdba74, #fb923c, #ffedd5, #fdba74);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 /* Ocultar barra de rolagem em carrosséis horizontais mantendo scroll nativo */
@@ -42,4 +95,72 @@ dialog::backdrop {
   .smooth-scroll {
     scroll-behavior: smooth;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Slider de preço: trilho #E2E8F0 de 6px, preenchimento ink, knob branco com ring ink */
+.lapa-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lapa-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    #0f172a var(--range-fill, 0%),
+    #e2e8f0 var(--range-fill, 0%)
+  );
+}
+
+.lapa-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+}
+
+.lapa-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: #0f172a;
+}
+
+.lapa-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #0f172a;
+}
+
+.lapa-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #0f172a;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.lapa-range:focus-visible {
+  outline: none;
+}
+
+.lapa-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px #0f172a, 0 0 0 5px #fdba74;
 }

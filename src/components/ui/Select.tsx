@@ -3,6 +3,7 @@
 import React, { useId } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fieldBaseClasses, fieldLabelClasses } from "./Input";
 
 export interface SelectOption {
   value: string;
@@ -19,6 +20,8 @@ export interface SelectProps
   placeholder?: string;
   leftIcon?: React.ReactNode;
   pill?: boolean;
+  /** `lg` = 52px (formulários), `md` = 46px (cards compactos e painéis). */
+  inputSize?: "md" | "lg";
   containerClassName?: string;
 }
 
@@ -34,6 +37,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       placeholder,
       leftIcon,
       pill = false,
+      inputSize = "lg",
       id,
       children,
       ...props
@@ -50,7 +54,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="text-xs font-semibold text-slate-700 tracking-tight px-1"
+            className={fieldLabelClasses}
           >
             {label}
           </label>
@@ -58,7 +62,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
         <div className="relative flex items-center">
           {leftIcon && (
-            <span className="absolute left-3.5 text-slate-400 pointer-events-none inline-flex items-center">
+            <span className="absolute left-4 text-slate-500 pointer-events-none inline-flex items-center">
               {leftIcon}
             </span>
           )}
@@ -71,14 +75,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               error ? errorId : helperText ? helperId : undefined
             }
             className={cn(
-              "w-full appearance-none bg-slate-100/80 rounded-2xl px-4 py-3 pr-10 text-sm text-slate-900",
-              "border border-transparent outline-none transition-all cursor-pointer",
-              "focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
+              fieldBaseClasses,
+              "appearance-none cursor-pointer pl-4 pr-11",
+              inputSize === "lg"
+                ? "h-13 rounded-2xl text-[15px]"
+                : "h-11.5 rounded-[15px] text-sm",
               pill && "rounded-full",
-              Boolean(leftIcon) && "pl-10",
-              Boolean(error) && "border-rose-300 bg-rose-50/40",
-              Boolean(error) && "focus:border-rose-400 focus:ring-rose-500/15",
+              Boolean(leftIcon) && "pl-11",
+              Boolean(error) && "bg-white ring-2 ring-offer focus:ring-offer",
               className
             )}
             {...props}
@@ -101,7 +105,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               : children}
           </select>
 
-          <span className="absolute right-3.5 text-slate-400 pointer-events-none inline-flex items-center">
+          <span className="absolute right-4 text-slate-500 pointer-events-none inline-flex items-center">
             <ChevronDown className="w-4 h-4" aria-hidden="true" />
           </span>
         </div>
@@ -110,12 +114,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           <p
             id={errorId}
             role="alert"
-            className="text-xs font-medium text-rose-600 px-1"
+            className="text-xs font-medium text-rose-600"
           >
             {error}
           </p>
         ) : helperText ? (
-          <p id={helperId} className="text-xs text-slate-500 px-1">
+          <p id={helperId} className="text-xs text-slate-500">
             {helperText}
           </p>
         ) : null}

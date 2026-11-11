@@ -3,10 +3,12 @@
 import React, { Suspense, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Notice } from "@/components/ui/Notice";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { loginWithEmail } from "@/app/(auth)/actions";
 
 function LoginFormContent() {
@@ -32,126 +34,102 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto rounded-3xl bg-white p-8 shadow-sm border border-slate-100 space-y-6">
-      {/* Cabeçalho */}
-      <div className="text-center space-y-1.5">
-        <span className="inline-block rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-[11px] font-bold tracking-wide uppercase">
-          Bem-vindo de volta
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Entrar no Lapa Marketplace
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Acesse seus favoritos, lojas seguidas ou gerencie seu catálogo.
-        </p>
+    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+      <div className="flex flex-col gap-4.5">
+        <Link
+          href="/"
+          aria-label="Lapa Marketplace — voltar para o início"
+          className="w-16 h-16 rounded-[22px] bg-brand-soft grid place-items-center"
+        >
+          <LapaSymbol size={40} />
+        </Link>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
+            Bem-vindo de volta à Lapa
+          </h1>
+          <p className="text-[15px] text-slate-500 leading-[1.45]">
+            Entre para favoritar peças, seguir lojas e agilizar seus pedidos.
+          </p>
+        </div>
       </div>
 
-      {/* Alerta de Senha Redefinida */}
       {resetSuccess && !error && (
-        <div
-          role="status"
-          className="flex items-start gap-2.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 p-3.5 text-xs font-medium text-emerald-800"
-        >
-          <CheckCircle2
-            className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
-          <span>
-            Senha atualizada com sucesso! Agora você já pode entrar com sua nova
-            senha.
-          </span>
-        </div>
+        <Notice tone="success" title="Senha atualizada!">
+          Agora é só entrar com a sua nova senha.
+        </Notice>
       )}
 
-      {/* Alerta de Erro */}
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-2xl bg-rose-50 border border-rose-200/80 p-3.5 text-xs font-medium text-rose-700"
-        >
-          <AlertCircle
-            className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Notice tone="error">{error}</Notice>}
 
-      {/* Botão em Destaque: Continuar com o Google */}
       <GoogleOAuthButton
         nextPath={nextPath || undefined}
         label="Continuar com o Google"
         onError={(msg) => setError(msg)}
       />
 
-      {/* Divisor */}
-      <div className="relative flex items-center justify-center">
-        <div className="border-t border-slate-100 w-full" />
-        <span className="bg-white px-3 text-xs font-semibold text-slate-400 whitespace-nowrap">
-          ou entre com seu e-mail
-        </span>
-        <div className="border-t border-slate-100 w-full" />
+      <div className="flex items-center gap-3 text-[13px] text-slate-500">
+        <span className="flex-1 h-px bg-slate-200" />
+        ou entre com seu e-mail
+        <span className="flex-1 h-px bg-slate-200" />
       </div>
 
-      {/* Formulário de E-mail e Senha */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="login-form"
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-3.5"
+      >
         {nextPath && <input type="hidden" name="next" value={nextPath} />}
 
         <Input
           name="email"
           type="email"
-          label="Seu e-mail"
+          label="E-mail"
           placeholder="voce@exemplo.com"
           autoComplete="email"
           required
-          leftIcon={<Mail className="w-4 h-4" aria-hidden="true" />}
         />
 
-        <div className="space-y-1.5">
-          <Input
+        <div className="relative">
+          <PasswordInput
             name="password"
-            type="password"
-            label="Sua senha"
-            placeholder="••••••••"
+            label="Senha"
+            placeholder="Sua senha"
             autoComplete="current-password"
             required
-            leftIcon={<Lock className="w-4 h-4" aria-hidden="true" />}
           />
-          <div className="flex justify-end px-1">
-            <Link
-              href="/recuperar-senha"
-              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              Esqueceu sua senha?
-            </Link>
-          </div>
+          <Link
+            href="/recuperar-senha"
+            className="absolute top-0 right-0 text-[13px] text-slate-500 underline hover:text-slate-900 transition-colors"
+          >
+            Esqueci minha senha
+          </Link>
         </div>
+      </form>
 
+      <div className="flex-1 md:hidden" />
+
+      <div className="flex flex-col gap-4 items-center">
         <Button
           type="submit"
+          form="login-form"
           variant="primary"
           size="lg"
           fullWidth
           isLoading={isPending}
-          rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
         >
-          Entrar na conta
+          Entrar
         </Button>
-      </form>
-
-      {/* Link para Cadastro */}
-      <div className="pt-2 border-t border-slate-100 text-center">
-        <p className="text-xs sm:text-sm text-slate-600">
-          Ainda não tem uma conta?{" "}
+        <p className="text-sm text-slate-500">
+          Ainda não tem conta?{" "}
           <Link
             href={
               nextPath
                 ? `/cadastro?next=${encodeURIComponent(nextPath)}`
                 : "/cadastro"
             }
-            className="font-extrabold text-slate-900 hover:text-emerald-600 transition-colors underline underline-offset-4"
+            className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
           >
-            Criar conta grátis
+            Criar conta
           </Link>
         </p>
       </div>
@@ -163,11 +141,10 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md mx-auto rounded-3xl bg-white p-8 shadow-sm border border-slate-100 animate-pulse h-120" />
+        <div className="w-full rounded-[28px] bg-white animate-pulse h-120" />
       }
     >
       <LoginFormContent />
     </Suspense>
   );
 }
-

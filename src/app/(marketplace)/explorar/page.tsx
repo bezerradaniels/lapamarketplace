@@ -4,7 +4,7 @@ import { searchMarketplaceProducts } from "@/app/actions/feed";
 import { ExploreMarketplaceClient } from "@/components/marketplace/ExploreMarketplaceClient";
 
 export const metadata: Metadata = {
-  title: "Explorar Produtos e Lojas | LapaShop - Bom Jesus da Lapa",
+  title: "Explorar Produtos e Lojas | Lapa Marketplace",
   description:
     "Busque roupas, calçados, celulares e utilidades nas lojas físicas de Bom Jesus da Lapa com filtros de tamanho, bairro, lojas abertas agora e formas de pagamento.",
 };

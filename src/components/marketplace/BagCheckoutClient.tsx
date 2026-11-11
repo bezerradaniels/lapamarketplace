@@ -2,30 +2,16 @@
 
 import React, { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  ShoppingBag,
-  Store,
-  Plus,
-  Minus,
-  Trash2,
-  MapPin,
-  User,
-  Phone,
-  Truck,
-  CreditCard,
-  QrCode,
-  Banknote,
-  Receipt,
-  Wallet,
-  MessageCircle,
-  CheckCircle2,
-  AlertCircle,
-  ArrowLeft,
-  Sparkles,
-} from "lucide-react";
+import { ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
-import { Button } from "@/components/ui/Button";
+import {
+  Button,
+  buttonBaseClasses,
+  buttonSizeClasses,
+  buttonVariantClasses,
+} from "@/components/ui/Button";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { registerWhatsappOrderClick } from "@/app/actions/checkout";
@@ -38,7 +24,6 @@ import {
   cn,
   formatCurrencyBRL,
   formatWhatsAppMask,
-  normalizeWhatsAppToDb,
 } from "@/lib/utils";
 import type { CustomerProfile, NeighborhoodItem } from "@/types/marketplace";
 
@@ -47,34 +32,14 @@ export interface BagCheckoutClientProps {
   neighborhoods: NeighborhoodItem[];
 }
 
-const PAYMENT_LABELS: Record<
-  string,
-  { label: string; icon: React.ReactNode }
-> = {
-  pix: {
-    label: "Pix",
-    icon: <QrCode className="w-3.5 h-3.5 text-emerald-600" />,
-  },
-  credit_card: {
-    label: "Cartão de Crédito",
-    icon: <CreditCard className="w-3.5 h-3.5 text-slate-700" />,
-  },
-  debit_card: {
-    label: "Cartão de Débito",
-    icon: <CreditCard className="w-3.5 h-3.5 text-slate-700" />,
-  },
-  cash: {
-    label: "Dinheiro",
-    icon: <Banknote className="w-3.5 h-3.5 text-emerald-700" />,
-  },
-  crediario: {
-    label: "Crediário da Loja",
-    icon: <Wallet className="w-3.5 h-3.5 text-blue-600" />,
-  },
-  payment_link: {
-    label: "Link de Pagamento",
-    icon: <Receipt className="w-3.5 h-3.5 text-slate-700" />,
-  },
+const PAYMENT_LABELS: Record<string, { label: string }> = {
+  pix: { label: "Pix" },
+  credit_card: { label: "Crédito" },
+  debit_card: { label: "Débito" },
+  cash: { label: "Dinheiro" },
+  crediario: { label: "Crediário" },
+  payment_link: { label: "Link de pagamento" },
+  boleto: { label: "Boleto" },
 };
 
 export function BagCheckoutClient({
@@ -261,512 +226,426 @@ export function BagCheckoutClient({
     });
   };
 
+  const totalItemsCount = items.reduce((acc, i) => acc + i.quantity, 0);
+  const optionPillClasses = (active: boolean) =>
+    cn(
+      "px-3.5 py-2.25 rounded-full text-[13px] font-semibold leading-tight transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1",
+      active
+        ? "bg-slate-900 text-white"
+        : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+    );
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <MarketplaceHeader />
+      <MarketplaceHeader mobileVariant="hidden" />
 
-      <main className="flex-1 mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Cabeçalho da Página */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 mb-1"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Continuar comprando em Lapa</span>
-            </Link>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Minha Sacola Multi-Lojista
+      <main className="flex-1 mx-auto w-full max-w-2xl md:px-6 md:py-4 pb-10">
+        {/* Cabeçalho */}
+        <div className="flex items-center gap-3 px-5 md:px-0 pt-[max(1.25rem,env(safe-area-inset-top))] pb-4">
+          <Link
+            href="/"
+            aria-label="Continuar comprando"
+            className="w-10.5 h-10.5 rounded-[14px] bg-white grid place-items-center text-slate-900 shrink-0 transition-transform duration-150 active:scale-95"
+          >
+            <ChevronLeft className="w-4.5 h-4.5" strokeWidth={2} />
+          </Link>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <h1 className="text-[22px] md:text-[30px] font-extrabold tracking-[-0.02em] md:tracking-[-0.03em] text-slate-900">
+              Sua sacola
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Preencha seus dados uma única vez e envie o pedido pronto para o
-              WhatsApp de cada loja.
-            </p>
+            {isMounted && items.length > 0 && (
+              <span className="text-xs text-slate-500">
+                {totalItemsCount} {totalItemsCount === 1 ? "item" : "itens"} de{" "}
+                {storeGroups.length}{" "}
+                {storeGroups.length === 1 ? "loja" : "lojas"} · um pedido por
+                loja
+              </span>
+            )}
           </div>
-
           {isMounted && items.length > 0 && (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={clearAll}
-              leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
+              className="text-xs font-semibold text-slate-900 underline cursor-pointer shrink-0"
             >
-              Esvaziar Sacola
-            </Button>
+              Esvaziar
+            </button>
           )}
         </div>
 
         {validationError && (
           <div
             role="alert"
-            className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm font-bold text-rose-700 flex items-center gap-2.5"
+            className="mx-3 md:mx-0 mb-3.5 rounded-[18px] bg-rose-100 px-4 py-3 text-[13px] font-semibold text-rose-700"
           >
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{validationError}</span>
+            {validationError}
           </div>
         )}
 
-        {/* Prevenção de Hydration Mismatch */}
+        {/* Prevenção de hydration mismatch */}
         {!isMounted ? (
-          <div className="rounded-3xl bg-white p-12 border border-slate-100 text-center text-sm font-semibold text-slate-400">
-            Carregando sua sacola de Bom Jesus da Lapa...
+          <div className="mx-3 md:mx-0 rounded-[28px] bg-white p-10 text-center text-sm text-slate-500">
+            Carregando sua sacola…
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-3xl bg-white p-12 border border-slate-100 shadow-xs text-center space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-              <ShoppingBag className="w-8 h-8" />
-            </div>
+          <div className="mx-3 md:mx-0 rounded-[28px] bg-white p-8 text-center flex flex-col items-center gap-4">
+            <span className="w-16 h-16 rounded-[22px] bg-brand-soft grid place-items-center">
+              <LapaSymbol size={36} />
+            </span>
             <div className="space-y-1">
-              <h2 className="text-lg font-extrabold text-slate-900">
-                Sua sacola está vazia no momento
+              <h2 className="text-xl font-extrabold text-slate-900">
+                Sua sacola está vazia
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                Adicione roupas, calçados ou eletrônicos das lojas físicas de
-                Bom Jesus da Lapa para montar seu pedido.
+              <p className="text-sm text-slate-500 max-w-sm mx-auto leading-normal">
+                Adicione produtos das lojas de Bom Jesus da Lapa para montar
+                seu pedido.
               </p>
             </div>
-            <Link href="/explorar">
-              <Button variant="primary" size="lg">
-                Explorar Produtos em Lapa
-              </Button>
+            <Link
+              href="/explorar"
+              className={cn(
+                buttonBaseClasses,
+                buttonVariantClasses.primary,
+                buttonSizeClasses.lg
+              )}
+            >
+              Explorar produtos
             </Link>
           </div>
         ) : (
           <>
-            {/* =========================================================
-                1. DADOS DO COMPRADOR (PREENCHIMENTO ÚNICO NO TOPO)
-               ========================================================= */}
-            <section className="rounded-3xl bg-white p-6 sm:p-7 border border-slate-100 shadow-xs space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-                    <User className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                      1. Seus Dados para Entrega / Retirada
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      {buyerProfile
-                        ? "Preenchido automaticamente com seu perfil salvo ✨"
-                        : "Preencha uma única vez — usamos em todos os pedidos abaixo"}
-                    </p>
-                  </div>
-                </div>
-
-                {buyerProfile && (
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-700">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Conta Conectada</span>
-                  </span>
-                )}
+            {/* Seus dados (preenchimento único) */}
+            <section className="mx-3 md:mx-0 mb-3.5 bg-white rounded-[28px] p-4 md:p-5 flex flex-col gap-2.5">
+              <div className="flex justify-between items-baseline gap-3">
+                <h2 className="text-[15px] font-bold text-slate-900">
+                  Seus dados
+                </h2>
+                <span className="text-xs text-slate-500">
+                  {buyerProfile
+                    ? "salvos na sua conta"
+                    : "usados em todos os pedidos"}
+                </span>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                inputSize="md"
+                aria-label="Seu nome"
+                placeholder="Seu nome"
+                autoComplete="name"
+                value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                required
+              />
+              <div className="grid grid-cols-2 gap-2">
                 <Input
-                  label="Seu Nome *"
-                  placeholder="Ex: Maria Silva"
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  required
-                  leftIcon={<User className="w-4 h-4" />}
-                />
-
-                <Input
-                  label="Seu WhatsApp (Opcional)"
+                  inputSize="md"
+                  aria-label="Seu WhatsApp (opcional)"
                   type="tel"
-                  placeholder="(77) 99999-9999"
+                  autoComplete="tel"
+                  placeholder="WhatsApp (opcional)"
                   value={buyerWhatsapp}
                   onChange={(e) =>
                     setBuyerWhatsapp(formatWhatsAppMask(e.target.value))
                   }
-                  helperText={
-                    buyerWhatsapp
-                      ? `DDI: ${normalizeWhatsAppToDb(buyerWhatsapp)}`
-                      : undefined
-                  }
-                  leftIcon={<Phone className="w-4 h-4" />}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Select
-                  label="Bairro em Bom Jesus da Lapa *"
+                  inputSize="md"
+                  aria-label="Bairro em Bom Jesus da Lapa"
                   value={buyerNeighborhoodId}
                   onChange={(e) => setBuyerNeighborhoodId(e.target.value)}
-                  leftIcon={<MapPin className="w-4 h-4" />}
                   options={neighborhoods.map((nb) => ({
                     value: nb.id,
                     label: nb.name,
                   }))}
                 />
-
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Rua, Número e Ponto de Referência *"
-                    placeholder="Ex: Rua Santa Luzia, nº 140 (Próximo à Praça)"
-                    value={buyerAddress}
-                    onChange={(e) => setBuyerAddress(e.target.value)}
-                    leftIcon={<MapPin className="w-4 h-4" />}
-                  />
-                </div>
               </div>
+              <Input
+                inputSize="md"
+                aria-label="Rua, número e ponto de referência"
+                autoComplete="street-address"
+                placeholder="Rua, número · ponto de referência"
+                value={buyerAddress}
+                onChange={(e) => setBuyerAddress(e.target.value)}
+              />
             </section>
 
-            {/* =========================================================
-                2. CARDS AGRUPADOS POR LOJA
-               ========================================================= */}
-            <section className="space-y-6">
-              {storeGroups.map(({ store, items: storeItems }) => {
-                const deliveryMode = getEffectiveDeliveryMode(store);
-                const paymentChoice = getEffectivePaymentMethod(store);
+            {/* Um card por loja */}
+            {storeGroups.map(({ store, items: storeItems }) => {
+              const deliveryMode = getEffectiveDeliveryMode(store);
+              const paymentChoice = getEffectivePaymentMethod(store);
 
-                const subtotal = storeItems.reduce(
-                  (acc, i) => acc + i.price * i.quantity,
-                  0
-                );
-                const deliveryFeeAmount =
-                  deliveryMode === "delivery" &&
-                  store.deliveryFeeType === "fixed"
-                    ? Number(store.fixedDeliveryFee || 0)
-                    : 0;
-                const storeTotal = subtotal + deliveryFeeAmount;
-                const alreadySent = Boolean(sentStoreIds[store.id]);
+              const subtotal = storeItems.reduce(
+                (acc, i) => acc + i.price * i.quantity,
+                0
+              );
+              const deliveryFeeAmount =
+                deliveryMode === "delivery" && store.deliveryFeeType === "fixed"
+                  ? Number(store.fixedDeliveryFee || 0)
+                  : 0;
+              const storeTotal = subtotal + deliveryFeeAmount;
+              const alreadySent = Boolean(sentStoreIds[store.id]);
+              const storeQty = storeItems.reduce(
+                (acc, i) => acc + i.quantity,
+                0
+              );
 
-                return (
-                  <div
-                    key={store.id}
-                    className="rounded-3xl bg-white p-5 sm:p-7 border border-slate-100 shadow-sm mb-6 space-y-6"
-                  >
-                    {/* Cabeçalho da Loja */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-                          <Store className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="text-base sm:text-lg font-extrabold text-slate-900">
-                            {store.name}
-                          </h3>
-                          <p className="text-xs text-slate-500">
-                            {storeItems.reduce((acc, i) => acc + i.quantity, 0)}{" "}
-                            item(ns) nesta loja
-                          </p>
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/${store.slug}`}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 hover:bg-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Adicionar mais itens desta loja</span>
-                      </Link>
+              return (
+                <section
+                  key={store.id}
+                  aria-label={`Pedido de ${store.name}`}
+                  className="mx-3 md:mx-0 mb-3.5 bg-white rounded-[28px] p-4 md:p-5 flex flex-col gap-3.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-8.5 h-8.5 rounded-full bg-brand-soft grid place-items-center font-display text-xs font-extrabold text-slate-900 shrink-0">
+                      {store.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <h3 className="text-base font-extrabold text-slate-900 truncate">
+                        {store.name}
+                      </h3>
+                      <span className="text-xs text-slate-500">
+                        {storeQty} {storeQty === 1 ? "item" : "itens"}
+                      </span>
                     </div>
+                    <Link
+                      href={`/${store.slug}`}
+                      className="text-xs font-semibold text-slate-900 underline shrink-0"
+                    >
+                      + itens
+                    </Link>
+                  </div>
 
-                    {/* Lista de Produtos daquela Loja */}
-                    <div className="divide-y divide-slate-100">
-                      {storeItems.map((item) => (
-                        <div
-                          key={item.cartItemId}
-                          className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  {storeItems.map((item) => (
+                    <div
+                      key={item.cartItemId}
+                      className="flex gap-3 items-center"
+                    >
+                      <Link
+                        href={`/${store.slug}/${item.slug}`}
+                        className="flex-none w-15 h-15 rounded-2xl bg-slate-100 overflow-hidden"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </Link>
+                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                        <Link
+                          href={`/${store.slug}/${item.slug}`}
+                          className="font-display text-sm font-semibold text-slate-900 truncate"
                         >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <Link
-                              href={`/${store.slug}/${item.slug}`}
-                              className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200/60"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </Link>
-
-                            <div className="min-w-0 space-y-0.5">
-                              <Link
-                                href={`/${store.slug}/${item.slug}`}
-                                className="text-sm font-extrabold text-slate-900 hover:underline line-clamp-1"
-                              >
-                                {item.name}
-                              </Link>
-
-                              {item.selectedSize && (
-                                <span className="inline-block rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                                  Tamanho: {item.selectedSize}
-                                </span>
+                          {item.name}
+                        </Link>
+                        {item.selectedSize && (
+                          <span className="text-xs text-slate-500">
+                            Tam. {item.selectedSize}
+                          </span>
+                        )}
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="font-display text-[15px] font-extrabold text-slate-900">
+                            {formatCurrencyBRL(item.price * item.quantity)}
+                          </span>
+                          {item.originalPrice > item.price && (
+                            <span className="text-[11px] text-slate-500 line-through">
+                              {formatCurrencyBRL(
+                                item.originalPrice * item.quantity
                               )}
-
-                              <div className="flex items-baseline gap-2 pt-0.5">
-                                <span className="text-sm font-extrabold text-emerald-700">
-                                  {formatCurrencyBRL(item.price)}
-                                </span>
-                                {item.originalPrice > item.price && (
-                                  <span className="text-[11px] text-slate-400 line-through">
-                                    {formatCurrencyBRL(item.originalPrice)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Seletor `- 1 +` + Subtotal do Item + Remover */}
-                          <div className="flex items-center justify-between sm:justify-end gap-4">
-                            <div className="inline-flex items-center rounded-full bg-slate-100 p-1 border border-slate-200/70">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.cartItemId,
-                                    item.quantity - 1
-                                  )
-                                }
-                                aria-label={`Diminuir quantidade de ${item.name}`}
-                                className="w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
-                              >
-                                <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="w-8 text-center text-xs font-extrabold text-slate-900">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.cartItemId,
-                                    item.quantity + 1
-                                  )
-                                }
-                                aria-label={`Aumentar quantidade de ${item.name}`}
-                                className="w-7 h-7 rounded-full bg-white hover:bg-slate-50 text-slate-800 flex items-center justify-center shadow-2xs cursor-pointer"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            <span className="text-sm font-extrabold text-slate-900 min-w-20 text-right">
-                              {formatCurrencyBRL(item.price * item.quantity)}
                             </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-0.5 p-0.75 rounded-xl bg-slate-100 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            item.quantity <= 1
+                              ? removeItem(item.cartItemId)
+                              : updateQuantity(
+                                  item.cartItemId,
+                                  item.quantity - 1
+                                )
+                          }
+                          aria-label={
+                            item.quantity <= 1
+                              ? `Remover ${item.name} da sacola`
+                              : `Diminuir quantidade de ${item.name}`
+                          }
+                          className="w-7 h-7 rounded-[9px] bg-white grid place-items-center text-slate-900 cursor-pointer active:scale-90 transition-transform duration-150"
+                        >
+                          {item.quantity <= 1 ? (
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
+                          ) : (
+                            <Minus className="w-3.5 h-3.5" strokeWidth={2.4} />
+                          )}
+                        </button>
+                        <span className="w-6 text-center text-sm font-bold text-slate-900">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateQuantity(item.cartItemId, item.quantity + 1)
+                          }
+                          aria-label={`Aumentar quantidade de ${item.name}`}
+                          className="w-7 h-7 rounded-[9px] bg-white grid place-items-center text-slate-900 cursor-pointer active:scale-90 transition-transform duration-150"
+                        >
+                          <Plus className="w-3.5 h-3.5" strokeWidth={2.4} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
 
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.cartItemId)}
-                              aria-label={`Remover ${item.name} da sacola`}
-                              className="p-1.5 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-slate-500">
+                      Entrega
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-label={`Entrega de ${store.name}`}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {store.deliveryOptions.includes("delivery") && (
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={deliveryMode === "delivery"}
+                          onClick={() =>
+                            setStoreDeliveryMode((prev) => ({
+                              ...prev,
+                              [store.id]: "delivery",
+                            }))
+                          }
+                          className={optionPillClasses(
+                            deliveryMode === "delivery"
+                          )}
+                        >
+                          Entrega
+                        </button>
+                      )}
+                      {store.deliveryOptions.includes("pickup") && (
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={deliveryMode === "pickup"}
+                          onClick={() =>
+                            setStoreDeliveryMode((prev) => ({
+                              ...prev,
+                              [store.id]: "pickup",
+                            }))
+                          }
+                          className={optionPillClasses(
+                            deliveryMode === "pickup"
+                          )}
+                        >
+                          Retirar na loja
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-slate-500">
+                      Pagamento
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-label={`Pagamento em ${store.name}`}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {store.acceptedPayments.map((methodKey) => (
+                        <button
+                          key={methodKey}
+                          type="button"
+                          role="radio"
+                          aria-checked={paymentChoice === methodKey}
+                          onClick={() =>
+                            setStorePaymentChoice((prev) => ({
+                              ...prev,
+                              [store.id]: methodKey,
+                            }))
+                          }
+                          className={optionPillClasses(
+                            paymentChoice === methodKey
+                          )}
+                        >
+                          {PAYMENT_LABELS[methodKey]?.label ?? methodKey}
+                        </button>
                       ))}
                     </div>
-
-                    {/* Seletor de Entrega exclusivo da Loja + Seletor de Pagamento exclusivo da Loja */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-100">
-                      {/* Modalidade de Entrega */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                          Como deseja receber de {store.name}?
-                        </span>
-
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {store.deliveryOptions.includes("delivery") && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setStoreDeliveryMode((prev) => ({
-                                  ...prev,
-                                  [store.id]: "delivery",
-                                }))
-                              }
-                              className={cn(
-                                "rounded-2xl p-3 border text-left transition-all cursor-pointer",
-                                deliveryMode === "delivery"
-                                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                              )}
-                            >
-                              <span className="block text-xs font-extrabold">
-                                🛵 Entrega (Delivery)
-                              </span>
-                              <span
-                                className={cn(
-                                  "block text-[11px] mt-0.5",
-                                  deliveryMode === "delivery"
-                                    ? "text-emerald-300 font-semibold"
-                                    : "text-slate-500"
-                                )}
-                              >
-                                {store.deliveryFeeType === "free"
-                                  ? "Frete Grátis"
-                                  : store.deliveryFeeType === "fixed"
-                                  ? `Taxa: ${formatCurrencyBRL(
-                                      store.fixedDeliveryFee
-                                    )}`
-                                  : "Taxa a combinar no Zap"}
-                              </span>
-                            </button>
-                          )}
-
-                          {store.deliveryOptions.includes("pickup") && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setStoreDeliveryMode((prev) => ({
-                                  ...prev,
-                                  [store.id]: "pickup",
-                                }))
-                              }
-                              className={cn(
-                                "rounded-2xl p-3 border text-left transition-all cursor-pointer",
-                                deliveryMode === "pickup"
-                                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                              )}
-                            >
-                              <span className="block text-xs font-extrabold">
-                                🏪 Retirada na Loja
-                              </span>
-                              <span
-                                className={cn(
-                                  "block text-[11px] mt-0.5",
-                                  deliveryMode === "pickup"
-                                    ? "text-emerald-300 font-semibold"
-                                    : "text-slate-500"
-                                )}
-                              >
-                                Grátis no balcão
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Forma de Pagamento exclusiva da Loja */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                          <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                          Forma de Pagamento ({store.name})
-                        </span>
-
-                        <div className="flex flex-wrap gap-2">
-                          {store.acceptedPayments.map((methodKey) => {
-                            const meta = PAYMENT_LABELS[methodKey] || {
-                              label: methodKey,
-                              icon: <CreditCard className="w-3.5 h-3.5" />,
-                            };
-                            const isSelected = paymentChoice === methodKey;
-                            return (
-                              <button
-                                key={methodKey}
-                                type="button"
-                                onClick={() =>
-                                  setStorePaymentChoice((prev) => ({
-                                    ...prev,
-                                    [store.id]: methodKey,
-                                  }))
-                                }
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold border transition-all cursor-pointer",
-                                  isSelected
-                                    ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                                )}
-                              >
-                                {meta.icon}
-                                <span>{meta.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {store.installmentInfo && (
-                          <p className="text-[11px] font-semibold text-emerald-700">
-                            💳 {store.installmentInfo}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Resumo Financeiro da Loja + Botão Verde de Envio para o WhatsApp */}
-                    <div className="rounded-2xl bg-slate-50 p-4 sm:p-5 border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1 text-xs sm:text-sm">
-                        <div className="flex items-center gap-4 text-slate-600">
-                          <span>
-                            Subtotal: <strong>{formatCurrencyBRL(subtotal)}</strong>
-                          </span>
-                          <span>•</span>
-                          <span>
-                            Frete:{" "}
-                            <strong>
-                              {deliveryMode === "pickup"
-                                ? "Retirada Grátis"
-                                : store.deliveryFeeType === "free"
-                                ? "Grátis"
-                                : store.deliveryFeeType === "fixed"
-                                ? formatCurrencyBRL(deliveryFeeAmount)
-                                : "A combinar no Zap"}
-                            </strong>
-                          </span>
-                        </div>
-                        <p className="text-base sm:text-lg font-extrabold text-slate-900">
-                          Total em {store.name}:{" "}
-                          <span className="text-emerald-700">
-                            {formatCurrencyBRL(storeTotal)}
-                          </span>
-                        </p>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="whatsapp"
-                        size="lg"
-                        isLoading={isPending}
-                        onClick={() =>
-                          handleSendStoreOrderToWhatsApp(store, storeItems)
-                        }
-                        leftIcon={<MessageCircle className="w-5 h-5" />}
-                      >
-                        Enviar Pedido para {store.name} no WhatsApp
-                      </Button>
-                    </div>
-
-                    {/* Opção pós-disparo para limpar os itens daquela loja da sacola */}
-                    {alreadySent && (
-                      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-emerald-900">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                          <span>
-                            Pedido aberto no WhatsApp de{" "}
-                            <strong>{store.name}</strong>! Deseja limpar os
-                            itens desta loja da sacola?
-                          </span>
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => clearStoreItems(store.id)}
-                        >
-                          Remover itens enviados
-                        </Button>
-                      </div>
+                    {store.installmentInfo && (
+                      <span className="text-xs text-slate-500">
+                        {store.installmentInfo}
+                      </span>
                     )}
                   </div>
-                );
-              })}
-            </section>
+
+                  <div className="flex flex-col gap-1.5 pt-3 border-t border-slate-100 text-[13px]">
+                    <div className="flex justify-between text-slate-500">
+                      <span>Produtos</span>
+                      <span>{formatCurrencyBRL(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>Entrega</span>
+                      <span>
+                        {deliveryMode === "pickup"
+                          ? "Retirada grátis"
+                          : store.deliveryFeeType === "free"
+                          ? "Grátis"
+                          : store.deliveryFeeType === "fixed"
+                          ? formatCurrencyBRL(deliveryFeeAmount)
+                          : "A combinar"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-semibold text-slate-900">
+                        Total da loja
+                      </span>
+                      <span className="font-display text-[19px] font-extrabold text-slate-900">
+                        {formatCurrencyBRL(storeTotal)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="whatsapp"
+                    fullWidth
+                    className="h-13 rounded-[17px]"
+                    isLoading={isPending}
+                    onClick={() =>
+                      handleSendStoreOrderToWhatsApp(store, storeItems)
+                    }
+                  >
+                    Enviar pedido para {store.name}
+                  </Button>
+
+                  {/* Pós-envio: limpar os itens desta loja */}
+                  {alreadySent && (
+                    <div className="rounded-[18px] bg-emerald-100 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <span className="text-[13px] font-semibold text-emerald-800">
+                        Pedido aberto no WhatsApp de {store.name}. Quer tirar
+                        estes itens da sacola?
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => clearStoreItems(store.id)}
+                      >
+                        Remover itens
+                      </Button>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
           </>
         )}
       </main>
 
-      <Footer />
+      <Footer className="hidden md:block" />
     </div>
   );
 }
-

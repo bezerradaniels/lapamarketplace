@@ -30,30 +30,30 @@ const STATE_STYLES: Record<
 > = {
   open: {
     pillBg:
-      "bg-emerald-50/90 text-emerald-800 border-emerald-200/70 hover:bg-emerald-100/80",
-    dotColor: "bg-emerald-500",
+      "bg-emerald-100 text-emerald-800 hover:bg-emerald-200/70",
+    dotColor: "bg-emerald-600",
     pingColor: "bg-emerald-400",
     pulse: true,
   },
   lunch: {
     pillBg:
-      "bg-amber-50/90 text-amber-800 border-amber-200/70 hover:bg-amber-100/80",
-    dotColor: "bg-amber-500",
+      "bg-amber-100 text-amber-800 hover:bg-amber-200/70",
+    dotColor: "bg-amber-600",
     pingColor: "bg-amber-400",
     pulse: true,
   },
   closing_soon: {
     pillBg:
-      "bg-amber-50/90 text-amber-800 border-amber-200/70 hover:bg-amber-100/80",
-    dotColor: "bg-amber-500",
+      "bg-amber-100 text-amber-800 hover:bg-amber-200/70",
+    dotColor: "bg-amber-600",
     pingColor: "bg-amber-400",
     pulse: true,
   },
   closed: {
     pillBg:
-      "bg-slate-100 text-slate-600 border-slate-200/70 hover:bg-slate-200/70",
-    dotColor: "bg-rose-500",
-    pingColor: "bg-rose-400",
+      "bg-slate-100 text-slate-600 hover:bg-slate-200/70",
+    dotColor: "bg-slate-400",
+    pingColor: "bg-slate-300",
     pulse: false,
   },
 };
@@ -103,16 +103,16 @@ export function StoreStatusBadge({
         onClick={openModal}
         title={`${status.label} • ${status.detailText} (Clique para ver horários)`}
         className={cn(
-          "inline-flex items-center rounded-full border font-semibold transition-all cursor-pointer select-none touch-manipulation",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20",
+          "inline-flex items-center max-w-full rounded-full font-semibold transition-colors duration-150 cursor-pointer select-none touch-manipulation",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
           compact
-            ? "px-2 py-0.5 text-[11px] gap-1.5"
-            : "px-3 py-1 text-xs gap-2",
+            ? "px-2.5 py-1 text-[11px] gap-1.5"
+            : "px-2.5 py-1 text-[11px] sm:text-xs gap-1.5",
           style.pillBg,
           className
         )}
       >
-        <span className="relative flex h-2 w-2 shrink-0">
+        <span className="relative flex h-1.5 w-1.5 shrink-0">
           {style.pulse && (
             <span
               className={cn(
@@ -123,7 +123,7 @@ export function StoreStatusBadge({
           )}
           <span
             className={cn(
-              "relative inline-flex rounded-full h-2 w-2",
+              "relative inline-flex rounded-full h-1.5 w-1.5",
               style.dotColor
             )}
           />
@@ -167,19 +167,19 @@ export function StoreStatusBadge({
           pressedOutsideRef.current = false;
         }}
         className={cn(
-          "m-auto w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-6 text-slate-900 shadow-2xl border border-slate-100",
-          "backdrop:bg-slate-950/40 backdrop:backdrop-blur-xs"
+          "m-auto w-[calc(100%-2rem)] max-w-md rounded-[28px] bg-white p-6 text-slate-900 shadow-float",
+          "backdrop:bg-slate-900/50"
         )}
       >
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-slate-100/80 flex items-center justify-center text-slate-700 shrink-0">
+            <div className="w-10.5 h-10.5 rounded-[14px] bg-brand-soft flex items-center justify-center text-slate-900 shrink-0">
               <Clock className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2
                 id={titleId}
-                className="text-base font-extrabold text-slate-900 leading-tight"
+                className="text-[17px] font-extrabold text-slate-900 leading-tight"
               >
                 Horário de Funcionamento
               </h2>
@@ -194,7 +194,7 @@ export function StoreStatusBadge({
               type="submit"
               aria-label="Fechar horários de funcionamento"
               autoFocus
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200/80 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-900 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -202,7 +202,7 @@ export function StoreStatusBadge({
         </div>
 
         {/* Status atual em destaque */}
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 border border-slate-100">
+        <div className="mt-4 flex items-center justify-between rounded-[18px] bg-slate-50 px-4 py-3">
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-2.5 w-2.5">
               {style.pulse && (
@@ -231,22 +231,22 @@ export function StoreStatusBadge({
 
         {/* Horários da semana */}
         <div className="mt-4 space-y-1.5">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
             Horários da Semana
           </p>
           <ul
             className={cn(
-              "divide-y divide-slate-100 rounded-2xl overflow-hidden bg-white",
-              "border border-slate-100"
+              "divide-y divide-slate-100 rounded-[18px] overflow-hidden bg-white",
+              "ring-line"
             )}
           >
             {status.weeklySchedule.map((day) => (
               <li
                 key={day.dayOfWeek}
                 className={cn(
-                  "flex items-center justify-between px-3.5 py-2.5 text-xs",
+                  "flex items-center justify-between px-3.5 py-2.5 text-sm",
                   day.isToday
-                    ? "bg-slate-900/5 font-bold text-slate-900"
+                    ? "bg-brand-soft font-semibold text-slate-900"
                     : "text-slate-600"
                 )}
               >
@@ -261,7 +261,7 @@ export function StoreStatusBadge({
                 <div className="text-right">
                   <span
                     className={cn(
-                      day.isClosed ? "text-rose-500 font-semibold" : ""
+                      day.isClosed ? "text-slate-400" : ""
                     )}
                   >
                     {day.hoursText}
@@ -280,7 +280,7 @@ export function StoreStatusBadge({
         {/* Horários especiais / feriados */}
         {status.specialHours.length > 0 && (
           <div className="mt-4 space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1 flex items-center gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
               Datas Especiais e Feriados
             </p>
@@ -288,11 +288,11 @@ export function StoreStatusBadge({
               {status.specialHours.map((sp, idx) => (
                 <li
                   key={sp.id ?? `${sp.date}-${idx}`}
-                  className="flex items-center justify-between rounded-2xl bg-amber-50/70 border border-amber-100 px-3.5 py-2 text-xs text-amber-900"
+                  className="flex items-center justify-between rounded-[14px] bg-amber-100 px-3.5 py-2.5 text-xs text-amber-800"
                 >
                   <div>
                     <span className="font-semibold">{sp.label}</span>
-                    <span className="block text-[11px] text-amber-700">
+                    <span className="block text-[11px] text-amber-800/80">
                       {sp.date}
                     </span>
                   </div>
@@ -310,7 +310,7 @@ export function StoreStatusBadge({
         <form method="dialog" className="mt-5">
           <button
             type="submit"
-            className="w-full h-11 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-full h-13 rounded-[17px] bg-slate-900 text-white font-display text-[15px] font-bold hover:bg-slate-800 active:scale-[0.98] transition duration-150 cursor-pointer"
           >
             Entendi
           </button>

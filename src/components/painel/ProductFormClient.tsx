@@ -3,22 +3,11 @@
 import React, { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Upload,
-  X,
-  ArrowLeft,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  Tag,
-  Layers,
-  Zap,
-  Loader2,
-  Check,
-  ImagePlus,
-} from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, fieldBaseClasses, fieldLabelClasses } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
+import { PillGroup, Switch } from "@/components/ui/Switch";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
@@ -119,6 +108,8 @@ export function ProductFormClient({
 
   const mainFileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const draftRef = useRef(false);
 
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -261,7 +252,7 @@ export function ProductFormClient({
         sizes: filterConfig.has_size ? selectedSizes : [],
         voltage: filterConfig.has_voltage ? voltage : null,
         condition,
-        is_active: isActive,
+        is_active: draftRef.current ? false : isActive,
       });
 
       if (result.error) {
@@ -278,496 +269,313 @@ export function ProductFormClient({
     });
   };
 
-  return (
-    <div className="max-w-3xl space-y-6">
-      {/* Banner de Boas-vindas Pós-Onboarding */}
-      {showOnboardingSuccess && (
-        <div
-          role="status"
-          className="rounded-3xl bg-emerald-600 text-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+  const previewPrice =
+    discountPercent != null && parsedPromo != null ? parsedPromo : parsedPrice;
+  const eyebrow =
+    "text-xs font-semibold uppercase tracking-[0.1em] text-slate-500";
+
+  const extraSlot = (slotIdx: number) => {
+    const extraUrl = galleryUrls[slotIdx];
+    return extraUrl ? (
+      <div
+        key={slotIdx}
+        className="relative aspect-square rounded-[18px] bg-slate-100 overflow-hidden"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={extraUrl} alt={`Foto extra ${slotIdx + 1}`} className="w-full h-full object-cover" />
+        <button
+          type="button"
+          onClick={() => removeGalleryImage(slotIdx)}
+          aria-label={`Remover foto extra ${slotIdx + 1}`}
+          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-[10px] bg-white grid place-items-center text-slate-900 cursor-pointer"
         >
-          <div className="space-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-              Sua loja já está no ar!
-            </span>
-            <h2 className="text-lg sm:text-xl font-extrabold">
-              Parabéns! Agora cadastre o seu primeiro produto na vitrine
-            </h2>
-            <p className="text-xs sm:text-sm text-emerald-50">
-              Adicione fotos nítidas, escolha os tamanhos disponíveis e comece a
-              receber pedidos no WhatsApp.
-            </p>
-          </div>
-        </div>
+          <X className="w-3.5 h-3.5" strokeWidth={2} />
+        </button>
+      </div>
+    ) : (
+      <button
+        key={slotIdx}
+        type="button"
+        onClick={() => galleryFileInputRef.current?.click()}
+        aria-label={`Adicionar foto extra ${slotIdx + 1}`}
+        className="aspect-square rounded-[18px] bg-slate-50 ring-line grid place-items-center text-[22px] text-slate-400 hover:bg-slate-100 cursor-pointer transition-colors duration-150"
+      >
+        +
+      </button>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {showOnboardingSuccess && (
+        <Notice tone="success" title="Sua loja está no ar!">
+          Cadastre o primeiro produto para aparecer no feed da Lapa.
+        </Notice>
       )}
 
-      {/* Cabeçalho da Página */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <Link
-            href="/painel/produtos"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Voltar para Meus Produtos</span>
-          </Link>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {isEditing ? "Editar Produto" : "Novo Produto no Catálogo"}
-          </h1>
-        </div>
+      <div className="flex flex-col gap-1">
+        <Link
+          href="/painel/produtos"
+          className="self-start text-[13px] text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          ← Produtos
+        </Link>
+        <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] text-slate-900">
+          {isEditing ? "Editar produto" : "Novo produto"}
+        </h1>
       </div>
 
-      {/* Formulário Inteligente */}
+      {feedback && <Notice tone={feedback.type}>{feedback.text}</Notice>}
+
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
-        className="rounded-3xl bg-white p-6 sm:p-8 border border-slate-100 shadow-xs space-y-6"
+        className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
-        {feedback && (
-          <div
-            role={feedback.type === "error" ? "alert" : "status"}
-            className={cn(
-              "flex items-start gap-2.5 rounded-2xl p-4 text-xs sm:text-sm font-medium border",
-              feedback.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-rose-50 border-rose-200 text-rose-700"
-            )}
-          >
-            {feedback.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            )}
-            <span>{feedback.text}</span>
-          </div>
-        )}
-
-        {/* 1. Upload de Foto Principal + até 3 Fotos Extras (`gallery_urls`) */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-              1. Fotos do Produto (1 Principal + até 3 Extras)
-            </label>
-            {isUploadingImage && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Enviando para lapa-imagens...
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            {/* Foto Principal */}
-            <div className="relative aspect-square rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 overflow-hidden flex flex-col items-center justify-center p-2 text-center">
-              {mainImageUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mainImageUrl}
-                    alt="Foto principal"
-                    className="w-full h-full object-cover rounded-xl"
-                  />
-                  <span className="absolute bottom-2 left-2 rounded-full bg-slate-900/85 text-white px-2.5 py-0.5 text-[10px] font-bold">
-                    Principal
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setMainImageUrl("")}
-                    aria-label="Remover foto principal"
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 text-slate-800 flex items-center justify-center shadow-xs cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => mainFileInputRef.current?.click()}
-                  className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer"
-                >
-                  <Upload className="w-6 h-6 text-emerald-600" />
-                  <span className="text-xs font-bold">Foto Principal *</span>
-                  <span className="text-[10px] text-slate-400">
-                    Toque para enviar
-                  </span>
-                </button>
+        <div className="flex flex-col gap-3.5 min-w-0">
+          {/* Fotos */}
+          <section className="p-4.5 rounded-3xl bg-white flex flex-col gap-3">
+            <div className="flex justify-between items-baseline">
+              <h2 className="text-base font-extrabold text-slate-900">Fotos</h2>
+              {isUploadingImage && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando…
+                </span>
               )}
-              <input
-                ref={mainFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleMainImageSelect}
-                className="hidden"
-              />
             </div>
-
-            {/* Até 3 Fotos Extras (`gallery_urls`) */}
-            {[0, 1, 2].map((slotIdx) => {
-              const extraUrl = galleryUrls[slotIdx];
-              return (
-                <div
-                  key={slotIdx}
-                  className="relative aspect-square rounded-2xl bg-slate-50 border border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center p-2 text-center"
-                >
-                  {extraUrl ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={extraUrl}
-                        alt={`Foto extra ${slotIdx + 1}`}
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                      <span className="absolute bottom-2 left-2 rounded-full bg-slate-900/75 text-white px-2 py-0.5 text-[10px] font-semibold">
-                        Extra {slotIdx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeGalleryImage(slotIdx)}
-                        aria-label={`Remover foto extra ${slotIdx + 1}`}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 text-slate-800 flex items-center justify-center shadow-xs cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr] gap-2.5">
+              <div className="col-span-2 sm:col-span-1 relative aspect-square rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FDBA74] overflow-hidden grid place-items-center">
+                {mainImageUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={mainImageUrl} alt="Foto principal" className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      onClick={() => galleryFileInputRef.current?.click()}
-                      className="w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      onClick={() => setMainImageUrl("")}
+                      aria-label="Remover foto principal"
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-[10px] bg-white grid place-items-center text-slate-900 cursor-pointer"
                     >
-                      <ImagePlus className="w-5 h-5" />
-                      <span className="text-[11px] font-semibold">
-                        Foto Extra {slotIdx + 1}
-                      </span>
+                      <X className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
-                  )}
-                </div>
-              );
-            })}
-            <input
-              ref={galleryFileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleGalleryImageSelect}
-              className="hidden"
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => mainFileInputRef.current?.click()}
+                    className="w-full h-full grid place-items-center text-[13px] font-semibold text-slate-900 cursor-pointer"
+                  >
+                    Foto principal *
+                  </button>
+                )}
+              </div>
+              {[0, 1, 2].map(extraSlot)}
+            </div>
+            <input ref={mainFileInputRef} type="file" accept="image/*" onChange={handleMainImageSelect} className="hidden" />
+            <input ref={galleryFileInputRef} type="file" accept="image/*" multiple onChange={handleGalleryImageSelect} className="hidden" />
+            <Input
+              inputSize="md"
+              label="Ou cole o link da foto principal"
+              placeholder="https://..."
+              value={mainImageUrl}
+              onChange={(e) => setMainImageUrl(e.target.value)}
             />
-          </div>
+          </section>
 
-          <Input
-            label="Ou informe a URL da Foto Principal"
-            placeholder="https://images.unsplash.com/..."
-            value={mainImageUrl}
-            onChange={(e) => setMainImageUrl(e.target.value)}
-          />
-        </section>
-
-        {/* 2. Informações Principais */}
-        <section className="space-y-4 pt-2 border-t border-slate-100">
-          <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block">
-            2. Dados do Produto
-          </label>
-
-          <Input
-            label="Título do Produto *"
-            placeholder="Ex: Conjunto Alfaiataria Linho Off-White"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            leftIcon={<Tag className="w-4 h-4" />}
-          />
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="product-desc"
-              className="text-xs font-semibold text-slate-700 px-1"
-            >
-              Descrição detalhada (tecido, medidas, garantia, etc.)
-            </label>
-            <textarea
-              id="product-desc"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva os detalhes da peça para ajudar o cliente a decidir rápido..."
-              className="w-full bg-slate-100/80 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 border border-transparent outline-none transition-all focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10 resize-none"
-            />
-          </div>
-        </section>
-
-        {/* 3. Categoria Principal, Subcategoria e RENDERIZAÇÃO CONDICIONAL DE FILTROS */}
-        <section className="space-y-5 pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-              3. Categoria & Filtros Inteligentes
-            </label>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-              Filtros adaptados automaticamente
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Dados */}
+          <section className="p-4.5 rounded-3xl bg-white grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Input
+                inputSize="md"
+                label="Título"
+                placeholder="Vestido Midi Floral"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
             <Select
-              label="Categoria Principal *"
+              inputSize="md"
+              label="Categoria"
               value={categoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              leftIcon={<Layers className="w-4 h-4" />}
-              options={mainCategories.map((c) => ({
-                value: c.id,
-                label: c.name,
-              }))}
+              options={mainCategories.map((c) => ({ value: c.id, label: c.name }))}
             />
-
             <Select
+              inputSize="md"
               label="Subcategoria"
               value={subcategoryId}
               onChange={(e) => setSubcategoryId(e.target.value)}
               options={[
-                { value: "", label: "Selecione uma subcategoria (opcional)" },
-                ...subcategoriesForSelected.map((sub) => ({
-                  value: sub.id,
-                  label: sub.name,
-                })),
+                { value: "", label: "Opcional" },
+                ...subcategoriesForSelected.map((sub) => ({ value: sub.id, label: sub.name })),
               ]}
             />
-          </div>
 
-          {/* Box de Filtros Condicionais Lidos de `filter_config` */}
-          <div className="rounded-2xl bg-slate-50 p-5 border border-slate-100 space-y-5">
-            {/* CONDICIONAL A: Se `has_gender === true` */}
-            {filterConfig.has_gender && (
-              <div className="space-y-2">
-                <span className="block text-xs font-bold text-slate-800">
-                  Gênero / Público ({activeMainCategory?.name})
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {GENDER_OPTIONS.map((gOpt) => {
-                    const active = gender === gOpt;
-                    return (
-                      <button
-                        key={gOpt}
-                        type="button"
-                        onClick={() => setGender(gOpt)}
-                        className={cn(
-                          "rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer",
-                          active
-                            ? "bg-slate-900 text-white shadow-2xs"
-                            : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                        )}
-                      >
-                        {gOpt}
-                      </button>
-                    );
-                  })}
+            {/* Filtros condicionais (filter_config) */}
+            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-brand-tint shadow-[inset_0_0_0_1.5px_#FFEDD5] flex flex-col gap-3.5">
+              {filterConfig.has_gender && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-brand-ink">Gênero · filtro da categoria</span>
+                  <PillGroup
+                    ariaLabel="Gênero"
+                    surface="ring"
+                    value={gender}
+                    onToggle={(g) => setGender(g)}
+                    options={GENDER_OPTIONS.map((g) => ({ value: g, label: g }))}
+                  />
                 </div>
-              </div>
-            )}
-
-            {/* CONDICIONAL B: Se `has_size === true` */}
-            {filterConfig.has_size && sizeOptions.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800">
-                    Grade de Tamanhos Disponíveis ({activeMainCategory?.name})
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Toque nas pílulas para marcar os tamanhos em estoque
-                  </span>
+              )}
+              {filterConfig.has_size && sizeOptions.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-brand-ink">Tamanhos disponíveis</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sizeOptions.map((sz) => {
+                      const on = selectedSizes.includes(sz);
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => toggleSizeOption(sz)}
+                          className={cn(
+                            "min-w-9.5 h-8.5 px-2.5 rounded-[11px] grid place-items-center font-display text-[13px] font-bold cursor-pointer transition-colors duration-150",
+                            on ? "bg-slate-900 text-white" : "bg-white text-slate-900 ring-line hover:bg-slate-50"
+                          )}
+                        >
+                          {sz}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {sizeOptions.map((sz) => {
-                    const isSelected = selectedSizes.includes(sz);
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSizeOption(sz)}
-                        aria-pressed={isSelected}
-                        className={cn(
-                          "min-w-11 h-10 px-3.5 rounded-full text-xs font-extrabold transition-all cursor-pointer inline-flex items-center justify-center gap-1 border",
-                          isSelected
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                        )}
-                      >
-                        <span>{sz}</span>
-                        {isSelected && <Check className="w-3 h-3" />}
-                      </button>
-                    );
-                  })}
+              )}
+              {filterConfig.has_voltage && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-brand-ink">Voltagem</span>
+                  <PillGroup
+                    ariaLabel="Voltagem"
+                    surface="ring"
+                    value={voltage}
+                    onToggle={(v) => setVoltage(v)}
+                    options={VOLTAGE_OPTIONS.map((v) => ({ value: v, label: v }))}
+                  />
                 </div>
-              </div>
-            )}
-
-            {/* CONDICIONAL C: Se `has_voltage === true` */}
-            {filterConfig.has_voltage && (
-              <div className="space-y-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                  Voltagem / Tensão Elétrica ({activeMainCategory?.name})
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {VOLTAGE_OPTIONS.map((vOpt) => {
-                    const active = voltage === vOpt;
-                    return (
-                      <button
-                        key={vOpt}
-                        type="button"
-                        onClick={() => setVoltage(vOpt)}
-                        className={cn(
-                          "rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer",
-                          active
-                            ? "bg-slate-900 text-white shadow-2xs"
-                            : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                        )}
-                      >
-                        {vOpt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Condição do produto */}
-            <div className="space-y-2 pt-2 border-t border-slate-200/60">
-              <span className="block text-xs font-bold text-slate-800">
-                Condição do Produto
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    { id: "new", label: "Novo" },
-                    { id: "used", label: "Seminovo / Usado" },
-                    { id: "refurbished", label: "Recondicionado" },
-                  ] as const
-                ).map((cOpt) => (
-                  <button
-                    key={cOpt.id}
-                    type="button"
-                    onClick={() => setCondition(cOpt.id)}
-                    className={cn(
-                      "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer",
-                      condition === cOpt.id
-                        ? "bg-slate-900 text-white"
-                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-                    )}
-                  >
-                    {cOpt.label}
-                  </button>
-                ))}
+              )}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-brand-ink">Condição</span>
+                <PillGroup
+                  ariaLabel="Condição do produto"
+                  surface="ring"
+                  value={condition}
+                  onToggle={(c) => setCondition(c)}
+                  options={[
+                    { value: "new", label: "Novo" },
+                    { value: "used", label: "Seminovo" },
+                    { value: "refurbished", label: "Recondicionado" },
+                  ]}
+                />
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* 4. Preço Normal, Preço Promocional & Preview de % OFF */}
-        <section className="space-y-4 pt-2 border-t border-slate-100">
-          <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block">
-            4. Preço & Oferta
-          </label>
+            <div className="sm:col-span-2 flex flex-col gap-1.5">
+              <label htmlFor="product-desc" className={fieldLabelClasses}>
+                Descrição <span className="font-medium text-slate-500">· tecido, medidas, garantia</span>
+              </label>
+              <textarea
+                id="product-desc"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Detalhes da peça para ajudar o cliente a decidir rápido"
+                className={cn(fieldBaseClasses, "rounded-[15px] px-3.5 py-3 text-sm resize-none")}
+              />
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Preço Normal (R$) *"
+              inputSize="md"
+              label="Preço"
               type="number"
               step="0.01"
               min="0.01"
-              placeholder="Ex: 199.90"
+              inputMode="decimal"
+              placeholder="89,90"
               value={priceStr}
               onChange={(e) => setPriceStr(e.target.value)}
               required
             />
-
-            <Input
-              label="Preço Promocional (R$) — Opcional"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Ex: 159.90"
-              value={promoPriceStr}
-              onChange={(e) => setPromoPriceStr(e.target.value)}
-              helperText="Preencha para ativar o selo vermelho de oferta."
-            />
-          </div>
-
-          {/* Preview em tempo real do Badge de % OFF */}
-          {parsedPrice > 0 && (
-            <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Preview de Preço no Card da Vitrine
-                </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-extrabold text-slate-900">
-                    {formatCurrencyBRL(
-                      discountPercent != null && parsedPromo != null
-                        ? parsedPromo
-                        : parsedPrice
-                    )}
-                  </span>
-                  {discountPercent != null && (
-                    <span className="text-xs text-slate-400 line-through">
-                      {formatCurrencyBRL(parsedPrice)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {discountPercent != null ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-600">
-                    Badge exibido na foto:
-                  </span>
-                  <Badge
-                    variant="discount"
-                    size="md"
-                    discountPercent={discountPercent}
-                  />
-                </div>
-              ) : (
-                <span className="text-xs text-slate-400">
-                  Sem desconto ativo (preço cheio)
-                </span>
+            <div className="flex flex-col gap-1.5">
+              <Input
+                inputSize="md"
+                label="Preço promocional · opcional"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                placeholder="67,40"
+                value={promoPriceStr}
+                onChange={(e) => setPromoPriceStr(e.target.value)}
+              />
+              {discountPercent != null && (
+                <Badge variant="discount" size="md" className="self-start">
+                  −{discountPercent}% OFF
+                </Badge>
               )}
             </div>
-          )}
-        </section>
-
-        {/* Status Ativo + Botão Salvar */}
-        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <label className="inline-flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-            />
-            <span className="text-xs sm:text-sm font-bold text-slate-800">
-              Produto ativo e visível imediatamente na vitrine
-            </span>
-          </label>
-
-          <div className="flex items-center gap-2.5">
-            <Link href="/painel/produtos">
-              <Button type="button" variant="secondary" size="lg">
-                Cancelar
-              </Button>
-            </Link>
-
-            <Button
-              type="submit"
-              variant="whatsapp"
-              size="lg"
-              isLoading={isPending}
-            >
-              {isEditing ? "Salvar Alterações" : "Publicar Produto"}
-            </Button>
-          </div>
+          </section>
         </div>
+
+        {/* Coluna direita: prévia + ações */}
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-7">
+          <span className={eyebrow}>Prévia no feed</span>
+          <div className="p-2 pb-3.5 rounded-3xl bg-white flex flex-col gap-2.5">
+            <div className="relative aspect-square rounded-[18px] bg-slate-100 overflow-hidden grid place-items-center text-xs text-slate-500">
+              {mainImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={mainImageUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                "foto principal"
+              )}
+              {discountPercent != null && (
+                <Badge variant="discount" discountPercent={discountPercent} className="absolute top-2 left-2" />
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5 px-1.5">
+              <span className="font-display text-[15px] font-semibold text-slate-900 truncate">
+                {title || "Título do produto"}
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="font-display text-lg font-extrabold text-slate-900">
+                  {formatCurrencyBRL(previewPrice)}
+                </span>
+                {discountPercent != null && (
+                  <span className="text-xs text-slate-500 line-through">{formatCurrencyBRL(parsedPrice)}</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 p-3.5 rounded-[18px] bg-white">
+            <span className="text-sm font-semibold text-slate-900">Visível na vitrine</span>
+            <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Produto visível na vitrine" />
+          </div>
+
+          <Button type="submit" size="lg" fullWidth isLoading={isPending} onClick={() => (draftRef.current = false)}>
+            {isEditing ? "Salvar alterações" : "Publicar produto"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            disabled={isPending}
+            onClick={() => {
+              draftRef.current = true;
+              formRef.current?.requestSubmit();
+            }}
+          >
+            Salvar rascunho
+          </Button>
+        </aside>
       </form>
     </div>
   );
 }
-

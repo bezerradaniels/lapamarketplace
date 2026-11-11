@@ -3,37 +3,53 @@
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Lock,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-} from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Notice } from "@/components/ui/Notice";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { updatePassword } from "@/app/(auth)/actions";
+import { cn } from "@/lib/utils";
+
+const STRENGTH_LABELS = ["", "Senha fraca", "Senha razoável", "Senha boa", "Senha forte"];
+
+/** Força da senha em 0–4 segmentos: tamanho, letras, números e variedade. */
+function getPasswordStrength(password: string): number {
+  if (!password) return 0;
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password)) {
+    score += 1;
+  }
+  if (password.length >= 10) score += 1;
+  if (/[^a-zA-Z0-9]/.test(password) || (/[a-z]/.test(password) && /[A-Z]/.test(password))) {
+    score += 1;
+  }
+  return Math.max(1, score);
+}
 
 export default function NovaSenhaPage() {
   const router = useRouter();
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [isPending, startTransition] = useTransition();
+
+  const strength = getPasswordStrength(password);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     const formData = new FormData(e.currentTarget);
-    const password = String(formData.get("password") || "");
+    const newPassword = String(formData.get("password") || "");
     const confirmPassword = String(formData.get("confirm_password") || "");
 
-    if (password.length < 6) {
+    if (newPassword.length < 6) {
       setError("A nova senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       setError("A confirmação de senha não confere.");
       return;
     }
@@ -52,93 +68,110 @@ export default function NovaSenhaPage() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto rounded-3xl bg-white p-8 shadow-sm border border-slate-100 space-y-6">
-      {/* Cabeçalho */}
-      <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
-          <ShieldCheck className="w-6 h-6" aria-hidden="true" />
-        </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Definir nova senha
+    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+      <span className="w-16 h-16 rounded-[22px] bg-brand-soft grid place-items-center">
+        <LapaSymbol size={40} />
+      </span>
+
+      <div className="flex flex-col gap-2">
+        <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900">
+          Crie uma nova senha
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Escolha uma senha segura para proteger sua conta no Lapa Marketplace.
+        <p className="text-[15px] text-slate-500 leading-[1.45]">
+          Use pelo menos 8 caracteres, com letras e números.
         </p>
       </div>
 
-      {/* Erro */}
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-2xl bg-rose-50 border border-rose-200/80 p-3.5 text-xs font-medium text-rose-700"
-        >
-          <AlertCircle
-            className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Notice tone="error">{error}</Notice>}
 
-      {/* Sucesso */}
       {success ? (
-        <div
-          role="status"
-          className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center space-y-3"
-        >
-          <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-          </div>
-          <h2 className="text-base font-extrabold text-emerald-950">
-            Senha atualizada!
-          </h2>
-          <p className="text-xs text-emerald-800">
-            Redirecionando você para a sua conta...
-          </p>
+        <>
+          <Notice tone="success" title="Senha atualizada!">
+            Redirecionando você para a sua conta…
+          </Notice>
           <Link
             href="/minha-conta"
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-xs font-bold hover:bg-slate-800 transition-colors"
+            className="self-center text-sm font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
           >
-            Ir para Minha Conta
+            Ir para minha conta
           </Link>
-        </div>
+        </>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            name="password"
-            type="password"
-            label="Nova senha"
-            placeholder="Mínimo de 6 caracteres"
-            autoComplete="new-password"
-            minLength={6}
-            required
-            leftIcon={<Lock className="w-4 h-4" aria-hidden="true" />}
-          />
+        <>
+          <form
+            id="new-password-form"
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5.5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <PasswordInput
+                name="password"
+                label="Nova senha"
+                placeholder="Sua nova senha"
+                autoComplete="new-password"
+                minLength={6}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-describedby="password-strength"
+              />
+              <div className="grid grid-cols-4 gap-1 mt-1" aria-hidden="true">
+                {[1, 2, 3, 4].map((segment) => (
+                  <span
+                    key={segment}
+                    className={cn(
+                      "h-1 rounded-full transition-colors duration-150",
+                      segment <= strength
+                        ? strength <= 1
+                          ? "bg-offer"
+                          : strength === 2
+                          ? "bg-amber-600"
+                          : "bg-whatsapp"
+                        : "bg-slate-200"
+                    )}
+                  />
+                ))}
+              </div>
+              <span
+                id="password-strength"
+                aria-live="polite"
+                className={cn(
+                  "text-xs font-semibold min-h-4",
+                  strength <= 1
+                    ? "text-rose-700"
+                    : strength === 2
+                    ? "text-amber-800"
+                    : "text-emerald-800"
+                )}
+              >
+                {STRENGTH_LABELS[strength]}
+              </span>
+            </div>
 
-          <Input
-            name="confirm_password"
-            type="password"
-            label="Confirme a nova senha"
-            placeholder="Digite a nova senha novamente"
-            autoComplete="new-password"
-            minLength={6}
-            required
-            leftIcon={<Lock className="w-4 h-4" aria-hidden="true" />}
-          />
+            <PasswordInput
+              name="confirm_password"
+              label="Confirmar senha"
+              placeholder="Repita a nova senha"
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+          </form>
+
+          <div className="flex-1 md:hidden" />
 
           <Button
             type="submit"
+            form="new-password-form"
             variant="primary"
             size="lg"
             fullWidth
             isLoading={isPending}
-            rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
           >
-            Salvar nova senha
+            Salvar e entrar
           </Button>
-        </form>
+        </>
       )}
     </div>
   );
 }
-

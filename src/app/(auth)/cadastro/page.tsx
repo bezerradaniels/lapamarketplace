@@ -4,16 +4,14 @@ import React, { Suspense, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  User,
-  Mail,
-  Lock,
-  ShoppingBag,
-  Store,
-  ArrowRight,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
+  Button,
+  buttonBaseClasses,
+  buttonSizeClasses,
+  buttonVariantClasses,
+} from "@/components/ui/Button";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Notice } from "@/components/ui/Notice";
+import { LapaWordmark } from "@/components/brand/LapaSymbol";
 import { Input } from "@/components/ui/Input";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
 import { signupWithEmail } from "@/app/(auth)/actions";
@@ -52,122 +50,95 @@ function SignupFormContent() {
     });
   };
 
-  return (
-    <div className="w-full max-w-md mx-auto rounded-3xl bg-white p-8 shadow-sm border border-slate-100 space-y-6">
-      {/* Cabeçalho */}
-      <div className="text-center space-y-1.5">
-        <span className="inline-block rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-[11px] font-bold tracking-wide uppercase">
-          Cadastro Unificado
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Crie sua conta gratuita
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Escolha como deseja usar o Lapa Marketplace em Bom Jesus da Lapa.
-        </p>
-      </div>
+  const accountOptions: Array<{
+    value: AccountType;
+    title: string;
+    sub: string;
+  }> = [
+    {
+      value: "customer",
+      title: "Quero comprar em Lapa",
+      sub: "Favoritar, seguir lojas e pedir rápido",
+    },
+    {
+      value: "merchant",
+      title: "Sou lojista, quero vender",
+      sub: "Catálogo grátis com pedidos no WhatsApp",
+    },
+  ];
 
-      {/* Seletor Visual em Pílulas no Topo: Cliente vs Lojista */}
+  return (
+    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+      <Link href="/" aria-label="Lapa Marketplace — voltar para o início">
+        <LapaWordmark variant="short" symbolSize={28} textClassName="text-xl" />
+      </Link>
+
+      <h1 className="text-[28px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
+        Como você quer usar a Lapa?
+      </h1>
+
+      {/* Tipo de conta: dois cards de escolha */}
       <div
         role="radiogroup"
         aria-label="Tipo de conta"
-        className="grid grid-cols-2 gap-1.5 rounded-full bg-slate-100/90 p-1.5 border border-slate-200/60"
+        className="grid grid-cols-2 gap-2.5"
       >
-        <button
-          type="button"
-          role="radio"
-          aria-checked={accountType === "customer"}
-          onClick={() => setAccountType("customer")}
-          className={cn(
-            "flex items-center justify-center gap-1.5 rounded-full py-2.5 px-3 text-xs font-bold transition-all cursor-pointer touch-manipulation",
-            accountType === "customer"
-              ? "bg-slate-900 text-white shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          )}
-        >
-          <ShoppingBag className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">Quero Comprar em Lapa</span>
-        </button>
-
-        <button
-          type="button"
-          role="radio"
-          aria-checked={accountType === "merchant"}
-          onClick={() => setAccountType("merchant")}
-          className={cn(
-            "flex items-center justify-center gap-1.5 rounded-full py-2.5 px-3 text-xs font-bold transition-all cursor-pointer touch-manipulation",
-            accountType === "merchant"
-              ? "bg-emerald-600 text-white shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          )}
-        >
-          <Store className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">Sou Lojista / Quero Vender</span>
-        </button>
+        {accountOptions.map((opt) => {
+          const selected = accountType === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setAccountType(opt.value)}
+              className={cn(
+                "p-3.5 rounded-[22px] flex flex-col gap-2.5 text-left cursor-pointer transition-[background-color,box-shadow] duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
+                selected
+                  ? "bg-brand-soft shadow-[inset_0_0_0_2px_#FDBA74]"
+                  : "bg-white ring-line"
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "w-5.5 h-5.5 rounded-full bg-white transition-shadow duration-150",
+                  selected
+                    ? "shadow-[inset_0_0_0_6px_#0F172A]"
+                    : "shadow-[inset_0_0_0_1.5px_#CBD5E1]"
+                )}
+              />
+              <span className="font-display text-[15px] font-bold leading-[1.2] text-slate-900">
+                {opt.title}
+              </span>
+              <span className="text-xs text-slate-500 leading-[1.35]">
+                {opt.sub}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Resumo Contextual da Escolha */}
-      <div
-        className={cn(
-          "rounded-2xl px-4 py-3 text-xs font-medium border transition-colors",
-          accountType === "merchant"
-            ? "bg-emerald-50/70 border-emerald-200/70 text-emerald-900"
-            : "bg-slate-50 border-slate-200/60 text-slate-600"
-        )}
-      >
-        {accountType === "merchant" ? (
-          <span>
-            <strong>Modo Lojista:</strong> Cadastre sua loja física ou online de
-            Bom Jesus da Lapa, publique produtos e receba pedidos no WhatsApp.
-          </span>
-        ) : (
-          <span>
-            <strong>Modo Visitante / Morador:</strong> Salve seus produtos
-            favoritos ❤️, siga lojas da cidade e preencha seu endereço em 1
-            clique.
-          </span>
-        )}
-      </div>
+      {error && <Notice tone="error">{error}</Notice>}
 
-      {/* Alerta de Erro */}
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-2xl bg-rose-50 border border-rose-200/80 p-3.5 text-xs font-medium text-rose-700"
-        >
-          <AlertCircle
-            className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Alerta de Sucesso (Confirmação de E-mail) */}
       {successMessage ? (
-        <div
-          role="status"
-          className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center space-y-3"
-        >
-          <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-          </div>
-          <h2 className="text-base font-extrabold text-emerald-950">
-            Quase tudo pronto!
-          </h2>
-          <p className="text-xs text-emerald-800 leading-relaxed">
+        <>
+          <Notice tone="success" title="Quase tudo pronto!">
             {successMessage}
-          </p>
+          </Notice>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white px-5 py-2.5 text-xs font-bold hover:bg-slate-800 transition-colors"
+            className={cn(
+              buttonBaseClasses,
+              buttonVariantClasses.primary,
+              buttonSizeClasses.lg
+            )}
           >
-            Ir para o Login
+            Ir para o login
           </Link>
-        </div>
+        </>
       ) : (
         <>
-          {/* Botão Google OAuth com accountType sincronizado */}
           <GoogleOAuthButton
             accountType={accountType}
             nextPath={nextPath || undefined}
@@ -175,17 +146,11 @@ function SignupFormContent() {
             onError={(msg) => setError(msg)}
           />
 
-          {/* Divisor */}
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-slate-100 w-full" />
-            <span className="bg-white px-3 text-xs font-semibold text-slate-400 whitespace-nowrap">
-              ou cadastre-se com seu e-mail
-            </span>
-            <div className="border-t border-slate-100 w-full" />
-          </div>
-
-          {/* Formulário Rápido */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            id="signup-form"
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-3"
+          >
             <input type="hidden" name="account_type" value={accountType} />
 
             <Input
@@ -193,65 +158,59 @@ function SignupFormContent() {
               type="text"
               label={
                 accountType === "merchant"
-                  ? "Seu nome ou responsável pela loja"
-                  : "Seu nome completo"
+                  ? "Nome do responsável pela loja"
+                  : "Nome completo"
               }
-              placeholder="Ex: Maria Silva"
+              placeholder="Maria Silva"
               autoComplete="name"
               required
-              leftIcon={<User className="w-4 h-4" aria-hidden="true" />}
             />
 
             <Input
               name="email"
               type="email"
-              label="Seu melhor e-mail"
+              label="E-mail"
               placeholder="voce@exemplo.com"
               autoComplete="email"
               required
-              leftIcon={<Mail className="w-4 h-4" aria-hidden="true" />}
             />
 
-            <Input
+            <PasswordInput
               name="password"
-              type="password"
-              label="Crie uma senha"
+              label="Senha"
               placeholder="Mínimo de 6 caracteres"
               autoComplete="new-password"
               minLength={6}
               required
-              helperText="Use pelo menos 6 caracteres."
-              leftIcon={<Lock className="w-4 h-4" aria-hidden="true" />}
             />
-
-            <Button
-              type="submit"
-              variant={accountType === "merchant" ? "whatsapp" : "primary"}
-              size="lg"
-              fullWidth
-              isLoading={isPending}
-              rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
-            >
-              {accountType === "merchant"
-                ? "Criar conta e configurar loja"
-                : "Criar minha conta grátis"}
-            </Button>
           </form>
+
+          <div className="flex-1 md:hidden" />
+
+          <Button
+            type="submit"
+            form="signup-form"
+            variant="primary"
+            size="lg"
+            fullWidth
+            isLoading={isPending}
+          >
+            {accountType === "merchant"
+              ? "Criar conta e abrir minha loja"
+              : "Criar minha conta"}
+          </Button>
         </>
       )}
 
-      {/* Link para Login */}
-      <div className="pt-2 border-t border-slate-100 text-center">
-        <p className="text-xs sm:text-sm text-slate-600">
-          Já possui uma conta?{" "}
-          <Link
-            href="/login"
-            className="font-extrabold text-slate-900 hover:text-emerald-600 transition-colors underline underline-offset-4"
-          >
-            Entrar agora
-          </Link>
-        </p>
-      </div>
+      <p className="self-center text-sm text-slate-500">
+        Já tem conta?{" "}
+        <Link
+          href="/login"
+          className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
+        >
+          Entrar
+        </Link>
+      </p>
     </div>
   );
 }
@@ -260,7 +219,7 @@ export default function CadastroPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md mx-auto rounded-3xl bg-white p-8 shadow-sm border border-slate-100 animate-pulse h-136" />
+        <div className="w-full rounded-[28px] bg-white animate-pulse h-136" />
       }
     >
       <SignupFormContent />
