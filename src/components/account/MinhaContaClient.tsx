@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent, trackSaveProduct } from "@/lib/analytics";
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { Loader2, LogOut } from "lucide-react";
@@ -83,7 +84,8 @@ export function MinhaContaClient({
     setSavedProducts((prev) => prev.filter((p) => p.id !== product.id));
 
     startActionTransition(async () => {
-      await toggleSaveProduct(product.id);
+      const res = await toggleSaveProduct(product.id);
+      if (!res?.error && !res?.requiresAuth) trackSaveProduct(product, false);
     });
   };
 
@@ -91,7 +93,10 @@ export function MinhaContaClient({
     setFollowedStores((prev) => prev.filter((s) => s.id !== storeId));
 
     startActionTransition(async () => {
-      await toggleFollowStore(storeId);
+      const res = await toggleFollowStore(storeId);
+      if (!res?.error && !res?.requiresAuth) {
+        trackEvent("unfollow_store", { store_id: storeId });
+      }
     });
   };
 
@@ -106,6 +111,7 @@ export function MinhaContaClient({
       if (result.error) {
         setProfileStatus({ type: "error", text: result.error });
       } else if (result.success) {
+        trackEvent("profile_updated");
         setProfileStatus({
           type: "success",
           text:

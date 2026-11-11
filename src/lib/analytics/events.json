@@ -1,0 +1,43 @@
+{
+  "$comment": "Catálogo único de eventos do Lapa Marketplace. É usado pelo código (src/lib/analytics) e pelo gerador do arquivo de importação do GTM (scripts/generate-gtm-export.mjs). Ao mudar aqui, rode: npm run gtm:export",
+  "params": {
+    "search_term": "Termo buscado",
+    "method": "Método (email, google, copy_link)",
+    "account_type": "Tipo de conta (customer, merchant)",
+    "content_type": "Tipo de conteúdo compartilhado (product, store, catalog)",
+    "item_id": "ID do produto",
+    "store_id": "ID da loja",
+    "store_name": "Nome da loja",
+    "lead_source": "Origem do pedido no WhatsApp (bag, product)",
+    "is_active": "Produto ativo após a alteração (true/false)",
+    "plan_tier": "Plano da loja (free, premium)"
+  },
+  "events": [
+    { "name": "view_item", "ecommerce": true, "description": "Abriu a página de um produto" },
+    { "name": "add_to_cart", "ecommerce": true, "description": "Adicionou produto à sacola (ou aumentou a quantidade)" },
+    { "name": "remove_from_cart", "ecommerce": true, "description": "Removeu produto da sacola (ou diminuiu a quantidade)" },
+    { "name": "view_cart", "ecommerce": true, "description": "Abriu a sacola com itens" },
+    { "name": "add_to_wishlist", "ecommerce": true, "description": "Salvou um produto nos favoritos" },
+    { "name": "whatsapp_order", "ecommerce": true, "keyEvent": true, "params": ["lead_source", "store_id", "store_name"], "description": "Enviou pedido para a loja pelo WhatsApp (sacola ou botão do produto)" },
+
+    { "name": "remove_from_wishlist", "params": ["item_id"], "description": "Removeu um produto dos favoritos" },
+    { "name": "search", "params": ["search_term"], "description": "Fez uma busca" },
+    { "name": "follow_store", "params": ["store_id", "store_name"], "description": "Seguiu uma loja" },
+    { "name": "unfollow_store", "params": ["store_id"], "description": "Deixou de seguir uma loja" },
+    { "name": "share", "params": ["method", "content_type", "item_id"], "description": "Copiou o link de um produto, loja ou catálogo" },
+
+    { "name": "sign_up", "keyEvent": true, "params": ["method", "account_type"], "description": "Criou conta" },
+    { "name": "login", "params": ["method"], "description": "Entrou na conta" },
+    { "name": "logout", "description": "Saiu da conta" },
+    { "name": "password_reset_request", "description": "Pediu o link de redefinição de senha" },
+    { "name": "profile_updated", "description": "Salvou os dados de entrega em Minha Conta" },
+
+    { "name": "store_created", "keyEvent": true, "params": ["store_name"], "description": "Lojista concluiu o onboarding e criou a loja" },
+    { "name": "product_created", "params": ["item_id"], "description": "Lojista publicou um produto" },
+    { "name": "product_updated", "params": ["item_id"], "description": "Lojista editou um produto" },
+    { "name": "product_status_changed", "params": ["item_id", "is_active"], "description": "Lojista pausou ou reativou um produto" },
+    { "name": "story_published", "description": "Lojista publicou um Story" },
+    { "name": "store_settings_updated", "description": "Lojista salvou as configurações da loja" },
+    { "name": "premium_interest", "params": ["plan_tier"], "description": "Lojista clicou para ativar o Plano Premium" }
+  ]
+}

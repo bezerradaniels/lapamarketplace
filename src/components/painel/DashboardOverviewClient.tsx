@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Loader2, X } from "lucide-react";
@@ -123,6 +124,7 @@ export function DashboardOverviewClient({
       if (res.error) {
         setStoryFeedback({ type: "error", text: res.error });
       } else {
+        trackEvent("story_published");
         setStoryFeedback({
           type: "success",
           text:
@@ -362,6 +364,11 @@ export function DashboardOverviewClient({
               </p>
               <a
                 href="https://wa.me/5577999999999?text=Ol%C3%A1!%20Quero%20ativar%20o%20Plano%20Premium%20na%20minha%20loja%20no%20Lapa%20Marketplace."
+                onClick={() =>
+                  trackEvent("premium_interest", {
+                    plan_tier: store.plan_tier || "free",
+                  })
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(

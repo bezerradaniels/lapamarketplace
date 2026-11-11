@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolvePostAuthRedirect } from "@/lib/supabase/auth-redirect";
 import { notifyAdminNewUserSignup } from "@/lib/resend";
+import { queueAnalyticsEvent } from "@/lib/analytics/server";
 import type { AccountType } from "@/types/marketplace";
 
 export interface AuthActionResult {
@@ -86,6 +87,8 @@ export async function loginWithEmail(
     nextPath,
   });
 
+  await queueAnalyticsEvent("login", { method: "email" });
+
   revalidatePath("/", "layout");
   redirect(destination);
 }
@@ -141,6 +144,11 @@ export async function signupWithEmail(
   if (error) {
     return { error: translateAuthError(error.message) };
   }
+
+  await queueAnalyticsEvent("sign_up", {
+    method: "email",
+    account_type,
+  });
 
   // Notificar administrador sobre o novo cadastro via Resend
   await notifyAdminNewUserSignup({
@@ -318,6 +326,7 @@ export async function signOut(): Promise<void> {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
+  await queueAnalyticsEvent("logout");
   revalidatePath("/", "layout");
   redirect("/login");
 }

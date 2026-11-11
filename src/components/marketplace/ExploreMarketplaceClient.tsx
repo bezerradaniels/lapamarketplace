@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { trackEvent, trackSaveProduct } from "@/lib/analytics";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
@@ -72,6 +73,18 @@ export function ExploreMarketplaceClient({
 
   // Estados dos filtros
   const [query, setQuery] = useState(initialParams.q || "");
+
+  // Analytics: registra a busca quando o termo fica parado por 1,2 s
+  const lastTrackedSearch = useRef("");
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2 || term === lastTrackedSearch.current) return;
+    const timer = window.setTimeout(() => {
+      lastTrackedSearch.current = term;
+      trackEvent("search", { search_term: term });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   const [categorySlug, setCategorySlug] = useState(
     initialParams.categoria || "all"
   );
@@ -359,6 +372,8 @@ export function ExploreMarketplaceClient({
     const result = await toggleSaveProduct(product.id);
     if (result?.requiresAuth) {
       setAuthModalProduct(product.title);
+    } else if (!result?.error) {
+      trackSaveProduct(product, next);
     }
   };
 

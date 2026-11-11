@@ -1,5 +1,6 @@
 "use client";
 
+import { productToItem, trackEvent, trackSaveProduct } from "@/lib/analytics";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronLeft, Heart, Share } from "lucide-react";
@@ -65,8 +66,14 @@ export function ProductDetailClient({
   const addProduct = useBagStore((s) => s.addProduct);
 
   // Incrementa silenciosamente `views_count` ao abrir a página do produto
+  const viewTrackedFor = useRef<string | null>(null);
   useEffect(() => {
     void incrementProductViewAction(product.id);
+    if (viewTrackedFor.current !== product.id) {
+      viewTrackedFor.current = product.id;
+      trackEvent("view_item", { items: [productToItem(product)] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
   const discountPercent = calculateDiscountPercentage(
@@ -91,6 +98,8 @@ export function ProductDetailClient({
     const res = await toggleSaveProduct(product.id);
     if (res?.requiresAuth) {
       setAuthModalOpen(true);
+    } else if (!res?.error) {
+      trackSaveProduct(product, next);
     }
   };
 
@@ -103,6 +112,12 @@ export function ProductDetailClient({
 
   const handleBuyNowWhatsApp = () => {
     void incrementProductWhatsappClickAction(product.id);
+    trackEvent("whatsapp_order", {
+      lead_source: "product",
+      store_id: store.id,
+      store_name: store.name,
+      items: [productToItem(product, { variant: selectedSize })],
+    });
     const url = buildWhatsAppUrl({
       phone: store.whatsapp,
       storeName: store.name,
@@ -125,6 +140,11 @@ export function ProductDetailClient({
     } catch {
       // Silencioso
     }
+    trackEvent("share", {
+      method: "copy_link",
+      content_type: "product",
+      item_id: product.id,
+    });
     setCopiedShare(true);
     window.setTimeout(() => setCopiedShare(false), 2000);
   };

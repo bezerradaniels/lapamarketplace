@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState, useTransition } from "react";
+import { bagItemToItem, trackEvent } from "@/lib/analytics";
+import React, { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
@@ -49,6 +50,14 @@ export function BagCheckoutClient({
   const isMounted = useBagHydrated();
   const { items, updateQuantity, removeItem, clearStoreItems, clearAll } =
     useBagStore();
+
+  // Analytics: view_cart uma vez por visita, quando a sacola tem itens
+  const viewCartTracked = useRef(false);
+  useEffect(() => {
+    if (!isMounted || viewCartTracked.current || items.length === 0) return;
+    viewCartTracked.current = true;
+    trackEvent("view_cart", { items: items.map((i) => bagItemToItem(i)) });
+  }, [isMounted, items]);
 
   // 1. Dados do Comprador (Preenchimento Único no Topo)
   const [buyerName, setBuyerName] = useState(buyerProfile?.full_name || "");
@@ -212,6 +221,14 @@ export function BagCheckoutClient({
       : digitsOnly || "77999112233";
 
     const waUrl = `https://wa.me/55${cleanPhone}?text=${encodedMessage}`;
+
+    trackEvent("whatsapp_order", {
+      lead_source: "bag",
+      store_id: store.id,
+      store_name: store.name,
+      value: subtotal,
+      items: storeItems.map((i) => bagItemToItem(i)),
+    });
 
     // Abre o WhatsApp em nova aba
     window.open(waUrl, "_blank", "noopener,noreferrer");
