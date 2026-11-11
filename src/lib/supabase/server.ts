@@ -18,7 +18,7 @@ export async function createClient() {
           });
         } catch {
           // O método `setAll` pode ser chamado dentro de um Server Component.
-          // Isso pode ser ignorado caso o middleware (`src/middleware.ts`) esteja atualizando a sessão.
+          // Isso pode ser ignorado caso o proxy (`src/proxy.ts`) esteja atualizando a sessão.
         }
       },
     },

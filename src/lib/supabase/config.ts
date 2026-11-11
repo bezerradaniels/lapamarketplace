@@ -23,3 +23,12 @@ export function isSupabaseConfigured(): boolean {
   return getSupabaseEnv().isConfigured;
 }
 
+/**
+ * O "modo demonstração" (sem Supabase) só é permitido fora de produção.
+ * Em produção, a falta das variáveis de ambiente deve bloquear o acesso
+ * às áreas protegidas em vez de liberá-las.
+ */
+export function isDemoModeAllowed(): boolean {
+  return !isSupabaseConfigured() && process.env.NODE_ENV !== "production";
+}
+

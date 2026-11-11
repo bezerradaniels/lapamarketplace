@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdminPage, requireUserPage } from "@/lib/auth/guards";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type {
   DaySchedule,
@@ -558,6 +559,8 @@ export async function fetchMerchantDashboardData(): Promise<{
   neighborhoods: NeighborhoodItem[];
   isSupabaseReady: boolean;
 }> {
+  await requireUserPage("/painel");
+
   const supabaseReady = isSupabaseConfigured();
   if (!supabaseReady) {
     return {
@@ -745,6 +748,8 @@ export async function fetchMasterPortalData(): Promise<{
   neighborhoods: NeighborhoodItem[];
   isSupabaseReady: boolean;
 }> {
+  await requireAdminPage("/master");
+
   const supabaseReady = isSupabaseConfigured();
   if (!supabaseReady) {
     return {
