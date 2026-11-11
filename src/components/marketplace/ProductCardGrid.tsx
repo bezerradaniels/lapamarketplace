@@ -9,6 +9,7 @@ import {
   formatCurrencyBRL,
 } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import { useBagStore } from "@/store/useBagStore";
 import type { ProductItem } from "@/types/marketplace";
 
 export interface ProductCardGridProps {
@@ -30,6 +31,7 @@ export function ProductCardGrid({
 }: ProductCardGridProps) {
   const [internalFav, setInternalFav] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const addProduct = useBagStore((s) => s.addProduct);
 
   const isFav = controlledFavorite ?? internalFav;
   const discountPercent = calculateDiscountPercentage(
@@ -45,7 +47,7 @@ export function ProductCardGrid({
     : product.price;
 
   const productUrl =
-    href ?? `/produto/${product.slug || product.id}`;
+    href ?? `/${product.store.slug}/${product.slug || product.id}`;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,6 +60,7 @@ export function ProductCardGrid({
   const handleAddClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    addProduct(product);
     onAddToBag?.(product);
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1200);

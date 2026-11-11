@@ -73,6 +73,10 @@ const PAYMENT_MAP: Record<
     label: "Dinheiro",
     icon: <Banknote className="w-3 h-3 text-emerald-700" aria-hidden="true" />,
   },
+  payment_link: {
+    label: "Link de Pagamento",
+    icon: <Receipt className="w-3 h-3 text-slate-600" aria-hidden="true" />,
+  },
   boleto: {
     label: "Boleto",
     icon: <Receipt className="w-3 h-3 text-slate-600" aria-hidden="true" />,

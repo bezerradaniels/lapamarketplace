@@ -339,7 +339,7 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
                 </a>
 
                 <Link
-                  href={`/loja/${currentGroup.store.slug}`}
+                  href={`/${currentGroup.store.slug}`}
                   onClick={closeStoryModal}
                   className="h-11 px-4 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center transition-colors"
                 >

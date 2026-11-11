@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBagHydrated, useBagStore } from "@/store/useBagStore";
 
 export const LAPA_NEIGHBORHOODS = [
   "Toda Bom Jesus da Lapa",
@@ -58,6 +59,14 @@ export function MarketplaceHeader({
     LAPA_NEIGHBORHOODS[0]
   );
   const [internalQuery, setInternalQuery] = useState("");
+
+  const isMounted = useBagHydrated();
+  const bagItems = useBagStore((s) => s.items);
+  const storeBagTotalQty = bagItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+  const displayedBagCount = isMounted ? storeBagTotalQty : bagCount;
 
   const neighborhood = controlledNeighborhood ?? internalNeighborhood;
   const query = controlledQuery ?? internalQuery;
@@ -176,41 +185,70 @@ export function MarketplaceHeader({
 
           {/* Ações à Direita: Favoritos, Conta e Sacola com Badge Numérico */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenFavorites}
-              aria-label={`Favoritos (${favoritesCount})`}
-              className="relative w-10 h-10 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-            >
-              <Heart className="w-5 h-5" aria-hidden="true" />
-              {favoritesCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
-                  {favoritesCount > 99 ? "99+" : favoritesCount}
-                </span>
-              )}
-            </button>
+            {onOpenFavorites ? (
+              <button
+                type="button"
+                onClick={onOpenFavorites}
+                aria-label={`Favoritos (${favoritesCount})`}
+                className="relative w-10 h-10 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+              >
+                <Heart className="w-5 h-5" aria-hidden="true" />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
+                    {favoritesCount > 99 ? "99+" : favoritesCount}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <Link
+                href="/minha-conta?aba=favorites"
+                aria-label={`Favoritos (${favoritesCount})`}
+                className="relative w-10 h-10 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-colors touch-manipulation"
+              >
+                <Heart className="w-5 h-5" aria-hidden="true" />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
+                    {favoritesCount > 99 ? "99+" : favoritesCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             <Link
-              href="/conta"
+              href="/minha-conta"
               aria-label="Minha conta ou Painel do Lojista"
               className="w-10 h-10 sm:w-auto sm:px-3.5 rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-700 hover:text-slate-900 flex items-center justify-center gap-2 text-xs font-semibold transition-colors"
             >
               <User className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span className="hidden lg:inline">Entrar</span>
+              <span className="hidden lg:inline">Minha Conta</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={onOpenBag}
-              aria-label={`Sacola de compras (${bagCount} itens)`}
-              className="relative inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer touch-manipulation"
-            >
-              <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span className="hidden sm:inline">Sacola</span>
-              <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold inline-flex items-center justify-center">
-                {bagCount}
-              </span>
-            </button>
+            {onOpenBag ? (
+              <button
+                type="button"
+                onClick={onOpenBag}
+                aria-label={`Sacola de compras (${displayedBagCount} itens)`}
+                className="relative inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer touch-manipulation"
+              >
+                <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="hidden sm:inline">Sacola</span>
+                <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold inline-flex items-center justify-center">
+                  {displayedBagCount}
+                </span>
+              </button>
+            ) : (
+              <Link
+                href="/sacola"
+                aria-label={`Sacola de compras (${displayedBagCount} itens)`}
+                className="relative inline-flex items-center gap-2 h-10 px-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors touch-manipulation"
+              >
+                <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="hidden sm:inline">Sacola</span>
+                <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold inline-flex items-center justify-center">
+                  {displayedBagCount}
+                </span>
+              </Link>
+            )}
           </div>
         </div>
 

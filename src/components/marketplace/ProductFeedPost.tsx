@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
+import { useBagStore } from "@/store/useBagStore";
 import type { ProductItem } from "@/types/marketplace";
 
 export interface ProductFeedPostProps {
@@ -41,6 +42,8 @@ export function ProductFeedPost({
   className,
 }: ProductFeedPostProps) {
   const [internalFav, setInternalFav] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const addProduct = useBagStore((s) => s.addProduct);
   const [selectedSize, setSelectedSize] = useState<string | null>(
     product.sizes && product.sizes.length > 0 ? product.sizes[0] : null
   );
@@ -185,7 +188,7 @@ export function ProductFeedPost({
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link
-            href={`/loja/${product.store.slug}`}
+            href={`/${product.store.slug}`}
             className="w-11 h-11 rounded-full bg-slate-100/80 border border-slate-200/60 overflow-hidden shrink-0 flex items-center justify-center text-slate-600 font-bold text-sm"
           >
             {product.store.avatar_url ? (
@@ -204,7 +207,7 @@ export function ProductFeedPost({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <Link
-                href={`/loja/${product.store.slug}`}
+                href={`/${product.store.slug}`}
                 className="text-sm font-extrabold text-slate-900 hover:underline truncate"
               >
                 {product.store.name}
@@ -235,7 +238,7 @@ export function ProductFeedPost({
         </div>
 
         <Link
-          href={`/loja/${product.store.slug}`}
+          href={`/${product.store.slug}`}
           className="shrink-0 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-800 px-3.5 py-1.5 text-xs font-semibold transition-colors"
         >
           Ver Loja
@@ -364,9 +367,12 @@ export function ProductFeedPost({
                 </span>
               )}
             </div>
-            <h3 className="text-base font-bold text-slate-800 mt-0.5">
+            <Link
+              href={`/${product.store.slug}/${product.slug || product.id}`}
+              className="block text-base font-bold text-slate-800 hover:text-slate-950 hover:underline mt-0.5"
+            >
               {product.title}
-            </h3>
+            </Link>
           </div>
 
           <button
@@ -433,10 +439,15 @@ export function ProductFeedPost({
             variant="secondary"
             size="md"
             leftIcon={<ShoppingBag className="w-4 h-4" aria-hidden="true" />}
-            onClick={() => onAddToBag?.(product, selectedSize)}
+            onClick={() => {
+              addProduct(product, selectedSize);
+              onAddToBag?.(product, selectedSize);
+              setJustAdded(true);
+              window.setTimeout(() => setJustAdded(false), 1400);
+            }}
             fullWidth
           >
-            Por na Sacola
+            {justAdded ? "Adicionado!" : "Por na Sacola"}
           </Button>
 
           <Button
