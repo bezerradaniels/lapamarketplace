@@ -17,7 +17,7 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "Produto não encontrado | LapaShop",
+      title: "Produto não encontrado | Lapa Marketplace",
     };
   }
 

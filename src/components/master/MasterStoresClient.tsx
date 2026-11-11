@@ -2,16 +2,8 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  Store,
-  Search,
-  BadgeCheck,
-  Crown,
-  MapPin,
-  ExternalLink,
-  Sparkles,
-} from "lucide-react";
-import { Input } from "@/components/ui/Input";
+import { Search } from "lucide-react";
+import { PillGroup, Segmented, Switch } from "@/components/ui/Switch";
 import { updateStoreAdminStatusAction } from "@/app/actions/master";
 import { cn, formatWhatsAppMask } from "@/lib/utils";
 import type { MerchantStoreConfig } from "@/types/marketplace";
@@ -89,240 +81,141 @@ export function MasterStoresClient({
     return true;
   });
 
+  const premiumCount = stores.filter((s) => s.plan_tier === "premium").length;
+  const verifiedCount = stores.filter((s) => s.is_verified).length;
+  const rowGrid =
+    "lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_170px_100pxauto] lg:gap-3 lg:items-center";
+
   return (
-    <div className="space-y-6">
-      {/* Cabeçalho e Resumo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Gestão de Lojas, Planos & Selo Verificado
+    <div className="flex flex-col gap-4.5">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] text-slate-900">
+            Lojas de Bom Jesus da Lapa
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Ative o Plano Premium ⭐ ou o Selo Verificado em 1 clique para
-            qualquer loja de Bom Jesus da Lapa.
+          <p className="text-sm text-slate-500">
+            {stores.length} lojas · {premiumCount} premium · {verifiedCount} verificadas
           </p>
         </div>
-
-        <div className="flex items-center gap-3 text-xs font-bold">
-          <span className="rounded-full bg-amber-50 border border-amber-200 px-3.5 py-2 text-amber-800">
-            Premium ⭐: {stores.filter((s) => s.plan_tier === "premium").length}
-          </span>
-          <span className="rounded-full bg-blue-50 border border-blue-200 px-3.5 py-2 text-blue-800">
-            Verificadas: {stores.filter((s) => s.is_verified).length}
-          </span>
-        </div>
-      </div>
-
-      {toast && (
-        <div
-          role="status"
-          className="rounded-2xl bg-slate-900 text-white px-4 py-3 text-xs font-bold flex items-center gap-2 shadow-sm"
-        >
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span>{toast}</span>
-        </div>
-      )}
-
-      {/* Filtros + Busca */}
-      <div className="rounded-3xl bg-white p-4 border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5">
-          {(
-            [
-              { id: "all", label: `Todas (${stores.length})` },
-              {
-                id: "premium",
-                label: `Premium ⭐ (${
-                  stores.filter((s) => s.plan_tier === "premium").length
-                })`,
-              },
-              {
-                id: "free",
-                label: `Gratuito (${
-                  stores.filter((s) => s.plan_tier === "free").length
-                })`,
-              },
-            ] as const
-          ).map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setPlanFilter(f.id)}
-              className={cn(
-                "rounded-full px-3.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                planFilter === f.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:text-slate-900"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="w-full sm:w-80">
-          <Input
-            placeholder="Buscar loja por nome ou bairro..."
+        <div className="relative flex items-center lg:w-80">
+          <Search className="w-4.25 h-4.25 text-slate-500 absolute left-3.5 pointer-events-none" strokeWidth={1.8} aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar loja ou bairro"
+            placeholder="Buscar loja ou bairro"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            pill
-            leftIcon={<Search className="w-4 h-4" />}
+            className="w-full h-11 rounded-[15px] bg-slate-100 pl-10.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 transition-[background-color,box-shadow] duration-150"
           />
         </div>
       </div>
 
-      {/* Tabela de Lojas */}
-      <div className="rounded-3xl bg-white border border-slate-100 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                <th className="py-3.5 px-5">Loja & Link</th>
-                <th className="py-3.5 px-4">Bairro & WhatsApp</th>
-                <th className="py-3.5 px-4">Selo Verificada (`is_verified`)</th>
-                <th className="py-3.5 px-4">Plano (`plan_tier`)</th>
-                <th className="py-3.5 px-5 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {filteredStores.map((store) => {
-                const isPremium = store.plan_tier === "premium";
-                return (
-                  <tr
-                    key={store.id}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    {/* Coluna 1: Loja */}
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
-                          {store.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={store.avatar_url}
-                              alt={store.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Store className="w-5 h-5 text-slate-400" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-extrabold text-slate-900">
-                              {store.name}
-                            </span>
-                            {store.is_verified && (
-                              <BadgeCheck className="w-4 h-4 text-blue-600" />
-                            )}
-                          </div>
-                          <span className="text-xs text-slate-400 font-mono">
-                            /{store.slug}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
+      <PillGroup
+        ariaLabel="Filtrar por plano"
+        tone="brand"
+        className="[&>button]:py-2.5"
+        value={planFilter}
+        onToggle={(v) => setPlanFilter(v)}
+        options={[
+          { value: "all", label: `Todas (${stores.length})` },
+          { value: "premium", label: `Premium (${premiumCount})` },
+          { value: "free", label: `Gratuito (${stores.length - premiumCount})` },
+        ]}
+      />
 
-                    {/* Coluna 2: Bairro e WhatsApp */}
-                    <td className="py-4 px-4">
-                      <div className="space-y-0.5">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                          {store.neighborhood_name}
-                        </span>
-                        <p className="text-xs text-slate-500">
-                          {formatWhatsAppMask(store.whatsapp)}
-                        </p>
-                      </div>
-                    </td>
+      <div aria-live="polite" className="empty:hidden">
+        {toast && (
+          <div className="rounded-[18px] bg-slate-900 text-white px-4 py-3 text-[13px] font-semibold animate-slide-up">
+            {toast}
+          </div>
+        )}
+      </div>
 
-                    {/* Coluna 3: Switch `is_verified` */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={store.is_verified}
-                          aria-label={`Alternar selo verificado para ${store.name}`}
-                          onClick={() => handleToggleVerified(store)}
-                          className={cn(
-                            "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                            store.is_verified ? "bg-blue-600" : "bg-slate-200"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-xs transition duration-200",
-                              store.is_verified
-                                ? "translate-x-5"
-                                : "translate-x-0"
-                            )}
-                          />
-                        </button>
-                        <span
-                          className={cn(
-                            "text-xs font-bold",
-                            store.is_verified
-                              ? "text-blue-700"
-                              : "text-slate-400"
-                          )}
-                        >
-                          {store.is_verified ? "Verificada" : "Não verificada"}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Coluna 4: Switch `plan_tier` (free vs premium) */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={isPremium}
-                          aria-label={`Alternar plano Premium para ${store.name}`}
-                          onClick={() => handleTogglePlan(store)}
-                          className={cn(
-                            "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                            isPremium ? "bg-amber-500" : "bg-slate-200"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-xs transition duration-200",
-                              isPremium ? "translate-x-5" : "translate-x-0"
-                            )}
-                          />
-                        </button>
-                        {isPremium ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-extrabold text-amber-800">
-                            <Crown className="w-3 h-3" />
-                            Premium ⭐
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">
-                            Gratuito (free)
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Coluna 5: Ações */}
-                    <td className="py-4 px-5 text-right">
-                      <Link
-                        href={`/${store.slug}`}
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-800 transition-colors"
-                      >
-                        <span>Ver Vitrine</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <div role="table" aria-label="Lojas" className="bg-white rounded-3xl px-4 lg:px-5 py-2 flex flex-col">
+        <div role="row" className={cn("hidden py-3 text-xs text-slate-500", rowGrid)}>
+          <span role="columnheader">Loja</span>
+          <span role="columnheader">Bairro</span>
+          <span role="columnheader">Plano</span>
+          <span role="columnheader">Verificada</span>
+          <span role="columnheader">Vitrine</span>
         </div>
+
+        {filteredStores.length === 0 && (
+          <p className="py-8 text-center text-sm text-slate-500">Nenhuma loja encontrada.</p>
+        )}
+
+        {filteredStores.map((store, idx) => {
+          const isPremium = store.plan_tier === "premium";
+          return (
+            <div
+              role="row"
+              key={store.id}
+              className={cn(
+                "flex flex-wrap items-center gap-x-4 gap-y-2.5 py-3 text-sm",
+                rowGrid,
+                idx > 0 && "border-t border-slate-100"
+              )}
+            >
+              <span role="cell" className="flex items-center gap-3 min-w-0 basis-full lg:basis-auto">
+                <span className="flex-none w-10 h-10 rounded-full bg-brand-soft overflow-hidden grid place-items-center font-display text-xs font-extrabold text-slate-900">
+                  {store.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={store.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    store.name.slice(0, 2).toUpperCase()
+                  )}
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-semibold text-slate-900 truncate">{store.name}</span>
+                  <span className="text-xs text-slate-500 truncate">
+                    lapamarketplace.com.br/{store.slug}
+                  </span>
+                </span>
+              </span>
+
+              <span role="cell" className="text-slate-500 flex flex-col">
+                {store.neighborhood_name}
+                <span className="text-xs">{formatWhatsAppMask(store.whatsapp)}</span>
+              </span>
+
+              <span role="cell">
+                <Segmented
+                  size="sm"
+                  tone="brand"
+                  ariaLabel={`Plano de ${store.name}`}
+                  value={isPremium ? "premium" : "free"}
+                  onChange={(next) => {
+                    if ((next === "premium") !== isPremium) handleTogglePlan(store);
+                  }}
+                  options={[
+                    { value: "free", label: "Gratuito" },
+                    { value: "premium", label: "Premium" },
+                  ]}
+                  className="inline-grid"
+                />
+              </span>
+
+              <span role="cell" className="flex items-center gap-2">
+                <Switch
+                  size="sm"
+                  checked={store.is_verified}
+                  onCheckedChange={() => handleToggleVerified(store)}
+                  aria-label={`Selo verificado para ${store.name}`}
+                />
+              </span>
+
+              <span role="cell" className="lg:text-right">
+                <Link
+                  href={`/${store.slug}`}
+                  className="inline-flex px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
+                >
+                  Ver loja
+                </Link>
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-

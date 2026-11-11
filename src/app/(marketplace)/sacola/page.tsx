@@ -4,7 +4,7 @@ import { fetchBagBuyerContext } from "@/app/actions/checkout";
 import { BagCheckoutClient } from "@/components/marketplace/BagCheckoutClient";
 
 export const metadata: Metadata = {
-  title: "Minha Sacola & Checkout via WhatsApp | LapaShop - Bom Jesus da Lapa",
+  title: "Minha Sacola & Checkout via WhatsApp | Lapa Marketplace",
   description:
     "Confira os produtos da sua sacola agrupados por loja e finalize seu pedido direto no WhatsApp das lojas de Bom Jesus da Lapa.",
 };
