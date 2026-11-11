@@ -1,31 +1,16 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useTransition } from "react";
-import {
-  Store,
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Phone,
-  MapPin,
-  ArrowRight,
-  ArrowLeft,
-  CreditCard,
-  QrCode,
-  Banknote,
-  Receipt,
-  Wallet,
-  Truck,
-  ShoppingBag,
-  Clock,
-  Sparkles,
-  Check,
-  X,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  Input,
+  fieldBaseClasses,
+  fieldLabelClasses,
+} from "@/components/ui/Input";
+import { PillGroup, Segmented, Switch } from "@/components/ui/Switch";
+import { Notice } from "@/components/ui/Notice";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -52,41 +37,13 @@ export interface OnboardingWizardProps {
   initialWhatsapp?: string;
 }
 
-const PAYMENT_OPTIONS: Array<{
-  id: PaymentMethod;
-  label: string;
-  icon: React.ReactNode;
-}> = [
-  {
-    id: "pix",
-    label: "Pix",
-    icon: <QrCode className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
-  {
-    id: "credit_card",
-    label: "Cartão de Crédito",
-    icon: <CreditCard className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
-  {
-    id: "debit_card",
-    label: "Cartão de Débito",
-    icon: <CreditCard className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
-  {
-    id: "cash",
-    label: "Dinheiro",
-    icon: <Banknote className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
-  {
-    id: "payment_link",
-    label: "Link de Pagamento",
-    icon: <Receipt className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
-  {
-    id: "crediario",
-    label: "Crediário da Loja",
-    icon: <Wallet className="w-3.5 h-3.5" aria-hidden="true" />,
-  },
+const PAYMENT_OPTIONS: Array<{ id: PaymentMethod; label: string }> = [
+  { id: "pix", label: "Pix" },
+  { id: "credit_card", label: "Cartão de crédito" },
+  { id: "debit_card", label: "Cartão de débito" },
+  { id: "cash", label: "Dinheiro" },
+  { id: "payment_link", label: "Link de pagamento" },
+  { id: "crediario", label: "Crediário da loja" },
 ];
 
 const INITIAL_LAPA_HOURS: Record<number, DaySchedule> = {
@@ -157,6 +114,15 @@ const INITIAL_LAPA_HOURS: Record<number, DaySchedule> = {
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0] as const;
 
+function summarizeDay(sched: DaySchedule): string {
+  if (sched.isClosed) return "Fechado";
+  if (sched.lunchStart && sched.lunchEnd) {
+    return `${sched.openTime}–${sched.lunchStart} · ${sched.lunchEnd}–${sched.closeTime}`;
+  }
+  return `${sched.openTime}–${sched.closeTime}`;
+}
+
+
 export function OnboardingWizard({
   neighborhoods,
   initialStoreName = "",
@@ -178,7 +144,6 @@ export function OnboardingWizard({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [description, setDescription] = useState("");
 
@@ -447,671 +412,450 @@ export function OnboardingWizard({
     });
   };
 
-  const progressPercentage = step === 1 ? 33 : step === 2 ? 66 : 100;
+  // Bairros: mostra os primeiros em pílulas e o restante sob "+N bairros"
+  const [showAllNeighborhoods, setShowAllNeighborhoods] = useState(false);
+  const NEIGHBORHOOD_PREVIEW_COUNT = 6;
+  const selectedNeighborhoodIndex = neighborhoods.findIndex(
+    (nb) => nb.id === neighborhoodId
+  );
+  const visibleNeighborhoods = neighborhoods.filter(
+    (_, idx) =>
+      idx < NEIGHBORHOOD_PREVIEW_COUNT || idx === selectedNeighborhoodIndex
+  );
+  const hiddenNeighborhoodsCount =
+    neighborhoods.length - visibleNeighborhoods.length;
+
+  // Resumo do horário: agrupa Seg–Sex quando todos os dias úteis são iguais
+  const weekdaySummaries = [1, 2, 3, 4, 5].map((d) =>
+    summarizeDay(businessHours[d])
+  );
+  const weekdaysAreEqual = weekdaySummaries.every(
+    (text) => text === weekdaySummaries[0]
+  );
+  const hoursSummaryRows = [
+    ...(weekdaysAreEqual
+      ? [
+          {
+            label: "Seg a Sex",
+            hours: weekdaySummaries[0],
+            closed: businessHours[1].isClosed,
+          },
+        ]
+      : [1, 2, 3, 4, 5].map((d) => ({
+          label: businessHours[d].dayLabel,
+          hours: summarizeDay(businessHours[d]),
+          closed: businessHours[d].isClosed,
+        }))),
+    {
+      label: "Sábado",
+      hours: summarizeDay(businessHours[6]),
+      closed: businessHours[6].isClosed,
+    },
+    {
+      label: "Domingo",
+      hours: summarizeDay(businessHours[0]),
+      closed: businessHours[0].isClosed,
+    },
+  ];
+
+  const slugIsValid = Boolean(slugStatus?.available) && !isCheckingSlug;
+  const slugHasError =
+    Boolean(slugStatus) && !slugStatus!.available && !isCheckingSlug;
+
+  const stepTitles: Record<1 | 2 | 3, { title: string; sub?: string }> = {
+    1: {
+      title: "Identidade da loja",
+      sub: "Como seus clientes vão encontrar você.",
+    },
+    2: {
+      title: "Onde fica e como falar com você",
+      sub: "Os pedidos chegam direto no seu WhatsApp.",
+    },
+    3: { title: "Como você vende" },
+  };
+
+  const timeInputClasses =
+    "h-9 rounded-[10px] bg-slate-100 px-2 text-[13px] text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900";
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      {/* Barra de Progresso no Topo */}
-      <div className="rounded-3xl bg-white p-5 sm:p-6 border border-slate-100 shadow-xs space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white px-3 py-1 text-xs font-extrabold">
-              Passo {step} de 3
-            </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-700">
-              {step === 1 && "Identidade da Loja"}
-              {step === 2 && "Localização em Lapa & WhatsApp"}
-              {step === 3 && "Pagamentos, Entrega e Horário"}
-            </span>
-          </div>
-
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-            <Sparkles className="w-3 h-3" aria-hidden="true" />
-            Pronto em 3 min
+    <form
+      onSubmit={handleFinishSubmit}
+      className="flex-1 flex flex-col gap-5.5 pb-28 md:pb-0"
+    >
+      {/* Progresso: 3 segmentos */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex justify-between text-[13px]">
+          <span className="font-semibold text-slate-900">
+            Passo {step} de 3
           </span>
+          {step === 1 ? (
+            <span className="text-slate-500">~3 min no total</span>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              className="text-slate-500 underline hover:text-slate-900 cursor-pointer"
+            >
+              Voltar
+            </button>
+          )}
         </div>
-
-        {/* Barra visual */}
         <div
           role="progressbar"
-          aria-valuenow={step}
           aria-valuemin={1}
           aria-valuemax={3}
-          aria-label={`Passo ${step} de 3`}
-          className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden"
+          aria-valuenow={step}
+          aria-label="Progresso do cadastro da loja"
+          className="grid grid-cols-3 gap-1.5"
         >
-          <div
-            className="h-full rounded-full bg-emerald-600 transition-all duration-300"
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
-
-        {/* Indicadores de etapas */}
-        <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] font-semibold">
-          <button
-            type="button"
-            onClick={() => step > 1 && setStep(1)}
-            disabled={step === 1}
-            className={cn(
-              "text-left truncate transition-colors",
-              step >= 1 ? "text-slate-900 font-bold" : "text-slate-400",
-              step > 1 && "cursor-pointer hover:text-emerald-600"
-            )}
-          >
-            1. Identidade & Link
-          </button>
-          <button
-            type="button"
-            onClick={() => step > 2 && setStep(2)}
-            disabled={step <= 2}
-            className={cn(
-              "text-center truncate transition-colors",
-              step >= 2 ? "text-slate-900 font-bold" : "text-slate-400",
-              step > 2 && "cursor-pointer hover:text-emerald-600"
-            )}
-          >
-            2. Bairro & WhatsApp
-          </button>
-          <span
-            className={cn(
-              "text-right truncate",
-              step === 3 ? "text-slate-900 font-bold" : "text-slate-400"
-            )}
-          >
-            3. Pagamento & Horário
-          </span>
+          {[1, 2, 3].map((segment) => (
+            <span
+              key={segment}
+              className={cn(
+                "h-1.5 rounded-full transition-colors duration-200",
+                segment <= step ? "bg-brand" : "bg-slate-200"
+              )}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Card Principal do Wizard */}
-      <form
-        onSubmit={handleFinishSubmit}
-        className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-100 space-y-6"
-      >
-        {/* Alerta de Erro Geral */}
-        {formError && (
-          <div
-            role="alert"
-            className="flex items-start gap-2.5 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm font-medium text-rose-700"
-          >
-            <AlertCircle
-              className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"
-              aria-hidden="true"
-            />
-            <span>{formError}</span>
-          </div>
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-[28px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
+          {stepTitles[step].title}
+        </h1>
+        {stepTitles[step].sub && (
+          <p className="text-sm text-slate-500">{stepTitles[step].sub}</p>
         )}
+      </div>
 
-        {/* =========================================================
-            PASSO 1: IDENTIDADE DA LOJA
-           ========================================================= */}
-        {step === 1 && (
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Qual é o nome e o link da sua loja?
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Escolha como seus clientes de Bom Jesus da Lapa encontrarão seu
-                catálogo digital.
-              </p>
-            </div>
+      {formError && <Notice tone="error">{formError}</Notice>}
 
-            {/* Upload de Logo Opcional com Preview Redondo */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="relative w-20 h-20 rounded-full bg-white border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs mx-auto sm:mx-0">
-                {logoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logoPreview}
-                    alt="Preview da logo da loja"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Store
-                    className="w-8 h-8 text-slate-400"
-                    aria-hidden="true"
-                  />
-                )}
-                {isUploadingLogo && (
-                  <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center text-white">
-                    <Loader2
-                      className="w-5 h-5 animate-spin"
-                      aria-hidden="true"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 text-center sm:text-left space-y-2">
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    Logo da sua loja{" "}
-                    <span className="text-slate-400 font-normal">
-                      (Opcional)
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Envio instantâneo para o bucket{" "}
-                    <code className="text-slate-700 font-semibold">
-                      lapa-imagens
-                    </code>
-                    . Recomendado imagem quadrada.
-                  </p>
-                </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoFileChange}
-                  className="hidden"
+      {/* ============ PASSO 1: IDENTIDADE ============ */}
+      {step === 1 && (
+        <>
+          <div className="flex items-center gap-3.5">
+            <span className="relative w-19 h-19 rounded-full bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#FDBA74] overflow-hidden grid place-items-center shrink-0">
+              {logoPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoPreview}
+                  alt="Prévia da logo da loja"
+                  className="w-full h-full object-cover"
                 />
-
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    isLoading={isUploadingLogo}
-                    leftIcon={
-                      <Upload className="w-3.5 h-3.5" aria-hidden="true" />
-                    }
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {logoPreview ? "Trocar imagem" : "Enviar logo"}
-                  </Button>
-
-                  {logoPreview && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      leftIcon={
-                        <X className="w-3.5 h-3.5" aria-hidden="true" />
-                      }
-                      onClick={() => {
-                        setLogoPreview(null);
-                        setLogoUrl(null);
-                      }}
-                    >
-                      Remover
-                    </Button>
-                  )}
-                </div>
-
-                {logoUploadError && (
-                  <p className="text-xs font-medium text-rose-600">
-                    {logoUploadError}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Nome da Loja */}
-            <Input
-              label="Nome da Loja"
-              placeholder="Ex: Você Fashion Lapa"
-              value={storeName}
-              onChange={handleStoreNameChange}
-              required
-              leftIcon={<Store className="w-4 h-4" aria-hidden="true" />}
-            />
-
-            {/* Link do Catálogo com Prefixo Fixo + Validação em Tempo Real (Debounce 500ms) */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="store-slug-input"
-                className="text-xs font-semibold text-slate-700 tracking-tight px-1 block"
-              >
-                Link do seu Catálogo
-              </label>
-
-              <div
-                className={cn(
-                  "flex items-center rounded-2xl bg-slate-100/80 border transition-all overflow-hidden",
-                  "focus-within:bg-white focus-within:ring-2",
-                  slugStatus?.available === true
-                    ? "border-emerald-300 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
-                    : slugStatus?.available === false && slug.length > 0
-                    ? "border-rose-300 focus-within:border-rose-400 focus-within:ring-rose-500/15"
-                    : "border-transparent focus-within:border-slate-200 focus-within:ring-slate-900/10"
-                )}
-              >
-                <span className="pl-4 pr-1.5 py-3 text-xs sm:text-sm font-semibold text-slate-400 select-none whitespace-nowrap">
-                  lapamarketplace.com.br/
+              ) : (
+                <LapaSymbol size={32} ink="#94A3B8" check="#94A3B8" />
+              )}
+              {isUploadingLogo && (
+                <span className="absolute inset-0 bg-slate-900/50 grid place-items-center text-white">
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 </span>
+              )}
+            </span>
+            <div className="flex flex-col gap-1.5 items-start">
+              <label className="px-3.5 py-2.25 rounded-xl bg-white ring-line font-display text-[13px] font-bold text-slate-900 cursor-pointer hover:bg-slate-50 transition-colors duration-150 focus-within:ring-2 focus-within:ring-slate-900">
+                {logoPreview ? "Trocar logo" : "Enviar logo"}
                 <input
-                  id="store-slug-input"
-                  type="text"
-                  value={slug}
-                  onChange={handleSlugChange}
-                  placeholder="voce-fashion-lapa"
-                  required
-                  className="w-full bg-transparent pr-3 py-3 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleLogoFileChange}
+                  className="sr-only"
                 />
-                <div className="pr-3.5 flex items-center shrink-0">
-                  {isCheckingSlug ? (
-                    <Loader2
-                      className="w-4 h-4 text-slate-400 animate-spin"
-                      aria-label="Verificando disponibilidade"
-                    />
-                  ) : slugStatus?.available === true ? (
-                    <CheckCircle2
-                      className="w-4 h-4 text-emerald-600"
-                      aria-hidden="true"
-                    />
-                  ) : slugStatus?.available === false && slug.length > 0 ? (
-                    <AlertCircle
-                      className="w-4 h-4 text-rose-500"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Feedback de disponibilidade em tempo real */}
-              <div className="px-1 min-h-4 flex items-center justify-between text-xs">
-                {isCheckingSlug ? (
-                  <span className="text-slate-400">
-                    Verificando disponibilidade do link...
-                  </span>
-                ) : slugStatus ? (
-                  <span
-                    className={cn(
-                      "font-semibold",
-                      slugStatus.available
-                        ? "text-emerald-600"
-                        : "text-rose-600"
-                    )}
-                  >
-                    {slugStatus.message}
-                  </span>
-                ) : (
-                  <span className="text-slate-400">
-                    Esse será o endereço exclusivo para colocar na bio do seu
-                    Instagram.
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Descrição curta / Bio da loja */}
-            <div className="flex flex-col gap-1.5 w-full">
-              <label
-                htmlFor="store-bio"
-                className="text-xs font-semibold text-slate-700 tracking-tight px-1"
-              >
-                Descrição curta / Bio da loja{" "}
-                <span className="text-slate-400 font-normal">(Opcional)</span>
               </label>
-              <textarea
-                id="store-bio"
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Moda feminina e masculina no Centro de Bom Jesus da Lapa. Enviamos motoboy para toda a cidade!"
-                className="w-full bg-slate-100/80 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 border border-transparent outline-none transition-all focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10 resize-none"
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                onClick={handleNextStep}
-                rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
-              >
-                Continuar para Localização
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================
-            PASSO 2: LOCALIZAÇÃO EM LAPA & WHATSAPP DE VENDAS
-           ========================================================= */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Localização em Lapa & WhatsApp de Vendas
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Os pedidos feitos na vitrine e na sacola chegarão prontos nesse
-                WhatsApp.
-              </p>
-            </div>
-
-            {/* WhatsApp com máscara (77) 99999-9999 */}
-            <Input
-              label="WhatsApp de Atendimento e Vendas"
-              type="tel"
-              placeholder="(77) 99999-9999"
-              value={whatsappMask}
-              onChange={(e) =>
-                setWhatsappMask(formatWhatsAppMask(e.target.value))
-              }
-              helperText={`Será salvo no banco com DDI 55: ${
-                normalizeWhatsAppToDb(whatsappMask) || "5577999999999"
-              }`}
-              required
-              leftIcon={<Phone className="w-4 h-4" aria-hidden="true" />}
-            />
-
-            {/* Bairro da Loja em Lapa */}
-            <Select
-              label="Bairro da Loja em Bom Jesus da Lapa"
-              value={neighborhoodId}
-              onChange={(e) => setNeighborhoodId(e.target.value)}
-              leftIcon={<MapPin className="w-4 h-4" aria-hidden="true" />}
-              options={neighborhoods.map((nb) => ({
-                value: nb.id,
-                label: nb.name,
-              }))}
-            />
-
-            {/* Endereço em Texto / Ponto de Referência */}
-            <Input
-              label="Endereço em Texto / Ponto de Referência"
-              placeholder="Ex: Av. Manoel Novaes, 120 - Ao lado da Caixa"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              helperText="Ajuda o cliente de Lapa a localizar sua loja física para retirada ou prova."
-              required
-              leftIcon={<MapPin className="w-4 h-4" aria-hidden="true" />}
-            />
-
-            <div className="pt-2 flex items-center justify-between gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                onClick={handlePrevStep}
-                leftIcon={<ArrowLeft className="w-4 h-4" aria-hidden="true" />}
-              >
-                Voltar
-              </Button>
-
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                onClick={handleNextStep}
-                rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
-              >
-                Continuar para Pagamentos
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================
-            PASSO 3: PAGAMENTOS, ENTREGA E HORÁRIO PADRÃO
-           ========================================================= */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Pagamentos, Entrega e Horário Padrão
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Tudo já vem pré-configurado para o comércio de Bom Jesus da Lapa
-                — ajuste apenas o que preferir.
-              </p>
-            </div>
-
-            {/* 1. Formas de Pagamento Aceitas (Checkboxes em formato pílula) */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-semibold text-slate-700 tracking-tight px-1 block">
-                Formas de Pagamento Aceitas
-              </label>
-              <div
-                role="group"
-                aria-label="Formas de pagamento aceitas"
-                className="flex flex-wrap gap-2"
-              >
-                {PAYMENT_OPTIONS.map((option) => {
-                  const isSelected = paymentMethods.includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      role="checkbox"
-                      aria-checked={isSelected}
-                      onClick={() => togglePaymentMethod(option.id)}
-                      className={cn(
-                        "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all cursor-pointer touch-manipulation border",
-                        isSelected
-                          ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                          : "bg-slate-100/80 text-slate-700 border-transparent hover:bg-slate-200/70"
-                      )}
-                    >
-                      {option.icon}
-                      <span>{option.label}</span>
-                      {isSelected && (
-                        <Check
-                          className="w-3.5 h-3.5 text-emerald-400"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2. Informação de Parcelamento (Opcional) */}
-            <Input
-              label="Informação de Parcelamento (Opcional)"
-              placeholder="Ex: Até 3x sem juros no cartão"
-              value={installmentInfo}
-              onChange={(e) => setInstallmentInfo(e.target.value)}
-              leftIcon={<CreditCard className="w-4 h-4" aria-hidden="true" />}
-            />
-
-            {/* 3. Modalidades de Entrega + Seletor de Taxa */}
-            <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-700 tracking-tight px-1 block">
-                Modalidades de Entrega
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={hasDelivery}
-                  onClick={() => setHasDelivery((v) => !v)}
-                  className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border text-left transition-all cursor-pointer",
-                    hasDelivery
-                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                      : "bg-slate-100/60 border-transparent text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center",
-                        hasDelivery
-                          ? "bg-emerald-600 text-white"
-                          : "bg-white text-slate-500"
-                      )}
-                    >
-                      <Truck className="w-4 h-4" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <span className="block text-xs sm:text-sm font-bold">
-                        Entrega (Delivery)
-                      </span>
-                      <span className="block text-[11px] text-slate-500">
-                        Motoboy / Entrega em Lapa
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded-full flex items-center justify-center border",
-                      hasDelivery
-                        ? "bg-emerald-600 border-emerald-600 text-white"
-                        : "border-slate-300 bg-white"
-                    )}
-                  >
-                    {hasDelivery && <Check className="w-3 h-3" />}
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={hasPickup}
-                  onClick={() => setHasPickup((v) => !v)}
-                  className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border text-left transition-all cursor-pointer",
-                    hasPickup
-                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                      : "bg-slate-100/60 border-transparent text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center",
-                        hasPickup
-                          ? "bg-emerald-600 text-white"
-                          : "bg-white text-slate-500"
-                      )}
-                    >
-                      <ShoppingBag className="w-4 h-4" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <span className="block text-xs sm:text-sm font-bold">
-                        Retirada na Loja
-                      </span>
-                      <span className="block text-[11px] text-slate-500">
-                        Cliente retira no balcão
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded-full flex items-center justify-center border",
-                      hasPickup
-                        ? "bg-emerald-600 border-emerald-600 text-white"
-                        : "border-slate-300 bg-white"
-                    )}
-                  >
-                    {hasPickup && <Check className="w-3 h-3" />}
-                  </div>
-                </button>
-              </div>
-
-              {/* Seletor de Taxa de Entrega */}
-              {hasDelivery && (
-                <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-3">
-                  <span className="block text-xs font-bold text-slate-700">
-                    Taxa de Entrega em Bom Jesus da Lapa
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {(
-                      [
-                        { id: "free", label: "Frete Grátis" },
-                        { id: "fixed", label: "Taxa Fixa em R$" },
-                        { id: "combine", label: "A combinar no WhatsApp" },
-                      ] as const
-                    ).map((feeOpt) => (
-                      <button
-                        key={feeOpt.id}
-                        type="button"
-                        onClick={() => setDeliveryFeeType(feeOpt.id)}
-                        className={cn(
-                          "rounded-full py-2.5 px-3 text-xs font-bold transition-all cursor-pointer border",
-                          deliveryFeeType === feeOpt.id
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                        )}
-                      >
-                        {feeOpt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {deliveryFeeType === "fixed" && (
-                    <div className="pt-1 max-w-xs">
-                      <Input
-                        label="Valor da Taxa Fixa (R$)"
-                        placeholder="Ex: 5,00"
-                        value={fixedDeliveryFee}
-                        onChange={(e) => setFixedDeliveryFee(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
+              <span className="text-xs text-slate-500">
+                Opcional · PNG ou JPG
+              </span>
+              {logoUploadError && (
+                <span role="alert" className="text-xs font-medium text-rose-600">
+                  {logoUploadError}
+                </span>
               )}
             </div>
+          </div>
 
-            {/* 4. Horário Comercial Padrão de Bom Jesus da Lapa */}
-            <div className="rounded-2xl bg-slate-50 p-4 sm:p-5 border border-slate-100 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Clock
-                    className="w-4 h-4 text-emerald-600"
-                    aria-hidden="true"
+          <Input
+            label="Nome da loja"
+            placeholder="Você Fashion Lapa"
+            value={storeName}
+            onChange={handleStoreNameChange}
+            autoComplete="organization"
+            required
+          />
+
+          {/* Slug com prefixo e validação (debounce de 500ms) */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-slug" className={fieldLabelClasses}>
+              Link do seu catálogo
+            </label>
+            <div
+              className={cn(
+                "h-13 rounded-2xl flex items-center px-4 text-[15px] overflow-hidden transition-[background-color,box-shadow] duration-150",
+                slugIsValid
+                  ? "bg-white ring-2 ring-whatsapp"
+                  : slugHasError
+                  ? "bg-white ring-2 ring-offer"
+                  : "bg-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900"
+              )}
+            >
+              <span className="text-slate-500 shrink-0">
+                lapamarketplace.com.br/
+              </span>
+              <input
+                id="store-slug"
+                value={slug}
+                onChange={handleSlugChange}
+                placeholder="sualoja"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                aria-invalid={slugHasError}
+                aria-describedby="store-slug-status"
+                className="flex-1 min-w-0 bg-transparent outline-none font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
+              />
+              {isCheckingSlug && (
+                <Loader2
+                  className="w-4 h-4 animate-spin text-slate-500 shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+            <span
+              id="store-slug-status"
+              aria-live="polite"
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-semibold min-h-4",
+                slugIsValid
+                  ? "text-whatsapp"
+                  : slugHasError
+                  ? "text-rose-600"
+                  : "text-slate-500 font-normal"
+              )}
+            >
+              {isCheckingSlug ? (
+                "Verificando disponibilidade…"
+              ) : slugStatus ? (
+                <>
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      slugStatus.available ? "bg-whatsapp" : "bg-offer"
+                    )}
                   />
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                    Horário Comercial Padrão (Lapa)
-                  </span>
-                </div>
+                  {slugStatus.available
+                    ? "Link disponível!"
+                    : slugStatus.reason === "taken"
+                    ? "Este endereço já está em uso"
+                    : slugStatus.message}
+                </>
+              ) : (
+                "Só letras minúsculas, números e hífen."
+              )}
+            </span>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDetailedHours((v) => !v)}
-                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline underline-offset-4 cursor-pointer"
-                >
-                  {showDetailedHours
-                    ? "Ocultar ajuste detalhado"
-                    : "Ajustar horários"}
-                </button>
-              </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-bio" className={fieldLabelClasses}>
+              Bio da loja
+            </label>
+            <textarea
+              id="store-bio"
+              rows={3}
+              maxLength={240}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Moda feminina com peças leves para o dia a dia. Entregamos em toda a Lapa."
+              className={cn(
+                fieldBaseClasses,
+                "min-h-22 rounded-2xl px-4 py-3.5 text-sm leading-[1.45] resize-none"
+              )}
+            />
+          </div>
+        </>
+      )}
 
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Pré-configurado:{" "}
-                <strong>Seg a Sex das 08:00 às 18:00</strong> (almoço{" "}
-                <strong>12:00 às 14:00</strong>),{" "}
-                <strong>Sábado das 08:00 às 13:00</strong> e{" "}
-                <strong>Domingo Fechado</strong>.
-              </p>
+      {/* ============ PASSO 2: LOCALIZAÇÃO E WHATSAPP ============ */}
+      {step === 2 && (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-whatsapp" className={fieldLabelClasses}>
+              WhatsApp de atendimento
+            </label>
+            <div className="h-13 rounded-2xl bg-slate-100 flex items-center gap-2.5 px-4 text-[15px] transition-[background-color,box-shadow] duration-150 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900">
+              <span className="px-2 py-1 rounded-lg bg-white text-[13px] font-semibold text-slate-900 shrink-0">
+                +55
+              </span>
+              <input
+                id="store-whatsapp"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="(77) 99999-9999"
+                value={whatsappMask}
+                onChange={(e) =>
+                  setWhatsappMask(formatWhatsAppMask(e.target.value))
+                }
+                className="flex-1 min-w-0 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+              />
+            </div>
+          </div>
 
-              {showDetailedHours && (
-                <div className="space-y-2.5 pt-2 border-t border-slate-200/70">
-                  {ORDERED_DAYS.map((dayIdx) => {
+          <div className="flex flex-col gap-2.5">
+            <span className={fieldLabelClasses}>Bairro da loja</span>
+            <PillGroup
+              ariaLabel="Bairro da loja"
+              tone="brand"
+              value={neighborhoodId || null}
+              onToggle={(id) => setNeighborhoodId(id)}
+              options={(showAllNeighborhoods
+                ? neighborhoods
+                : visibleNeighborhoods
+              ).map((nb) => ({ value: nb.id, label: nb.name }))}
+            />
+            {!showAllNeighborhoods && hiddenNeighborhoodsCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllNeighborhoods(true)}
+                className="self-start px-3.5 py-2.25 rounded-full ring-line text-[13px] font-semibold text-slate-500 hover:text-slate-900 cursor-pointer transition-colors duration-150"
+              >
+                +{hiddenNeighborhoodsCount} bairros
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-address" className={fieldLabelClasses}>
+              Endereço ou ponto de referência
+            </label>
+            <textarea
+              id="store-address"
+              rows={2}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              autoComplete="street-address"
+              placeholder="Av. Manoel Novais, 120 — ao lado da Caixa"
+              className={cn(
+                fieldBaseClasses,
+                "min-h-13 rounded-2xl px-4 py-3.75 text-[15px] leading-[1.4] resize-none"
+              )}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ============ PASSO 3: PAGAMENTO, ENTREGA E HORÁRIO ============ */}
+      {step === 3 && (
+        <>
+          <div className="flex flex-col gap-2.5">
+            <span className={fieldLabelClasses}>Formas de pagamento</span>
+            <PillGroup
+              ariaLabel="Formas de pagamento"
+              tone="brand"
+              surface="ring"
+              value={paymentMethods}
+              onToggle={(id) => togglePaymentMethod(id)}
+              options={PAYMENT_OPTIONS.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+            />
+            <Input
+              inputSize="md"
+              aria-label="Condição de parcelamento"
+              placeholder="Até 3x sem juros no cartão"
+              value={installmentInfo}
+              onChange={(e) => setInstallmentInfo(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            <span className={fieldLabelClasses}>Entrega</span>
+            <PillGroup
+              ariaLabel="Modalidades de entrega"
+              tone="brand"
+              surface="ring"
+              value={[
+                ...(hasDelivery ? ["delivery" as const] : []),
+                ...(hasPickup ? ["pickup" as const] : []),
+              ]}
+              onToggle={(id) =>
+                id === "delivery"
+                  ? setHasDelivery((v) => !v)
+                  : setHasPickup((v) => !v)
+              }
+              options={[
+                { value: "delivery", label: "Entrega (delivery)" },
+                { value: "pickup", label: "Retirada na loja" },
+              ]}
+            />
+            {hasDelivery && (
+              <>
+                <Segmented
+                  ariaLabel="Taxa de entrega"
+                  value={deliveryFeeType}
+                  onChange={setDeliveryFeeType}
+                  className="rounded-[15px] [&>button]:h-9.5 [&>button]:rounded-xl [&>button]:text-xs [&>button]:font-sans [&>button]:font-semibold"
+                  options={[
+                    { value: "free", label: "Frete grátis" },
+                    { value: "fixed", label: "Taxa fixa" },
+                    { value: "combine", label: "A combinar" },
+                  ]}
+                />
+                {deliveryFeeType === "fixed" && (
+                  <Input
+                    inputSize="md"
+                    label="Valor da taxa fixa (R$)"
+                    inputMode="decimal"
+                    placeholder="5,00"
+                    value={fixedDeliveryFee}
+                    onChange={(e) => setFixedDeliveryFee(e.target.value)}
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            <div className="flex justify-between items-baseline">
+              <span className={fieldLabelClasses}>Horário comercial</span>
+              <button
+                type="button"
+                onClick={() => setShowDetailedHours((v) => !v)}
+                aria-expanded={showDetailedHours}
+                className="text-xs text-slate-500 underline hover:text-slate-900 cursor-pointer"
+              >
+                {showDetailedHours ? "Ver resumo" : "padrão da Lapa · ajustar"}
+              </button>
+            </div>
+
+            <div className="bg-white rounded-[20px] flex flex-col">
+              {showDetailedHours
+                ? ORDERED_DAYS.map((dayIdx, idx) => {
                     const sched = businessHours[dayIdx];
                     return (
                       <div
                         key={dayIdx}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-white p-3 border border-slate-100"
+                        className={cn(
+                          "flex flex-wrap justify-between items-center gap-2 px-4 py-2.5 text-sm",
+                          idx > 0 && "border-t border-slate-100"
+                        )}
                       >
-                        <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-800 min-w-32 cursor-pointer">
-                          <input
-                            type="checkbox"
+                        <span className="flex items-center gap-2.5 font-semibold text-slate-900">
+                          <Switch
+                            size="sm"
                             checked={!sched.isClosed}
-                            onChange={(e) =>
-                              updateDaySchedule(dayIdx, {
-                                isClosed: !e.target.checked,
-                              })
+                            onCheckedChange={(open) =>
+                              updateDaySchedule(dayIdx, { isClosed: !open })
                             }
-                            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                            aria-label={`${sched.dayLabel} aberta`}
                           />
-                          <span>{sched.dayLabel}</span>
-                        </label>
-
+                          {sched.dayLabel}
+                        </span>
                         {sched.isClosed ? (
-                          <span className="text-xs font-semibold text-slate-400">
+                          <span className="px-2.5 py-1.5 rounded-[10px] bg-slate-100 text-[13px] text-slate-500">
                             Fechado
                           </span>
                         ) : (
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="flex items-center gap-1.5 text-slate-500">
                             <input
                               type="time"
                               aria-label={`Abertura ${sched.dayLabel}`}
@@ -1121,9 +865,9 @@ export function OnboardingWizard({
                                   openTime: e.target.value,
                                 })
                               }
-                              className="rounded-xl bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-800"
+                              className={timeInputClasses}
                             />
-                            <span className="text-slate-400">às</span>
+                            –
                             <input
                               type="time"
                               aria-label={`Fechamento ${sched.dayLabel}`}
@@ -1133,49 +877,70 @@ export function OnboardingWizard({
                                   closeTime: e.target.value,
                                 })
                               }
-                              className="rounded-xl bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-800"
+                              className={timeInputClasses}
                             />
-
-                            {sched.lunchStart !== null && (
-                              <span className="text-[11px] text-slate-500 ml-1">
-                                (Almoço {sched.lunchStart}–{sched.lunchEnd})
-                              </span>
-                            )}
-                          </div>
+                          </span>
+                        )}
+                        {!sched.isClosed && sched.lunchStart && (
+                          <span className="basis-full text-xs text-slate-500">
+                            Almoço {sched.lunchStart}–{sched.lunchEnd}
+                          </span>
                         )}
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Botões Finais */}
-            <div className="pt-2 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                onClick={handlePrevStep}
-                leftIcon={<ArrowLeft className="w-4 h-4" aria-hidden="true" />}
-              >
-                Voltar
-              </Button>
-
-              <Button
-                type="submit"
-                variant="whatsapp"
-                size="lg"
-                isLoading={isSubmitting}
-                rightIcon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
-                className="w-full sm:w-auto"
-              >
-                Colocar minha loja no ar agora
-              </Button>
+                  })
+                : hoursSummaryRows.map((row, idx) => (
+                    <div
+                      key={row.label}
+                      className={cn(
+                        "flex justify-between items-center gap-3 px-4 py-3.25 text-sm",
+                        idx > 0 && "border-t border-slate-100"
+                      )}
+                    >
+                      <span className="font-semibold text-slate-900">
+                        {row.label}
+                      </span>
+                      <span
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-[10px] bg-slate-100 text-[13px]",
+                          row.closed ? "text-slate-500" : "text-slate-900"
+                        )}
+                      >
+                        {row.hours}
+                      </span>
+                    </div>
+                  ))}
             </div>
           </div>
-        )}
-      </form>
-    </div>
+        </>
+      )}
+
+      {/* CTA fixo */}
+      <div className="fixed md:static inset-x-0 bottom-0 z-30 px-6 md:px-0 pt-4 md:pt-2 pb-[max(1.75rem,env(safe-area-inset-bottom))] md:pb-0 bg-linear-to-b from-slate-50/0 to-slate-50 to-30% md:bg-none">
+        <div className="mx-auto max-w-93 md:max-w-none">
+          {step < 3 ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={handleNextStep}
+            >
+              Continuar
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              isLoading={isSubmitting}
+            >
+              Colocar minha loja no ar
+            </Button>
+          )}
+        </div>
+      </div>
+    </form>
   );
 }

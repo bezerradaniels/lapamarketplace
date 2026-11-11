@@ -8,6 +8,7 @@ export type ButtonVariant =
   | "primary"
   | "secondary"
   | "whatsapp"
+  | "brand"
   | "outline"
   | "ghost";
 
@@ -23,24 +24,23 @@ export interface ButtonProps
   fullWidth?: boolean;
 }
 
-const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 shadow-sm shadow-slate-900/10",
-  secondary:
-    "bg-slate-100 text-slate-800 hover:bg-slate-200/80 active:bg-slate-200",
-  whatsapp:
-    "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm shadow-emerald-600/15",
-  outline:
-    "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 active:bg-slate-100",
-  ghost:
-    "bg-transparent text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 active:bg-slate-200/60",
+export const buttonVariantClasses: Record<ButtonVariant, string> = {
+  primary: "bg-slate-900 text-white hover:bg-slate-800",
+  secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
+  whatsapp: "bg-whatsapp text-white hover:bg-whatsapp-strong",
+  brand: "bg-brand text-slate-900 hover:bg-brand-strong",
+  outline: "bg-white text-slate-900 ring-line hover:bg-slate-50",
+  ghost: "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
 };
 
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-3.5 text-xs gap-1.5",
-  md: "h-11 px-5 text-sm gap-2",
-  lg: "h-13 px-6 text-base gap-2.5",
+export const buttonSizeClasses: Record<ButtonSize, string> = {
+  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-[11px]",
+  md: "h-11.5 px-5 text-sm gap-2 rounded-[15px]",
+  lg: "h-14 px-6 text-base gap-2.5 rounded-[18px]",
 };
+
+export const buttonBaseClasses =
+  "relative inline-flex items-center justify-center font-display font-bold transition-[background-color,color,transform,box-shadow] duration-150 ease-out select-none cursor-pointer touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:opacity-55 disabled:pointer-events-none";
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -66,30 +66,37 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         disabled={isDisabled}
+        aria-busy={isLoading || undefined}
         className={cn(
-          "inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 select-none cursor-pointer touch-manipulation",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 focus-visible:ring-offset-2",
-          "disabled:opacity-55 disabled:pointer-events-none",
-          variantClasses[variant],
-          sizeClasses[size],
+          buttonBaseClasses,
+          buttonVariantClasses[variant],
+          buttonSizeClasses[size],
           fullWidth && "w-full",
           className
         )}
         {...props}
       >
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden="true" />
-        ) : (
-          leftIcon && <span className="shrink-0 inline-flex">{leftIcon}</span>
+        {/* Loading: o spinner entra no lugar do texto, sem mudar a largura */}
+        {isLoading && (
+          <span className="absolute inset-0 grid place-items-center">
+            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+          </span>
         )}
-        {children && <span className="truncate">{children}</span>}
-        {!isLoading && rightIcon && (
-          <span className="shrink-0 inline-flex">{rightIcon}</span>
-        )}
+        <span
+          className={cn(
+            "inline-flex items-center justify-center gap-[inherit] min-w-0",
+            isLoading && "invisible"
+          )}
+        >
+          {leftIcon && <span className="shrink-0 inline-flex">{leftIcon}</span>}
+          {children && <span className="truncate">{children}</span>}
+          {rightIcon && (
+            <span className="shrink-0 inline-flex">{rightIcon}</span>
+          )}
+        </span>
       </button>
     );
   }
 );
 
 Button.displayName = "Button";
-

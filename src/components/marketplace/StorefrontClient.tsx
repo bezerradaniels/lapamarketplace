@@ -1,26 +1,19 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-  Check,
-  Clock,
-  CreditCard,
-  MapPin,
-  MessageCircle,
-  Plus,
-  Search,
-  Share2,
-  ShoppingBag,
-  Sparkles,
-  Store,
-  Truck,
-  Users,
-} from "lucide-react";
+import Link from "next/link";
+import { Check, ChevronLeft, Search, Share } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import {
+  Button,
+  buttonBaseClasses,
+  buttonSizeClasses,
+  buttonVariantClasses,
+} from "@/components/ui/Button";
+import { CategoryPills } from "@/components/ui/CategoryPills";
+import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import { Input } from "@/components/ui/Input";
 import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
@@ -150,9 +143,38 @@ export function StorefrontClient({
     ? store.payment_methods
     : ["pix", "credit_card", "cash"];
 
+  const isPremium = store.plan === "premium" || store.plan === "pro";
+  const paymentSummary = [
+    acceptedPayments.includes("pix") ? "Pix" : null,
+    acceptedPayments.includes("credit_card") ? "Cartão" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ") ||
+    PAYMENT_SHORT_LABELS[acceptedPayments[0]] ||
+    "A combinar";
+
+  const deliveryText = [
+    store.has_delivery !== false
+      ? store.delivery_fee_type === "free"
+        ? "Entrega grátis na cidade"
+        : store.delivery_fee_type === "fixed" && store.delivery_fee != null
+        ? `Entrega no bairro (${formatCurrencyBRL(store.delivery_fee)})`
+        : "Entrega com taxa a combinar"
+      : null,
+    store.has_pickup !== false ? "retirada na loja" : null,
+  ]
+    .filter(Boolean)
+    .join(" ou ");
+
+  const iconButtonClasses =
+    "w-10 h-10 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
+  const eyebrowClasses =
+    "text-xs font-semibold uppercase tracking-[0.08em] text-slate-500";
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <MarketplaceHeader
+        mobileVariant="hidden"
         bagCount={bagCount}
         favoritesCount={savedSet.size}
       />
@@ -164,234 +186,182 @@ export function StorefrontClient({
         itemName={authModalItemName}
       />
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-        {/* =========================================================
-            1. CABEÇALHO COMPLETO DA LOJA (BANNER, AVATAR, STATUS, SEGUIR)
-           ========================================================= */}
-        <section className="rounded-3xl bg-white border border-slate-100 shadow-xs overflow-hidden">
-          {/* Banner de Capa */}
-          <div className="relative h-40 sm:h-56 w-full bg-slate-900 overflow-hidden">
-            {store.banner_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={store.banner_url}
-                alt={`Capa de ${store.name}`}
-                className="w-full h-full object-cover opacity-90"
-              />
-            ) : (
-              <div className="w-full h-full bg-linear-to-r from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center">
-                <span className="text-white/20 text-2xl font-extrabold tracking-widest uppercase">
-                  {store.name} • Bom Jesus da Lapa
-                </span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
+      <main className="flex-1 mx-auto w-full max-w-5xl md:px-6 lg:px-8 md:py-6 pb-28 md:pb-10">
+        {/* Banner da loja */}
+        <div className="relative h-42.5 md:h-60 w-full bg-brand-soft md:rounded-[28px] overflow-hidden">
+          {store.banner_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={store.banner_url}
+              alt={`Capa de ${store.name}`}
+              className="w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute top-[max(1rem,env(safe-area-inset-top))] inset-x-4 flex justify-between">
+            <Link href="/" aria-label="Voltar" className={iconButtonClasses}>
+              <ChevronLeft className="w-4.5 h-4.5" strokeWidth={2} />
+            </Link>
+            <button
+              type="button"
+              onClick={handleShareCatalog}
+              aria-label={copiedLink ? "Link copiado" : "Compartilhar loja"}
+              className={iconButtonClasses}
+            >
+              {copiedLink ? (
+                <Check className="w-4.5 h-4.5 text-whatsapp" strokeWidth={2} />
+              ) : (
+                <Share className="w-4.5 h-4.5" strokeWidth={1.8} />
+              )}
+            </button>
           </div>
+        </div>
 
-          {/* Bloco Principal de Identidade da Loja */}
-          <div className="px-5 sm:px-8 pb-6 sm:pb-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-10 sm:-mt-12 relative z-10">
-              <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-                {/* Avatar Redondo com Borda */}
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white p-1.5 shadow-md border border-slate-100 shrink-0">
-                  <div className="w-full h-full rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center">
-                    {store.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={store.avatar_url}
-                        alt={store.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Store className="w-10 h-10 text-slate-400" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                      {store.name}
-                    </h1>
-                    {store.is_verified && <Badge variant="verified" />}
-                  </div>
-
-                  {/* Bairro + Endereço em texto + StoreStatusBadge */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600">
-                    <span className="inline-flex items-center gap-1 font-bold text-slate-800">
-                      <MapPin
-                        className="w-4 h-4 text-emerald-600 shrink-0"
-                        aria-hidden="true"
-                      />
-                      {store.neighborhood}, Bom Jesus da Lapa
-                    </span>
-                    {store.address && (
-                      <>
-                        <span className="text-slate-300">•</span>
-                        <span>{store.address}</span>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <StoreStatusBadge
-                      storeName={store.name}
-                      businessHours={store.business_hours}
-                      specialHours={store.special_hours}
-                      isOpenOverride={store.is_open_override}
-                    />
-
-                    {/* Contadores da Loja */}
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-                      <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
-                      {products.length} peças ativas
-                    </span>
-
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-                      <Users className="w-3.5 h-3.5 text-slate-500" />
-                      {followersCount} seguidores
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botões: Seguir Loja, Compartilhar Link e Chamar no WhatsApp */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Button
-                  type="button"
-                  variant={isFollowing ? "secondary" : "primary"}
-                  onClick={handleFollowToggle}
-                  leftIcon={
-                    isFollowing ? (
-                      <Check className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <Plus className="w-4 h-4" />
-                    )
-                  }
-                >
-                  {isFollowing ? "Seguindo Loja" : "Seguir Loja"}
-                </Button>
-
-                <a
-                  href={buildWhatsAppUrl({
-                    phone: store.whatsapp,
-                    storeName: store.name,
-                  })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    type="button"
-                    variant="whatsapp"
-                    leftIcon={<MessageCircle className="w-4 h-4" />}
-                  >
-                    Falar no WhatsApp
-                  </Button>
-                </a>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={handleShareCatalog}
-                  leftIcon={
-                    copiedLink ? (
-                      <Check className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <Share2 className="w-4 h-4" />
-                    )
-                  }
-                >
-                  {copiedLink ? "Link Copiado!" : "Compartilhar"}
-                </Button>
-              </div>
-            </div>
-
-            {store.description && (
-              <p className="mt-4 text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-                {store.description}
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* =========================================================
-            2. BARRA DE BUSCA INTERNA DA LOJA + PÍLULAS DE CATEGORIAS
-           ========================================================= */}
-        <section className="rounded-3xl bg-white p-4 sm:p-5 border border-slate-100 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Pílulas de Categorias da Loja */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              <button
-                type="button"
-                onClick={() => setActiveCategorySlug("all")}
-                className={cn(
-                  "rounded-full px-4 py-2 text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer",
-                  activeCategorySlug === "all"
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200/70"
+        {/* Card da loja, sobreposto ao banner */}
+        <section className="relative -mt-9 mx-3 md:mx-6 bg-white rounded-[28px] p-4 md:p-6 flex flex-col gap-3.5">
+          <div className="flex gap-3 items-center">
+            <span
+              className={cn(
+                "flex-none w-17 h-17 rounded-full p-0.75",
+                isPremium ? "bg-story-premium" : "bg-brand"
+              )}
+            >
+              <span className="w-full h-full rounded-full bg-brand-soft ring-[3px] ring-white overflow-hidden grid place-items-center font-display text-xl font-extrabold text-slate-900">
+                {store.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={store.avatar_url}
+                    alt={store.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  store.name.slice(0, 2).toUpperCase()
                 )}
-              >
-                Todos ({products.length})
-              </button>
-
-              {storeCategories.map((cat) => (
-                <button
-                  key={cat.slug}
-                  type="button"
-                  onClick={() => setActiveCategorySlug(cat.slug)}
-                  className={cn(
-                    "rounded-full px-4 py-2 text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer",
-                    activeCategorySlug === cat.slug
-                      ? "bg-slate-900 text-white shadow-2xs"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200/70"
-                  )}
-                >
-                  {cat.name} ({cat.count})
-                </button>
-              ))}
-            </div>
-
-            {/* Busca Interna da Loja */}
-            <div className="w-full sm:w-80 shrink-0">
-              <Input
-                placeholder={`Buscar em ${store.name}...`}
-                value={internalQuery}
-                onChange={(e) => setInternalQuery(e.target.value)}
-                pill
-                leftIcon={<Search className="w-4 h-4" />}
+              </span>
+            </span>
+            <div className="flex-1 min-w-0 flex flex-col gap-0.75">
+              <h1 className="flex items-center gap-1.5 text-xl md:text-[26px] font-extrabold tracking-[-0.02em] text-slate-900 leading-tight">
+                <span className="truncate">{store.name}</span>
+                {store.is_verified && <VerifiedSeal size={18} />}
+              </h1>
+              <span className="text-xs md:text-[13px] text-slate-500 truncate">
+                {store.neighborhood}
+                {store.address ? ` · ${store.address}` : ""}
+              </span>
+              <StoreStatusBadge
+                className="self-start mt-0.5"
+                storeName={store.name}
+                businessHours={store.business_hours}
+                specialHours={store.special_hours}
+                isOpenOverride={store.is_open_override}
               />
             </div>
           </div>
+
+          {store.description && (
+            <p className="text-sm text-slate-700 leading-normal text-pretty">
+              {store.description}
+            </p>
+          )}
+
+          <div className="grid grid-cols-3 text-center py-2.5 rounded-[18px] bg-slate-50">
+            {[
+              [String(products.length), "produtos"],
+              [formatCompactCount(followersCount), "seguidores"],
+              [paymentSummary, "pagamento"],
+            ].map(([value, label]) => (
+              <div key={label} className="flex flex-col min-w-0 px-1">
+                <span className="font-display text-[17px] font-extrabold text-slate-900 truncate">
+                  {value}
+                </span>
+                <span className="text-[11px] text-slate-500">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              className="flex-1"
+              variant={isFollowing ? "secondary" : "primary"}
+              aria-pressed={isFollowing}
+              onClick={handleFollowToggle}
+            >
+              {isFollowing ? "Seguindo" : "Seguir loja"}
+            </Button>
+            <a
+              href={buildWhatsAppUrl({
+                phone: store.whatsapp,
+                storeName: store.name,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonBaseClasses,
+                buttonVariantClasses.whatsapp,
+                buttonSizeClasses.md,
+                "flex-1"
+              )}
+            >
+              WhatsApp
+            </a>
+          </div>
         </section>
 
-        {/* =========================================================
-            3. GRID DE PRODUTOS DA LOJA (grid-cols-2 md:grid-cols-4 gap-4)
-           ========================================================= */}
-        <section aria-label={`Produtos de ${store.name}`}>
+        {/* Busca interna + categorias da loja */}
+        <div className="px-5 md:px-6 pt-4 pb-3">
+          <Input
+            inputSize="md"
+            type="search"
+            aria-label={`Buscar na ${store.name}`}
+            placeholder={`Buscar na ${store.name}`}
+            value={internalQuery}
+            onChange={(e) => setInternalQuery(e.target.value)}
+            leftIcon={<Search className="w-4.25 h-4.25" strokeWidth={1.8} />}
+          />
+        </div>
+
+        <CategoryPills
+          size="sm"
+          className="px-5 md:px-6 pb-4"
+          activeSlug={activeCategorySlug}
+          onSelect={(cat) => setActiveCategorySlug(cat.slug)}
+          categories={[
+            { id: "all", name: "Tudo", slug: "all" },
+            ...storeCategories.map((cat) => ({
+              id: cat.slug,
+              name: cat.name,
+              slug: cat.slug,
+            })),
+          ]}
+        />
+
+        {/* Grid de produtos */}
+        <section
+          aria-label={`Produtos de ${store.name}`}
+          className="px-5 md:px-6 pb-5"
+        >
           {filteredProducts.length === 0 ? (
-            <div className="rounded-3xl bg-white p-12 border border-slate-100 text-center space-y-3">
-              <Sparkles className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-base font-extrabold text-slate-900">
-                Nenhum produto encontrado nesta busca
+            <div className="rounded-[28px] bg-white p-8 text-center space-y-3">
+              <p className="font-display text-[17px] font-extrabold text-slate-900">
+                Nenhum produto nesta busca
               </p>
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => {
                   setInternalQuery("");
                   setActiveCategorySlug("all");
                 }}
               >
-                Ver todos os produtos da loja
+                Ver todos os produtos
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filteredProducts.map((product) => (
                 <ProductCardGrid
                   key={product.id}
                   product={product}
+                  hideStore
                   isFavorite={savedSet.has(product.id)}
                   onAddToBag={() => setBagCount((c) => c + 1)}
                   onToggleFavorite={handleProductFavorite}
@@ -401,108 +371,91 @@ export function StorefrontClient({
           )}
         </section>
 
-        {/* =========================================================
-            4. RODAPÉ INFORMATIVO DA LOJA (PAGAMENTOS, ENTREGA & HORÁRIOS)
-           ========================================================= */}
-        <section className="rounded-3xl bg-white p-6 sm:p-8 border border-slate-100 shadow-xs">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Bloco 1: Formas de Pagamento Aceitas + Parcelamento */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                <CreditCard className="w-4 h-4 text-emerald-600" />
-                <span>Formas de Pagamento Aceitas</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
+        {/* Como comprar */}
+        <section className="mx-3 md:mx-6 bg-white rounded-[28px] p-4.5 md:p-6 flex flex-col gap-4">
+          <h2 className="text-[17px] font-extrabold text-slate-900">
+            Como comprar
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3 md:gap-8">
+            <div className="flex flex-col gap-1.5">
+              <span className={eyebrowClasses}>Pagamento</span>
+              <div className="flex flex-wrap gap-1.5">
                 {acceptedPayments.map((pm) => (
-                  <Badge
+                  <span
                     key={pm}
-                    variant="payment"
-                    paymentMethod={pm}
-                    size="md"
-                  />
+                    className="px-2.75 py-1.5 rounded-full bg-slate-100 text-xs font-semibold text-slate-900"
+                  >
+                    {PAYMENT_SHORT_LABELS[pm] ?? pm}
+                  </span>
                 ))}
               </div>
-
               {store.installment_info && (
-                <p className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/70 rounded-2xl px-3.5 py-2.5">
-                  💳 {store.installment_info}
-                </p>
+                <span className="text-[13px] text-slate-500">
+                  {store.installment_info}
+                </span>
               )}
             </div>
 
-            {/* Bloco 2: Opções de Entrega & Retirada em Bom Jesus da Lapa */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                <Truck className="w-4 h-4 text-emerald-600" />
-                <span>Entrega & Retirada na Loja</span>
-              </div>
-
-              <ul className="space-y-2 text-xs text-slate-600">
-                {store.has_delivery !== false && (
-                  <li className="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                    <span className="font-bold text-slate-900 block">
-                      🛵 Entrega por Motoboy em Bom Jesus da Lapa
-                    </span>
-                    <span>
-                      {store.delivery_fee_type === "free"
-                        ? "Frete Grátis para a cidade"
-                        : store.delivery_fee_type === "fixed" &&
-                          store.delivery_fee != null
-                        ? `Taxa fixa de ${formatCurrencyBRL(
-                            store.delivery_fee
-                          )}`
-                        : "Taxa a combinar pelo bairro no WhatsApp"}
-                    </span>
-                  </li>
-                )}
-
-                {store.has_pickup !== false && (
-                  <li className="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                    <span className="font-bold text-slate-900 block">
-                      🏪 Retirada Grátis no Balcão
-                    </span>
-                    <span>
-                      {store.address || store.neighborhood} — Bom Jesus da Lapa
-                    </span>
-                  </li>
-                )}
-              </ul>
+            <div className="flex flex-col gap-1.5">
+              <span className={eyebrowClasses}>Entrega</span>
+              <span className="text-sm text-slate-900 first-letter:uppercase">
+                {deliveryText || "Combine com a loja pelo WhatsApp"}
+              </span>
             </div>
 
-            {/* Bloco 3: Horários de Funcionamento Completos */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                <Clock className="w-4 h-4 text-emerald-600" />
-                <span>Horários de Funcionamento</span>
-              </div>
-
-              <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-slate-50/70 px-3.5 py-1 text-xs">
-                {openStatus.weeklySchedule.map((day) => (
-                  <li
-                    key={day.dayOfWeek}
-                    className={cn(
-                      "py-1.5 flex items-center justify-between gap-2",
-                      day.isToday
-                        ? "font-extrabold text-slate-900"
-                        : "text-slate-600"
-                    )}
-                  >
-                    <span>
-                      {day.shortName} {day.isToday ? "(Hoje)" : ""}
-                    </span>
-                    <span className={day.isClosed ? "text-rose-500" : ""}>
-                      {day.hoursText}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <div className="flex flex-col gap-1.5">
+              <span className={eyebrowClasses}>Horários</span>
+              {openStatus.weeklySchedule.map((day) => (
+                <div
+                  key={day.dayOfWeek}
+                  className={cn(
+                    "flex justify-between gap-3 text-sm text-slate-900",
+                    day.isToday && "font-semibold"
+                  )}
+                >
+                  <span>
+                    {day.dayName}
+                    {day.isToday ? " · hoje" : ""}
+                  </span>
+                  <span className={day.isToday ? "" : "text-slate-500"}>
+                    {day.hoursText}
+                  </span>
+                </div>
+              ))}
+              {openStatus.specialHours.map((sp, idx) => (
+                <span
+                  key={sp.id ?? `${sp.date}-${idx}`}
+                  className="mt-1 px-3 py-2.5 rounded-[14px] bg-amber-100 text-amber-800 text-xs font-semibold"
+                >
+                  {sp.date} · {sp.label} —{" "}
+                  {sp.isClosed
+                    ? "fechada"
+                    : `aberto ${sp.openTime} às ${sp.closeTime}`}
+                </span>
+              ))}
             </div>
           </div>
         </section>
       </main>
 
-      <Footer />
+      <Footer className="hidden md:block" />
     </div>
   );
+}
+
+const PAYMENT_SHORT_LABELS: Record<string, string> = {
+  pix: "Pix",
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  cash: "Dinheiro",
+  payment_link: "Link de pagamento",
+  boleto: "Boleto",
+  crediario: "Crediário",
+};
+
+function formatCompactCount(value: number): string {
+  if (value < 1000) return String(value);
+  return `${(value / 1000).toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+  })} mil`;
 }

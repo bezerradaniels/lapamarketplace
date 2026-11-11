@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  BadgeCheck,
   CreditCard,
   Banknote,
   QrCode,
@@ -10,6 +9,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import type { PaymentMethod, ProductCondition } from "@/types/marketplace";
 
 export type BadgeVariant =
@@ -38,17 +38,17 @@ const CONDITION_MAP: Record<
 > = {
   new: {
     label: "Novo",
-    classes: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+    classes: "bg-emerald-100 text-emerald-800",
     icon: <Sparkles className="w-3 h-3" aria-hidden="true" />,
   },
   used: {
     label: "Seminovo / Usado",
-    classes: "bg-amber-50 text-amber-700 border border-amber-100",
+    classes: "bg-amber-100 text-amber-800",
     icon: <RefreshCw className="w-3 h-3" aria-hidden="true" />,
   },
   refurbished: {
     label: "Recondicionado",
-    classes: "bg-slate-100 text-slate-700 border border-slate-200/70",
+    classes: "bg-slate-100 text-slate-700",
     icon: <RefreshCw className="w-3 h-3" aria-hidden="true" />,
   },
 };
@@ -59,7 +59,7 @@ const PAYMENT_MAP: Record<
 > = {
   pix: {
     label: "Pix",
-    icon: <QrCode className="w-3 h-3 text-emerald-600" aria-hidden="true" />,
+    icon: <QrCode className="w-3 h-3 text-slate-600" aria-hidden="true" />,
   },
   credit_card: {
     label: "Cartão de Crédito",
@@ -71,7 +71,7 @@ const PAYMENT_MAP: Record<
   },
   cash: {
     label: "Dinheiro",
-    icon: <Banknote className="w-3 h-3 text-emerald-700" aria-hidden="true" />,
+    icon: <Banknote className="w-3 h-3 text-slate-600" aria-hidden="true" />,
   },
   payment_link: {
     label: "Link de Pagamento",
@@ -83,7 +83,7 @@ const PAYMENT_MAP: Record<
   },
   crediario: {
     label: "Crediário da Loja",
-    icon: <Wallet className="w-3 h-3 text-blue-600" aria-hidden="true" />,
+    icon: <Wallet className="w-3 h-3 text-slate-600" aria-hidden="true" />,
   },
 };
 
@@ -100,16 +100,16 @@ export function Badge({
 }: BadgeProps) {
   const sizeStyles =
     size === "sm"
-      ? "px-2.5 py-0.5 text-[11px] gap-1"
-      : "px-3 py-1 text-xs gap-1.5";
+      ? "px-2 py-1 text-[10px] leading-none gap-1"
+      : "px-2.5 py-1.5 text-xs leading-none gap-1.5";
 
   if (variant === "discount") {
     const content =
-      children ?? (discountPercent != null ? `-${discountPercent}% OFF` : "OFERTA");
+      children ?? (discountPercent != null ? `−${discountPercent}%` : "Oferta");
     return (
       <span
         className={cn(
-          "inline-flex items-center font-bold tracking-tight rounded-full bg-rose-500 text-white shadow-xs",
+          "inline-flex items-center font-display font-bold rounded-full bg-offer text-white",
           sizeStyles,
           className
         )}
@@ -125,13 +125,13 @@ export function Badge({
     return (
       <span
         className={cn(
-          "inline-flex items-center font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100/80",
+          "inline-flex items-center font-semibold rounded-full bg-brand-soft text-brand-ink",
           sizeStyles,
           className
         )}
         {...props}
       >
-        {icon ?? <BadgeCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" aria-hidden="true" />}
+        {icon ?? <VerifiedSeal size={14} label="" />}
         {children ?? "Loja Verificada"}
       </span>
     );
@@ -160,7 +160,7 @@ export function Badge({
     return (
       <span
         className={cn(
-          "inline-flex items-center font-medium rounded-full bg-slate-100/90 text-slate-700 border border-slate-200/60",
+          "inline-flex items-center font-semibold rounded-full bg-slate-100 text-slate-900",
           sizeStyles,
           className
         )}
@@ -191,7 +191,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200/50",
+        "inline-flex items-center font-semibold rounded-full bg-slate-100 text-slate-700",
         sizeStyles,
         className
       )}

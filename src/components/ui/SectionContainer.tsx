@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface SectionContainerProps
@@ -27,19 +26,19 @@ export function SectionContainer({
   ...props
 }: SectionContainerProps) {
   return (
-    <section className={cn("w-full space-y-4", className)} {...props}>
+    <section className={cn("w-full space-y-3", className)} {...props}>
       <div
         className={cn(
-          "flex items-end justify-between gap-4",
+          "flex items-baseline justify-between gap-4",
           headerClassName
         )}
       >
         <div className="space-y-0.5">
-          <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-[19px] sm:text-xl font-extrabold text-slate-900 tracking-[-0.02em]">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs sm:text-sm text-slate-500">{subtitle}</p>
+            <p className="text-[13px] text-slate-500">{subtitle}</p>
           )}
         </div>
 
@@ -48,19 +47,17 @@ export function SectionContainer({
         ) : href ? (
           <Link
             href={href}
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors shrink-0 py-1 px-2.5 rounded-full hover:bg-slate-100"
+            className="text-[13px] text-slate-500 hover:text-slate-900 transition-colors shrink-0"
           >
-            <span>{actionLabel}</span>
-            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            {actionLabel}
           </Link>
         ) : onActionClick ? (
           <button
             type="button"
             onClick={onActionClick}
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors shrink-0 py-1 px-2.5 rounded-full hover:bg-slate-100 cursor-pointer"
+            className="text-[13px] text-slate-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
           >
-            <span>{actionLabel}</span>
-            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            {actionLabel}
           </button>
         ) : null}
       </div>

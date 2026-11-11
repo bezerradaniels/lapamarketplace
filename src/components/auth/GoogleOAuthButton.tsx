@@ -61,12 +61,11 @@ export function GoogleOAuthButton({
     <Button
       type="button"
       variant="outline"
-      size="lg"
       fullWidth
       isLoading={isPending}
       leftIcon={<GoogleIcon />}
       onClick={handleGoogleLogin}
-      className="border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold shadow-2xs"
+      className="h-13.5 rounded-[17px] text-[15px] gap-2.5"
     >
       {label}
     </Button>

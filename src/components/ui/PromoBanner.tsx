@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { cn } from "@/lib/utils";
 import { Badge } from "./Badge";
 
@@ -32,41 +33,35 @@ export function PromoBanner({
   className,
 }: PromoBannerProps) {
   const variantStyles = {
-    dark: "bg-slate-900 text-white border-slate-800",
-    light: "bg-white text-slate-900 border-slate-100 shadow-sm",
-    emerald: "bg-emerald-950 text-white border-emerald-900",
+    dark: "bg-slate-900 text-white",
+    light: "bg-white text-slate-900",
+    emerald: "bg-brand-soft text-slate-900",
   }[variant];
 
-  const isLight = variant === "light";
+  const isLight = variant !== "dark";
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-3xl p-6 sm:p-8 border transition-all",
+        "relative overflow-hidden rounded-[28px] p-5 sm:p-8",
         variantStyles,
         className
       )}
     >
-      {/* Brilho decorativo sutil */}
-      {!isLight && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5 blur-2xl"
-        />
-      )}
-
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="max-w-xl space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                isLight
-                  ? "bg-slate-100 text-slate-800"
-                  : "bg-white/10 text-white backdrop-blur-xs"
+                "inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em]",
+                variant === "dark"
+                  ? "text-brand"
+                  : variant === "emerald"
+                  ? "text-brand-ink"
+                  : "text-slate-500"
               )}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+              <LapaSymbol size={18} ink={variant === "dark" ? "#FFFFFF" : "#0F172A"} />
               {tag}
             </span>
 
@@ -75,7 +70,7 @@ export function PromoBanner({
             )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+          <h2 className="text-xl sm:text-2xl md:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.1] text-balance">
             {title}
           </h2>
 
@@ -83,7 +78,7 @@ export function PromoBanner({
             <p
               className={cn(
                 "text-sm sm:text-base leading-relaxed",
-                isLight ? "text-slate-600" : "text-slate-300"
+                isLight ? "text-slate-700" : "text-slate-300"
               )}
             >
               {subtitle}
@@ -95,10 +90,10 @@ export function PromoBanner({
               <Link
                 href={ctaHref}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all",
+                  "inline-flex items-center gap-2 rounded-[15px] h-11.5 px-4.5 font-display text-sm font-bold transition duration-150 active:scale-[0.98]",
                   isLight
                     ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "bg-white text-slate-900 hover:bg-slate-100"
+                    : "bg-brand text-slate-900 hover:bg-brand-strong"
                 )}
               >
                 <span>{ctaLabel}</span>
@@ -109,10 +104,10 @@ export function PromoBanner({
                 type="button"
                 onClick={onCtaClick}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all cursor-pointer",
+                  "inline-flex items-center gap-2 rounded-[15px] h-11.5 px-4.5 font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer",
                   isLight
                     ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "bg-white text-slate-900 hover:bg-slate-100"
+                    : "bg-brand text-slate-900 hover:bg-brand-strong"
                 )}
               >
                 <span>{ctaLabel}</span>
@@ -123,7 +118,7 @@ export function PromoBanner({
         </div>
 
         {imageUrl && (
-          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-16/10 md:aspect-4/3 rounded-2xl bg-slate-100/80 overflow-hidden relative">
+          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-16/10 md:aspect-4/3 rounded-[18px] bg-slate-100 overflow-hidden relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}

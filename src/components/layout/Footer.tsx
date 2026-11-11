@@ -1,18 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import {
-  Store,
-  ArrowRight,
-  QrCode,
-  CreditCard,
-  Banknote,
-  Receipt,
-  Wallet,
-  MapPin,
-  ShieldCheck,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LAPA_NEIGHBORHOODS } from "./MarketplaceHeader";
+import { LapaSymbol, LapaWordmark } from "@/components/brand/LapaSymbol";
+
+const footerHeadingClasses =
+  "font-sans text-xs font-semibold uppercase tracking-[0.08em] text-slate-500";
 
 const FOOTER_CATEGORIES = [
   { name: "Moda Feminina & Masculina", href: "/?categoria=moda" },
@@ -26,12 +19,12 @@ const FOOTER_CATEGORIES = [
 ];
 
 const PAYMENT_FLAGS = [
-  { label: "Pix Instantâneo", icon: QrCode },
-  { label: "Visa / Mastercard", icon: CreditCard },
-  { label: "Elo / Hipercard", icon: CreditCard },
-  { label: "Crediário Local", icon: Wallet },
-  { label: "Dinheiro na Entrega", icon: Banknote },
-  { label: "Boleto Bancário", icon: Receipt },
+  { label: "Pix" },
+  { label: "Crédito" },
+  { label: "Débito" },
+  { label: "Crediário da loja" },
+  { label: "Dinheiro" },
+  { label: "Boleto" },
 ];
 
 export interface FooterProps {
@@ -46,73 +39,54 @@ export function Footer({ className }: FooterProps) {
   return (
     <footer
       className={cn(
-        "w-full bg-white border-t border-slate-100 mt-16",
+        "w-full bg-white mt-10 md:mt-16 rounded-t-[28px] pb-28 md:pb-0",
         className
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-        {/* CTA Banner para Lojistas Locais */}
-        <div className="rounded-3xl bg-slate-900 text-white p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-          <div className="space-y-2 max-w-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-1 text-xs font-bold">
-              <Store className="w-3.5 h-3.5" aria-hidden="true" />
-              Para Lojistas de Bom Jesus da Lapa
-            </span>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-              Tem uma loja em Lapa? Crie seu catálogo grátis
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8 py-8 md:py-12 space-y-10">
+        {/* CTA para lojistas locais */}
+        <div className="rounded-[28px] bg-brand-soft p-5 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="space-y-3 max-w-xl">
+            <LapaSymbol size={36} />
+            <h2 className="text-xl sm:text-[26px] font-extrabold tracking-[-0.02em] leading-[1.15] text-slate-900 text-balance">
+              Tem uma loja em Lapa? Crie seu catálogo grátis.
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Exiba seus produtos na vitrine digital da cidade, publique stories
-              em tempo real e receba pedidos prontos direto no seu WhatsApp.
+            <p className="text-sm text-slate-700 leading-normal">
+              Mostre seus produtos na vitrine da cidade, publique stories e
+              receba pedidos prontos direto no seu WhatsApp.
             </p>
           </div>
 
           <Link
             href="/lojista/cadastro"
-            className="shrink-0 inline-flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 text-sm font-bold transition-colors shadow-sm"
+            className="shrink-0 inline-flex items-center h-11.5 px-4.5 rounded-[15px] bg-slate-900 hover:bg-slate-800 text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
           >
-            <span>Criar catálogo grátis</span>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            Quero abrir minha loja
           </Link>
         </div>
 
-        {/* Grid Principal de Links e SEO Local */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Coluna 1: Sobre a Plataforma */}
+          {/* Sobre */}
           <div className="space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
-                <Store className="w-4.5 h-4.5" aria-hidden="true" />
-              </div>
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight">
-                Lapa<span className="text-emerald-600">Shop</span>
-              </span>
+            <Link href="/" aria-label="Lapa Marketplace — início">
+              <LapaWordmark symbolSize={30} />
             </Link>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              O marketplace oficial do comércio de Bom Jesus da Lapa - BA.
-              Conectando moradores e romeiros às melhores lojas físicas da
-              capital baiana da fé com pedido rápido via WhatsApp.
+            <p className="text-[13px] text-slate-500 leading-normal">
+              O marketplace do comércio de Bom Jesus da Lapa - BA. Conectando
+              moradores e romeiros às lojas físicas da cidade, com pedido
+              rápido pelo WhatsApp.
             </p>
-            <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 text-xs text-slate-600 font-medium">
-              <ShieldCheck
-                className="w-4 h-4 text-emerald-600 shrink-0"
-                aria-hidden="true"
-              />
-              <span>Lojas locais verificadas em Lapa - BA</span>
-            </div>
           </div>
 
-          {/* Coluna 2: Categorias Rápidas */}
+          {/* Categorias */}
           <div className="space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
-              Categorias em Destaque
-            </h3>
+            <h3 className={footerHeadingClasses}>Categorias</h3>
             <ul className="space-y-2">
               {FOOTER_CATEGORIES.map((cat) => (
                 <li key={cat.name}>
                   <Link
                     href={cat.href}
-                    className="text-xs text-slate-500 hover:text-slate-900 transition-colors"
+                    className="text-[13px] text-slate-700 hover:text-slate-900 transition-colors"
                   >
                     {cat.name}
                   </Link>
@@ -121,18 +95,15 @@ export function Footer({ className }: FooterProps) {
             </ul>
           </div>
 
-          {/* Coluna 3: Bairros de Bom Jesus da Lapa (SEO Local) */}
+          {/* Bairros (SEO local) */}
           <div className="space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
-              Lojas por Bairro em Lapa
-            </h3>
+            <h3 className={footerHeadingClasses}>Lojas por bairro</h3>
             <div className="flex flex-wrap gap-1.5">
               {neighborhoods.map((bairro) => (
                 <Link
                   key={bairro}
                   href={`/?bairro=${encodeURIComponent(bairro)}`}
-                  className="rounded-full bg-slate-100/80 hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 px-2.5 py-1 text-[11px] font-medium transition-colors"
+                  className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 px-2.75 py-1.5 text-xs font-semibold transition-colors"
                 >
                   {bairro}
                 </Link>
@@ -140,49 +111,43 @@ export function Footer({ className }: FooterProps) {
             </div>
           </div>
 
-          {/* Coluna 4: Bandeiras e Formas de Pagamento */}
+          {/* Pagamento */}
           <div className="space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
-              Formas de Pagamento nas Lojas
-            </h3>
-            <p className="text-xs text-slate-500">
-              Combine o pagamento direto com a loja pelo WhatsApp ou na entrega:
+            <h3 className={footerHeadingClasses}>Pagamento nas lojas</h3>
+            <p className="text-[13px] text-slate-500 leading-normal">
+              Combine o pagamento direto com a loja, pelo WhatsApp ou na
+              entrega:
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_FLAGS.map((flag) => {
-                const Icon = flag.icon;
-                return (
-                  <div
-                    key={flag.label}
-                    className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-700"
-                  >
-                    <Icon
-                      className="w-3.5 h-3.5 text-slate-500 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{flag.label}</span>
-                  </div>
-                );
-              })}
+            <div className="flex flex-wrap gap-1.5">
+              {PAYMENT_FLAGS.map((flag) => (
+                <span
+                  key={flag.label}
+                  className="rounded-full bg-slate-100 text-slate-900 px-2.75 py-1.5 text-xs font-semibold"
+                >
+                  {flag.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Linha Inferior de Copyright */}
-        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>
-            © {new Date().getFullYear()} LapaShop Marketplace • Bom Jesus da
-            Lapa, Bahia. Todos os direitos reservados.
+            © {new Date().getFullYear()} Lapa Marketplace · Bom Jesus da Lapa,
+            Bahia.
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/termos" className="hover:text-slate-600">
-              Termos de Uso
+            <Link href="/termos" className="hover:text-slate-900">
+              Termos de uso
             </Link>
-            <Link href="/privacidade" className="hover:text-slate-600">
+            <Link href="/privacidade" className="hover:text-slate-900">
               Privacidade
             </Link>
-            <Link href="/lojista" className="hover:text-slate-600 font-semibold text-slate-600">
-              Área do Lojista
+            <Link
+              href="/lojista"
+              className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
+            >
+              Área do lojista
             </Link>
           </div>
         </div>
@@ -190,4 +155,3 @@ export function Footer({ className }: FooterProps) {
     </footer>
   );
 }
-

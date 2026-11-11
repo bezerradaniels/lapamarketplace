@@ -2,24 +2,13 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  SlidersHorizontal,
-  Search,
-  X,
-  RotateCcw,
-  Sparkles,
-  Clock,
-  Tag,
-  MapPin,
-  CreditCard,
-  Layers,
-} from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { PillGroup, Switch } from "@/components/ui/Switch";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { toggleSaveProduct } from "@/app/actions/social";
 import { getStoreOpenStatus } from "@/lib/store-hours";
@@ -57,12 +46,20 @@ export interface ExploreMarketplaceClientProps {
 const PAYMENT_FILTER_OPTIONS: Array<{ id: PaymentMethod | "all"; label: string }> = [
   { id: "all", label: "Qualquer forma de pagamento" },
   { id: "pix", label: "Pix" },
-  { id: "credit_card", label: "Cartão de Crédito" },
-  { id: "debit_card", label: "Cartão de Débito" },
-  { id: "crediario", label: "Crediário da Loja" },
+  { id: "credit_card", label: "Cartão de crédito" },
+  { id: "debit_card", label: "Cartão de débito" },
+  { id: "crediario", label: "Crediário da loja" },
   { id: "cash", label: "Dinheiro" },
-  { id: "payment_link", label: "Link de Pagamento" },
+  { id: "payment_link", label: "Link de pagamento" },
 ];
+
+type SortOption = "relevance" | "price_asc" | "price_desc";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  relevance: "Relevância",
+  price_asc: "Menor preço",
+  price_desc: "Maior preço",
+};
 
 export function ExploreMarketplaceClient({
   allProducts,
@@ -109,6 +106,7 @@ export function ExploreMarketplaceClient({
 
   // Drawer mobile de filtros
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
 
   // Sacola e Favoritos
   const [bagCount, setBagCount] = useState(2);
@@ -378,101 +376,159 @@ export function ExploreMarketplaceClient({
     Boolean(maxPriceText.trim()),
   ].filter(Boolean).length;
 
-  const renderFilterControls = () => (
-    <div className="space-y-5">
-      {/* Cabeçalho Lateral */}
-      <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
-          <h2 className="text-sm font-extrabold text-slate-900">
-            Filtros do Comércio Local
-          </h2>
-        </div>
+  const sortedProducts = useMemo(() => {
+    if (sortBy === "relevance") return filteredProducts;
+    const effective = (p: ProductItem) =>
+      p.promotional_price != null && p.promotional_price < p.price
+        ? p.promotional_price
+        : p.price;
+    return [...filteredProducts].sort((a, b) =>
+      sortBy === "price_asc"
+        ? effective(a) - effective(b)
+        : effective(b) - effective(a)
+    );
+  }, [filteredProducts, sortBy]);
 
-        {activeFiltersCount > 0 && (
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>Limpar ({activeFiltersCount})</span>
-          </button>
-        )}
-      </div>
+  // Teto do slider de preço, arredondado para cima em múltiplos de 50
+  const priceCeiling = useMemo(() => {
+    const max = allProducts.reduce((m, p) => Math.max(m, p.price), 0);
+    return Math.max(100, Math.ceil(max / 50) * 50);
+  }, [allProducts]);
+  const maxPriceValue = Number(maxPriceText);
+  const hasMaxPrice = Boolean(maxPriceText.trim()) && maxPriceValue > 0;
+  const sliderValue = hasMaxPrice
+    ? Math.min(maxPriceValue, priceCeiling)
+    : priceCeiling;
 
-      {/* Switches Rápidos: Apenas Lojas Abertas Agora & Apenas Promoção */}
-      <div className="space-y-2.5">
-        <label className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 p-3.5 cursor-pointer">
-          <div className="flex items-center gap-2.5">
-            <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
-            <div>
-              <span className="block text-xs font-extrabold text-slate-900">
-                Apenas Lojas Abertas Agora
-              </span>
-              <span className="block text-[10px] text-slate-500">
-                Calculado em tempo real em Lapa
-              </span>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={onlyOpenNow}
-            onChange={(e) => setOnlyOpenNow(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300"
-          />
-        </label>
+  const neighborhoodName =
+    neighborhoods.find((nb) => (nb.slug || nb.id) === neighborhood)?.name ??
+    neighborhood;
 
-        <label className="flex items-center justify-between gap-3 rounded-2xl bg-rose-50/70 border border-rose-200/70 p-3.5 cursor-pointer">
-          <div className="flex items-center gap-2.5">
-            <Tag className="w-4 h-4 text-rose-600 shrink-0" />
-            <div>
-              <span className="block text-xs font-extrabold text-slate-900">
-                Apenas Produtos em Promoção
-              </span>
-              <span className="block text-[10px] text-slate-500">
-                Preços com desconto ativo (`% OFF`)
-              </span>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={onlyPromo}
-            onChange={(e) => setOnlyPromo(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300"
-          />
-        </label>
-      </div>
+  // Chips de filtros ativos (pêssego com ×)
+  const activeChips: Array<{ key: string; label: string; clear: () => void }> =
+    [];
+  if (categorySlug !== "all") {
+    activeChips.push({
+      key: "cat",
+      label: activeMainCategory?.name ?? categorySlug,
+      clear: () => {
+        setCategorySlug("all");
+        setSubcategorySlug("all");
+        setSelectedSize("all");
+      },
+    });
+  }
+  if (subcategorySlug !== "all") {
+    activeChips.push({
+      key: "sub",
+      label:
+        availableSubcategories.find((s) => s.slug === subcategorySlug)?.name ??
+        subcategorySlug,
+      clear: () => setSubcategorySlug("all"),
+    });
+  }
+  if (onlyOpenNow) {
+    activeChips.push({
+      key: "open",
+      label: "Aberta agora",
+      clear: () => setOnlyOpenNow(false),
+    });
+  }
+  if (hasMaxPrice) {
+    activeChips.push({
+      key: "price",
+      label: `Até R$ ${maxPriceValue}`,
+      clear: () => setMaxPriceText(""),
+    });
+  }
+  if (neighborhood !== "all" && neighborhood !== "Toda Bom Jesus da Lapa") {
+    activeChips.push({
+      key: "nb",
+      label: neighborhoodName,
+      clear: () => setNeighborhood("all"),
+    });
+  }
+  if (onlyPromo) {
+    activeChips.push({
+      key: "promo",
+      label: "Em promoção",
+      clear: () => setOnlyPromo(false),
+    });
+  }
+  if (selectedSize !== "all") {
+    activeChips.push({
+      key: "size",
+      label: `Tam. ${selectedSize}`,
+      clear: () => setSelectedSize("all"),
+    });
+  }
+  if (selectedGender !== "all") {
+    activeChips.push({
+      key: "gender",
+      label: selectedGender,
+      clear: () => setSelectedGender("all"),
+    });
+  }
+  if (selectedVoltage !== "all") {
+    activeChips.push({
+      key: "volt",
+      label: selectedVoltage,
+      clear: () => setSelectedVoltage("all"),
+    });
+  }
+  if (selectedCondition !== "all") {
+    activeChips.push({
+      key: "cond",
+      label: selectedCondition === "new" ? "Novo" : "Seminovo",
+      clear: () => setSelectedCondition("all"),
+    });
+  }
+  if (selectedPayment !== "all") {
+    activeChips.push({
+      key: "pay",
+      label:
+        PAYMENT_FILTER_OPTIONS.find((p) => p.id === selectedPayment)?.label ??
+        selectedPayment,
+      clear: () => setSelectedPayment("all"),
+    });
+  }
 
-      {/* Categoria Principal e Subcategoria */}
-      <div className="space-y-3 pt-1">
-        <Select
-          label="Categoria Principal"
-          value={categorySlug}
-          onChange={(e) => {
-            setCategorySlug(e.target.value);
+  const filterTitle = (text: string) => (
+    <span className="font-display text-[15px] font-bold text-slate-900">
+      {text}
+    </span>
+  );
+
+  /** Controles de filtro, compartilhados pela gaveta mobile e pela sidebar desktop. */
+  const renderFilterControls = (surface: "white" | "soft") => (
+    <div className="flex flex-col gap-5.5">
+      <div className="flex flex-col gap-2.5">
+        {filterTitle("Categoria")}
+        <PillGroup
+          ariaLabel="Categoria"
+          surface={surface}
+          value={categorySlug === "all" ? null : categorySlug}
+          onToggle={(slug) => {
+            setCategorySlug(categorySlug === slug ? "all" : slug);
             setSubcategorySlug("all");
             setSelectedSize("all");
           }}
-          leftIcon={<Layers className="w-4 h-4" />}
-          options={[
-            { value: "all", label: "Todas as Categorias" },
-            ...mainCategories.map((c) => ({
-              value: c.slug,
-              label: c.name,
-            })),
-          ]}
+          options={mainCategories.map((c) => ({
+            value: c.slug,
+            label: c.name,
+          }))}
         />
-
         {availableSubcategories.length > 0 && (
           <Select
-            label="Subcategoria"
+            aria-label="Subcategoria"
+            inputSize="md"
             value={subcategorySlug}
             onChange={(e) => setSubcategorySlug(e.target.value)}
+            className={surface === "white" ? "bg-slate-100" : undefined}
             options={[
               {
                 value: "all",
-                label: `Todas em ${activeMainCategory?.name}`,
+                label: `Tudo em ${activeMainCategory?.name}`,
               },
               ...availableSubcategories.map((sub) => ({
                 value: sub.slug,
@@ -483,151 +539,198 @@ export function ExploreMarketplaceClient({
         )}
       </div>
 
-      {/* Bairro da Loja em Bom Jesus da Lapa */}
-      <Select
-        label="Bairro da Loja em Lapa"
-        value={neighborhood}
-        onChange={(e) => setNeighborhood(e.target.value)}
-        leftIcon={<MapPin className="w-4 h-4" />}
-        options={[
-          { value: "all", label: "Toda Bom Jesus da Lapa" },
-          ...neighborhoods.map((nb) => ({
-            value: nb.slug || nb.id,
-            label: nb.name,
-          })),
-        ]}
-      />
-
-      {/* Filtros Dinâmicos da Categoria */}
-      <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-4">
-        <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-          Filtros Dinâmicos da Categoria
-        </p>
-
-        {/* Tamanho / Numeração */}
-        {dynamicFilterConfig.has_size &&
-          (dynamicFilterConfig.size_options?.length ?? 0) > 0 && (
-            <div className="space-y-1.5">
-              <span className="text-xs font-bold text-slate-700 block">
-                Tamanho / Numeração
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSize("all")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    selectedSize === "all"
-                      ? "bg-slate-900 text-white"
-                      : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  Todos
-                </button>
-                {(dynamicFilterConfig.size_options || []).map((sz) => (
-                  <button
-                    key={sz}
-                    type="button"
-                    onClick={() =>
-                      setSelectedSize(selectedSize === sz ? "all" : sz)
-                    }
-                    className={cn(
-                      "px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                      selectedSize === sz
-                        ? "bg-slate-900 text-white"
-                        : "bg-white border border-slate-200 text-slate-700 hover:border-slate-300"
-                    )}
-                  >
-                    {sz}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-        {/* Gênero */}
-        {dynamicFilterConfig.has_gender && (
-          <Select
-            label="Gênero"
-            value={selectedGender}
-            onChange={(e) => setSelectedGender(e.target.value)}
-            options={[
-              { value: "all", label: "Todos os gêneros" },
-              { value: "Feminino", label: "Feminino" },
-              { value: "Masculino", label: "Masculino" },
-              { value: "Unissex", label: "Unissex" },
-              { value: "Infantil", label: "Infantil" },
-            ]}
-          />
-        )}
-
-        {/* Voltagem */}
-        {dynamicFilterConfig.has_voltage && (
-          <Select
-            label="Voltagem"
-            value={selectedVoltage}
-            onChange={(e) => setSelectedVoltage(e.target.value)}
-            options={[
-              { value: "all", label: "Qualquer voltagem" },
-              { value: "220V", label: "220V (Padrão Lapa)" },
-              { value: "110V", label: "110V" },
-              { value: "Bivolt", label: "Bivolt" },
-            ]}
-          />
-        )}
-
-        {/* Condição (Novo / Seminovo) */}
+      <div className="flex flex-col gap-2.5">
+        {filterTitle("Bairro da loja")}
         <Select
-          label="Condição do Produto"
-          value={selectedCondition}
-          onChange={(e) => setSelectedCondition(e.target.value)}
+          aria-label="Bairro da loja"
+          inputSize="md"
+          value={neighborhood}
+          onChange={(e) => setNeighborhood(e.target.value)}
           options={[
-            { value: "all", label: "Novo ou Seminovo" },
-            { value: "new", label: "Apenas Novo" },
-            { value: "used", label: "Seminovo / Usado" },
+            { value: "all", label: "Toda Bom Jesus da Lapa" },
+            ...neighborhoods.map((nb) => ({
+              value: nb.slug || nb.id,
+              label: nb.name,
+            })),
           ]}
         />
       </div>
 
-      {/* Forma de Pagamento Aceita pela Loja */}
-      <Select
-        label="Forma de Pagamento Aceita pela Loja"
-        value={selectedPayment}
-        onChange={(e) => setSelectedPayment(e.target.value)}
-        leftIcon={<CreditCard className="w-4 h-4" />}
-        options={PAYMENT_FILTER_OPTIONS.map((p) => ({
-          value: p.id,
-          label: p.label,
-        }))}
-      />
+      {dynamicFilterConfig.has_size &&
+        (dynamicFilterConfig.size_options?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-2.5">
+            {filterTitle("Tamanho")}
+            <div className="flex flex-wrap gap-2">
+              {(dynamicFilterConfig.size_options || []).map((sz) => {
+                const active = selectedSize === sz;
+                return (
+                  <button
+                    key={sz}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSelectedSize(active ? "all" : sz)}
+                    className={cn(
+                      "min-w-11.5 h-11 px-3 rounded-[14px] grid place-items-center font-display text-sm font-bold transition-colors duration-150 cursor-pointer",
+                      active
+                        ? "bg-slate-900 text-white"
+                        : "bg-white text-slate-900 ring-line hover:bg-slate-50"
+                    )}
+                  >
+                    {sz}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-      {/* Preço Máximo */}
-      <Input
-        label="Preço Máximo (R$)"
-        type="number"
-        min={0}
-        placeholder="Ex: 200"
-        value={maxPriceText}
-        onChange={(e) => setMaxPriceText(e.target.value)}
-      />
+      {dynamicFilterConfig.has_gender && (
+        <div className="flex flex-col gap-2.5">
+          {filterTitle("Gênero")}
+          <PillGroup
+            ariaLabel="Gênero"
+            surface={surface}
+            value={selectedGender === "all" ? null : selectedGender}
+            onToggle={(g) => setSelectedGender(selectedGender === g ? "all" : g)}
+            options={["Feminino", "Masculino", "Unissex", "Infantil"].map(
+              (g) => ({ value: g, label: g })
+            )}
+          />
+        </div>
+      )}
 
-      <Button
-        type="button"
-        variant="primary"
-        fullWidth
-        onClick={() => {
-          syncUrlParams();
-          setMobileDrawerOpen(false);
-        }}
+      {dynamicFilterConfig.has_voltage && (
+        <div className="flex flex-col gap-2.5">
+          {filterTitle("Voltagem")}
+          <PillGroup
+            ariaLabel="Voltagem"
+            surface={surface}
+            value={selectedVoltage === "all" ? null : selectedVoltage}
+            onToggle={(v) =>
+              setSelectedVoltage(selectedVoltage === v ? "all" : v)
+            }
+            options={["220V", "110V", "Bivolt"].map((v) => ({
+              value: v,
+              label: v,
+            }))}
+          />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2.5">
+        {filterTitle("Preço máximo")}
+        <div className="flex flex-col gap-1">
+          <input
+            type="range"
+            aria-label="Preço máximo"
+            min={0}
+            max={priceCeiling}
+            step={10}
+            value={sliderValue}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setMaxPriceText(v >= priceCeiling || v <= 0 ? "" : String(v));
+            }}
+            style={
+              {
+                "--range-fill": `${(sliderValue / priceCeiling) * 100}%`,
+              } as React.CSSProperties
+            }
+            className="lapa-range"
+          />
+          <div className="flex justify-between text-[13px] text-slate-500">
+            <span>R$ 0</span>
+            <span className="font-semibold text-slate-900">
+              {hasMaxPrice ? `até R$ ${maxPriceValue}` : "sem limite"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "flex flex-col rounded-[20px]",
+          surface === "white" ? "bg-white" : "bg-slate-50"
+        )}
       >
-        Ver {filteredProducts.length} resultado(s)
-      </Button>
+        {(
+          [
+            {
+              label: "Apenas lojas abertas agora",
+              sub: "Usa o horário de cada loja",
+              checked: onlyOpenNow,
+              set: setOnlyOpenNow,
+            },
+            {
+              label: "Apenas em promoção",
+              sub: "Com preço De/Por",
+              checked: onlyPromo,
+              set: setOnlyPromo,
+            },
+          ] as const
+        ).map((toggle, idx) => (
+          <div
+            key={toggle.label}
+            className={cn(
+              "flex items-center justify-between gap-3 px-4 py-3.5",
+              idx > 0 && "border-t border-slate-100"
+            )}
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-slate-900">
+                {toggle.label}
+              </span>
+              <span className="text-xs text-slate-500">{toggle.sub}</span>
+            </div>
+            <Switch
+              checked={toggle.checked}
+              onCheckedChange={toggle.set}
+              aria-label={toggle.label}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        {filterTitle("Condição")}
+        <PillGroup
+          ariaLabel="Condição do produto"
+          surface={surface}
+          value={selectedCondition === "all" ? null : selectedCondition}
+          onToggle={(c) =>
+            setSelectedCondition(selectedCondition === c ? "all" : c)
+          }
+          options={[
+            { value: "new", label: "Novo" },
+            { value: "used", label: "Seminovo" },
+          ]}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        {filterTitle("Loja aceita")}
+        <PillGroup
+          ariaLabel="Forma de pagamento aceita pela loja"
+          tone="brand"
+          surface={surface}
+          value={selectedPayment === "all" ? null : selectedPayment}
+          onToggle={(p) => setSelectedPayment(selectedPayment === p ? "all" : p)}
+          options={PAYMENT_FILTER_OPTIONS.filter((p) => p.id !== "all").map(
+            (p) => ({ value: p.id as string, label: p.label })
+          )}
+        />
+      </div>
     </div>
   );
+
+  const resultsLabel = `${sortedProducts.length} ${
+    sortedProducts.length === 1 ? "resultado" : "resultados"
+  }`;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <MarketplaceHeader
+        mobileVariant="hidden"
         searchQuery={query}
         onSearchChange={setQuery}
         onSearchSubmit={() => syncUrlParams()}
@@ -642,100 +745,132 @@ export function ExploreMarketplaceClient({
         itemName={authModalProduct || undefined}
       />
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Topo da Busca Global */}
-        <div className="rounded-3xl bg-white p-5 sm:p-6 border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              Explorar Produtos & Lojas em Bom Jesus da Lapa
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              {filteredProducts.length} produto(s) encontrado(s) no comércio
-              local
-              {onlyOpenNow ? " • Apenas lojas abertas agora" : ""}
-              {onlyPromo ? " • Em promoção" : ""}
-            </p>
-          </div>
+      {/* Mobile: busca + botão de filtros */}
+      <div className="lg:hidden flex items-center gap-2.5 px-5 md:px-6 pt-[max(1.25rem,env(safe-area-inset-top))] md:pt-5 pb-3.5">
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            syncUrlParams();
+          }}
+          className="relative flex-1 flex items-center md:hidden"
+        >
+          <Search
+            className="w-4.5 h-4.5 text-slate-900 absolute left-4 pointer-events-none"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar em lojas da Lapa"
+            aria-label="Pesquisar produtos ou lojas"
+            className="w-full h-12 rounded-2xl bg-slate-100 pl-11 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 transition-[background-color,box-shadow] duration-150"
+          />
+        </form>
+        <span className="hidden md:block flex-1" />
+        <button
+          type="button"
+          onClick={() => setMobileDrawerOpen(true)}
+          aria-label={
+            activeFiltersCount > 0
+              ? `Abrir filtros (${activeFiltersCount} ativos)`
+              : "Abrir filtros"
+          }
+          className="relative w-12 h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 grid place-items-center text-white transition duration-150 active:scale-[0.98] cursor-pointer shrink-0"
+        >
+          <SlidersHorizontal className="w-5 h-5" strokeWidth={1.8} />
+          {activeFiltersCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand text-slate-900 font-display text-[11px] font-bold grid place-items-center ring-2 ring-slate-50">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+      </div>
 
-          <div className="flex items-center gap-2">
-            {/* Botão Mobile para abrir Drawer de Filtros */}
-            <Button
-              type="button"
-              variant="secondary"
-              className="lg:hidden"
-              onClick={() => setMobileDrawerOpen(true)}
-              leftIcon={<SlidersHorizontal className="w-4 h-4" />}
-            >
-              Filtros{" "}
-              {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ""}
-            </Button>
-
-            {activeFiltersCount > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleResetFilters}
-                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-              >
-                Limpar Tudo
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Layout Principal: Sidebar Desktop + Grid de Produtos */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Sidebar de Filtros (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-3 rounded-3xl bg-white p-5 border border-slate-100 shadow-xs sticky top-24">
-            {renderFilterControls()}
-          </aside>
-
-          {/* Resultados da Busca */}
-          <section className="lg:col-span-9 space-y-4">
-            {/* Barra de busca textual complementar */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Filtrar por nome da peça, marca, loja ou bairro..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  pill
-                  leftIcon={<Search className="w-4 h-4" />}
-                />
-              </div>
-              {query && (
-                <Button
+      <main className="flex-1 mx-auto w-full max-w-7xl md:px-6 lg:px-8 lg:py-7 pb-32 md:pb-10">
+        <div className="lg:grid lg:grid-cols-[256px_minmax(0,1fr)] lg:gap-7 lg:items-start">
+          {/* Sidebar de filtros (desktop) */}
+          <aside className="hidden lg:block sticky top-24 rounded-[28px] bg-white p-5 max-h-[calc(100dvh-7.5rem)] overflow-y-auto no-scrollbar">
+            <div className="flex items-baseline justify-between pb-4">
+              <h2 className="text-[19px] font-extrabold text-slate-900">
+                Filtros
+              </h2>
+              {activeFiltersCount > 0 && (
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setQuery("")}
+                  onClick={handleResetFilters}
+                  className="text-[13px] text-slate-500 underline hover:text-slate-900 cursor-pointer"
                 >
-                  Limpar busca
-                </Button>
+                  Limpar
+                </button>
               )}
             </div>
+            {renderFilterControls("soft")}
+          </aside>
 
-            {filteredProducts.length === 0 ? (
-              <div className="rounded-3xl bg-white p-12 border border-slate-100 text-center space-y-3">
-                <Sparkles className="w-10 h-10 text-slate-300 mx-auto" />
-                <h2 className="text-lg font-extrabold text-slate-900">
-                  Nenhum produto corresponde a esses filtros
+          <section>
+            {/* Chips de filtros ativos */}
+            {activeChips.length > 0 && (
+              <div className="flex gap-2 px-5 md:px-0 pb-4.5 overflow-x-auto no-scrollbar">
+                {activeChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={chip.clear}
+                    aria-label={`Remover filtro ${chip.label}`}
+                    className="flex-none inline-flex items-center gap-1.5 px-3.5 py-2.25 rounded-full bg-brand text-slate-900 text-[13px] font-semibold leading-tight cursor-pointer hover:bg-brand-strong transition-colors duration-150"
+                  >
+                    {chip.label}
+                    <X className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-baseline justify-between gap-3 px-5 md:px-0 pb-3">
+              <h1 className="text-[19px] lg:text-[30px] font-extrabold tracking-[-0.02em] lg:tracking-[-0.03em] text-slate-900">
+                {resultsLabel}
+              </h1>
+              <label className="relative inline-flex items-center gap-1 text-[13px] text-slate-500 cursor-pointer">
+                <span>{SORT_LABELS[sortBy]}</span>
+                <ChevronDown className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden="true" />
+                <select
+                  aria-label="Ordenar resultados"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                >
+                  {(Object.keys(SORT_LABELS) as SortOption[]).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {SORT_LABELS[opt]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {sortedProducts.length === 0 ? (
+              <div className="mx-3 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
+                <h2 className="text-[19px] font-extrabold text-slate-900 text-balance">
+                  Nenhum produto com esses filtros
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                  Tente remover o filtro de tamanho, aumentar o preço máximo ou
-                  buscar em todos os bairros de Bom Jesus da Lapa.
+                <p className="text-sm text-slate-500 max-w-md mx-auto leading-normal">
+                  Tente tirar o tamanho, aumentar o preço máximo ou buscar em
+                  todos os bairros de Bom Jesus da Lapa.
                 </p>
                 <Button variant="primary" onClick={handleResetFilters}>
-                  Redefinir todos os filtros
+                  Limpar filtros
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredProducts.map((product) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 px-5 md:px-0">
+                {sortedProducts.map((product) => (
                   <ProductCardGrid
                     key={product.id}
                     product={product}
+                    ratio="portrait"
                     isFavorite={savedSet.has(product.id)}
                     onAddToBag={() => setBagCount((c) => c + 1)}
                     onToggleFavorite={handleProductFavorite}
@@ -747,36 +882,61 @@ export function ExploreMarketplaceClient({
         </div>
       </main>
 
-      {/* Drawer Mobile de Filtros */}
+      {/* Gaveta de filtros (mobile/tablet) */}
       {mobileDrawerOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Filtros avançados"
-          className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs"
+          aria-label="Filtros"
+          className="fixed inset-0 z-50 lg:hidden bg-slate-900/60"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMobileDrawerOpen(false);
+          }}
         >
-          <div className="w-full max-h-[88dvh] rounded-t-3xl bg-white p-5 overflow-y-auto space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-base font-extrabold text-slate-900">
-                Filtrar Produtos em Lapa
-              </span>
+          <div className="absolute inset-x-0 bottom-0 top-24 mx-auto max-w-xl bg-slate-50 rounded-t-[32px] flex flex-col animate-slide-up">
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(false)}
+              aria-label="Fechar filtros"
+              className="flex justify-center p-2.5 cursor-pointer"
+            >
+              <span className="w-10 h-1.25 rounded-full bg-slate-300" />
+            </button>
+            <div className="flex items-baseline justify-between px-5 pt-1 pb-3.5">
+              <h2 className="text-[22px] font-extrabold text-slate-900">
+                Filtros
+              </h2>
               <button
                 type="button"
-                onClick={() => setMobileDrawerOpen(false)}
-                aria-label="Fechar filtros"
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 cursor-pointer"
+                onClick={handleResetFilters}
+                className="text-sm text-slate-500 underline cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                Limpar
               </button>
             </div>
 
-            {renderFilterControls()}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-30">
+              {renderFilterControls("white")}
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 px-5 pt-4 pb-[max(1.75rem,env(safe-area-inset-bottom))] bg-linear-to-b from-slate-50/0 to-slate-50 to-30%">
+              <Button
+                size="lg"
+                fullWidth
+                onClick={() => {
+                  syncUrlParams();
+                  setMobileDrawerOpen(false);
+                }}
+              >
+                Ver {sortedProducts.length}{" "}
+                {sortedProducts.length === 1 ? "produto" : "produtos"}
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      <Footer />
+      <Footer className="hidden md:block" />
     </div>
   );
 }
-

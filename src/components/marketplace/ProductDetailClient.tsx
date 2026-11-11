@@ -1,24 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Check,
-  CreditCard,
-  Heart,
-  MapPin,
-  MessageCircle,
-  Share2,
-  ShoppingBag,
-  Store,
-  Truck,
-} from "lucide-react";
+import { Check, ChevronLeft, Heart, Share } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
@@ -140,9 +129,87 @@ export function ProductDetailClient({
     window.setTimeout(() => setCopiedShare(false), 2000);
   };
 
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const activeIndex = Math.max(0, images.indexOf(activeImage));
+
+  const goToImage = (idx: number) => {
+    setActiveImage(images[idx]);
+    const el = galleryRef.current;
+    if (el) el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+  };
+
+  const handleGalleryScroll = () => {
+    const el = galleryRef.current;
+    if (!el || el.clientWidth === 0) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (images[idx] && images[idx] !== activeImage) setActiveImage(images[idx]);
+  };
+
+  const metaLine = [
+    product.condition === "used"
+      ? "Seminovo"
+      : product.condition === "refurbished"
+      ? "Recondicionado"
+      : null,
+    product.gender,
+    product.voltage,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const paymentText = acceptedPayments
+    .map((pm) => PAYMENT_SHORT_LABELS[pm] ?? pm)
+    .join(", ");
+
+  const deliveryText = [
+    store.has_delivery !== false
+      ? store.delivery_fee_type === "free"
+        ? "Entrega grátis"
+        : store.delivery_fee_type === "fixed" && store.delivery_fee != null
+        ? formatCurrencyBRL(store.delivery_fee)
+        : "Taxa a combinar"
+      : null,
+    store.has_pickup !== false ? "retirada" : null,
+  ]
+    .filter(Boolean)
+    .join(" ou ");
+
+  const isPremium = store.plan === "premium" || store.plan === "pro";
+  const overlayButtonClasses =
+    "w-10.5 h-10.5 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
+
+  const buyButtons = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="flex-1 px-3 text-[15px]"
+        onClick={handleAddToBag}
+        leftIcon={
+          addedToBagFeedback ? (
+            <Check className="w-4.5 h-4.5 text-whatsapp" strokeWidth={2.2} />
+          ) : undefined
+        }
+      >
+        {addedToBagFeedback ? "Na sacola" : "Pôr na sacola"}
+      </Button>
+      <Button
+        type="button"
+        variant="whatsapp"
+        size="lg"
+        className="flex-[1.3] px-3 text-[15px]"
+        onClick={handleBuyNowWhatsApp}
+      >
+        Pedir no WhatsApp
+      </Button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 pb-24 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <MarketplaceHeader
+        mobileVariant="hidden"
         bagCount={bagCount}
         favoritesCount={isSaved ? 1 : 0}
       />
@@ -154,99 +221,117 @@ export function ProductDetailClient({
         itemName={product.title}
       />
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-10">
-        {/* Breadcrumb / Voltar para a Loja */}
-        <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500">
-          <Link
-            href={`/${store.slug}`}
-            className="inline-flex items-center gap-1.5 text-slate-700 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para {store.name}</span>
-          </Link>
+      <main className="flex-1 mx-auto w-full max-w-6xl md:px-6 lg:px-8 md:py-7 pb-32 md:pb-12">
+        <div className="md:grid md:grid-cols-2 md:gap-8 lg:gap-10 md:items-start">
+          {/* Galeria */}
+          <div className="md:sticky md:top-24 space-y-3">
+            <div className="relative h-82.5 md:h-auto md:aspect-square rounded-b-[36px] md:rounded-[28px] bg-slate-100 overflow-hidden">
+              <div
+                ref={galleryRef}
+                onScroll={handleGalleryScroll}
+                className="flex w-full h-full overflow-x-auto snap-x snap-mandatory no-scrollbar"
+              >
+                {images.map((imgUrl, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={`${imgUrl}-${idx}`}
+                    src={imgUrl}
+                    alt={
+                      idx === 0
+                        ? product.title
+                        : `${product.title} — foto ${idx + 1}`
+                    }
+                    className="flex-none w-full h-full object-cover snap-center"
+                  />
+                ))}
+              </div>
 
-          <button
-            type="button"
-            onClick={handleShareProduct}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
-          >
-            {copiedShare ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Link copiado!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Compartilhar peça</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* =========================================================
-            BLOCO PRINCIPAL: GALERIA DE FOTOS + INFORMAÇÕES DE COMPRA
-           ========================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Coluna Esquerda: Galeria de Fotos */}
-          <div className="lg:col-span-6 space-y-3">
-            <div className="aspect-square rounded-3xl bg-white border border-slate-100 shadow-xs overflow-hidden relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={activeImage}
-                alt={product.title}
-                className="w-full h-full object-cover"
-              />
+              <div className="absolute top-[max(1rem,env(safe-area-inset-top))] md:top-4.5 inset-x-4.5 flex items-center gap-2.5">
+                <Link
+                  href={`/${store.slug}`}
+                  aria-label={`Voltar para ${store.name}`}
+                  className={cn(overlayButtonClasses, "md:hidden")}
+                >
+                  <ChevronLeft className="w-4.5 h-4.5" strokeWidth={2} />
+                </Link>
+                <span className="flex-1" />
+                <button
+                  type="button"
+                  onClick={handleShareProduct}
+                  aria-label={copiedShare ? "Link copiado" : "Compartilhar produto"}
+                  className={overlayButtonClasses}
+                >
+                  {copiedShare ? (
+                    <Check className="w-4.5 h-4.5 text-whatsapp" strokeWidth={2} />
+                  ) : (
+                    <Share className="w-4.5 h-4.5" strokeWidth={1.8} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  aria-label={
+                    isSaved ? "Remover dos favoritos" : "Salvar nos favoritos"
+                  }
+                  aria-pressed={isSaved}
+                  className={overlayButtonClasses}
+                >
+                  <Heart
+                    className={cn(
+                      "w-5 h-5 transition-colors duration-150",
+                      isSaved && "fill-offer text-offer"
+                    )}
+                    strokeWidth={1.8}
+                  />
+                </button>
+              </div>
 
               {discountPercent != null && (
-                <div className="absolute top-4 left-4">
-                  <Badge
-                    variant="discount"
-                    size="md"
-                    discountPercent={discountPercent}
-                  />
-                </div>
+                <Badge
+                  variant="discount"
+                  discountPercent={discountPercent}
+                  className="absolute left-4.5 bottom-4.5 px-2.5 py-1.5 text-xs"
+                />
               )}
 
-              <button
-                type="button"
-                onClick={handleToggleFavorite}
-                aria-label={
-                  isSaved ? "Remover dos favoritos" : "Salvar nos favoritos"
-                }
-                aria-pressed={isSaved}
-                className={cn(
-                  "absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center shadow-sm transition-all cursor-pointer",
-                  isSaved
-                    ? "bg-rose-500 text-white"
-                    : "bg-white/90 text-slate-700 hover:bg-white hover:text-rose-500"
-                )}
-              >
-                <Heart
-                  className={cn("w-5 h-5", isSaved && "fill-current")}
-                />
-              </button>
+              {images.length > 1 && (
+                <div className="absolute bottom-5.5 inset-x-0 flex justify-center gap-1.5 pointer-events-none">
+                  {images.map((imgUrl, idx) => (
+                    <span
+                      key={`dot-${imgUrl}-${idx}`}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-150",
+                        idx === activeIndex
+                          ? "w-4.5 bg-brand"
+                          : "w-1.5 bg-slate-300"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Miniaturas da Galeria */}
+            {/* Miniaturas (desktop) */}
             {images.length > 1 && (
-              <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+              <div className="hidden md:flex items-center gap-2.5 overflow-x-auto no-scrollbar p-0.5">
                 {images.map((imgUrl, idx) => (
                   <button
-                    key={`${imgUrl}-${idx}`}
+                    key={`thumb-${imgUrl}-${idx}`}
                     type="button"
-                    onClick={() => setActiveImage(imgUrl)}
+                    onClick={() => goToImage(idx)}
+                    aria-label={`Ver foto ${idx + 1}`}
+                    aria-pressed={idx === activeIndex}
                     className={cn(
-                      "w-20 h-20 rounded-2xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer",
-                      activeImage === imgUrl
-                        ? "border-slate-900 scale-102 shadow-xs"
-                        : "border-transparent opacity-70 hover:opacity-100"
+                      "w-18 h-18 rounded-2xl overflow-hidden shrink-0 bg-slate-100 cursor-pointer transition-shadow duration-150",
+                      idx === activeIndex
+                        ? "ring-2 ring-brand ring-offset-2 ring-offset-slate-50"
+                        : "opacity-70 hover:opacity-100"
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imgUrl}
-                      alt={`${product.title} miniatura ${idx + 1}`}
+                      alt=""
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -255,233 +340,160 @@ export function ProductDetailClient({
             )}
           </div>
 
-          {/* Coluna Direita: Preço De/Por, Tamanhos, Loja, Pagamentos e Entrega */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="rounded-3xl bg-white p-6 sm:p-8 border border-slate-100 shadow-xs space-y-6">
-              {/* Badges Superiores: Condição, Gênero, Voltagem */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="condition"
-                  condition={product.condition || "new"}
-                />
-                {product.gender && (
-                  <Badge variant="neutral">{product.gender}</Badge>
-                )}
-                {product.voltage && (
-                  <Badge variant="neutral">⚡ {product.voltage}</Badge>
-                )}
-              </div>
-
-              {/* Título e Preço De/Por */}
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {product.title}
-                </h1>
-
-                <div className="pt-1">
-                  {hasPromo && (
-                    <span className="block text-sm font-semibold text-slate-400 line-through">
-                      De {formatCurrencyBRL(product.price)}
-                    </span>
-                  )}
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                      {formatCurrencyBRL(effectivePrice)}
-                    </span>
-                    {discountPercent != null && (
-                      <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-                        Economize {discountPercent}%
-                      </span>
-                    )}
-                  </div>
-                  {store.installment_info && (
-                    <p className="text-xs font-semibold text-slate-500 mt-1">
-                      {store.installment_info}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Descrição do Produto */}
-              {product.description && (
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  {product.description}
-                </p>
+          {/* Informações de compra */}
+          <div className="flex flex-col gap-4.5 px-5 md:px-0 pt-4.5 md:pt-0">
+            <div className="flex flex-col gap-1.5">
+              <Link
+                href={`/${store.slug}`}
+                className="hidden md:inline-flex items-center gap-1 self-start text-[13px] text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2} />
+                {store.name}
+              </Link>
+              {metaLine && (
+                <span className="text-xs text-slate-500">{metaLine}</span>
               )}
-
-              {/* Seletor de Tamanho / Numeração (se o produto tiver sizes) */}
-              {product.sizes && product.sizes.length > 0 && (
-                <div className="space-y-2.5 pt-2 border-t border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
-                      Selecione o Tamanho / Numeração:
-                    </span>
-                    {selectedSize && (
-                      <span className="text-xs font-bold text-emerald-700">
-                        Selecionado: {selectedSize}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {product.sizes.map((size) => {
-                      const active = selectedSize === size;
-                      return (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => setSelectedSize(size)}
-                          aria-pressed={active}
-                          className={cn(
-                            "min-w-12 h-11 px-4 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer",
-                            active
-                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                              : "bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300"
-                          )}
-                        >
-                          {size}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Botões Desktop: Adicionar à Sacola + Comprar Agora */}
-              <div className="hidden md:grid grid-cols-2 gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  onClick={handleAddToBag}
-                  leftIcon={
-                    addedToBagFeedback ? (
-                      <Check className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <ShoppingBag className="w-4 h-4" />
-                    )
-                  }
-                >
-                  {addedToBagFeedback
-                    ? "Adicionado à Sacola!"
-                    : "Adicionar à Sacola"}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="whatsapp"
-                  size="lg"
-                  onClick={handleBuyNowWhatsApp}
-                  leftIcon={<MessageCircle className="w-4 h-4" />}
-                >
-                  Comprar Agora
-                </Button>
+              <h1 className="text-[22px] md:text-[30px] font-extrabold tracking-[-0.02em] md:tracking-[-0.03em] leading-[1.15] text-slate-900 text-balance">
+                {product.title}
+              </h1>
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="font-display text-[26px] md:text-[32px] font-extrabold tracking-[-0.02em] text-slate-900">
+                  {formatCurrencyBRL(effectivePrice)}
+                </span>
+                {hasPromo && (
+                  <span className="text-sm text-slate-500 line-through">
+                    {formatCurrencyBRL(product.price)}
+                  </span>
+                )}
+                {store.installment_info && (
+                  <span className="text-[13px] text-slate-500">
+                    {store.installment_info}
+                  </span>
+                )}
               </div>
+            </div>
 
-              {/* Card da Loja Física em Bom Jesus da Lapa */}
-              <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Link
-                    href={`/${store.slug}`}
-                    className="flex items-center gap-3 min-w-0"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
-                      {store.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={store.avatar_url}
-                          alt={store.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Store className="w-5 h-5 text-slate-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm font-extrabold text-slate-900 truncate">
-                          {store.name}
-                        </span>
-                        {store.is_verified && (
-                          <BadgeCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="flex flex-col gap-2.5">
+                <span className="font-display text-[15px] font-bold text-slate-900">
+                  Tamanho
+                </span>
+                <div
+                  role="radiogroup"
+                  aria-label="Tamanho"
+                  className="flex flex-wrap gap-2"
+                >
+                  {product.sizes.map((size) => {
+                    const active = selectedSize === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => setSelectedSize(size)}
+                        className={cn(
+                          "min-w-12 h-12 px-3 rounded-[14px] grid place-items-center font-display text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
+                          active
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-900 ring-line hover:bg-slate-50"
                         )}
-                      </div>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-emerald-600" />
-                        {store.neighborhood}, Bom Jesus da Lapa
-                      </span>
-                    </div>
-                  </Link>
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
+            {product.description && (
+              <p className="text-sm md:text-[15px] leading-[1.55] text-slate-500 text-pretty">
+                {product.description}
+              </p>
+            )}
+
+            {/* Compra (desktop) */}
+            <div className="hidden md:flex gap-2.5">{buyButtons}</div>
+
+            {/* Card da loja */}
+            <div className="flex items-center gap-2.5 p-2.5 rounded-[20px] bg-white">
+              <span
+                className={cn(
+                  "flex-none w-10 h-10 rounded-full p-0.5",
+                  isPremium ? "bg-story-premium" : "bg-brand"
+                )}
+              >
+                <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-xs font-extrabold text-slate-900">
+                  {store.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={store.avatar_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    store.name.slice(0, 2).toUpperCase()
+                  )}
+                </span>
+              </span>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 font-display text-sm font-bold text-slate-900">
+                  <span className="truncate">{store.name}</span>
+                  {store.is_verified && <VerifiedSeal size={16} />}
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-slate-500 min-w-0">
+                  <span className="truncate">{store.neighborhood}</span>
                   <StoreStatusBadge
                     compact
+                    className="shrink-0"
                     storeName={store.name}
                     businessHours={store.business_hours}
                     specialHours={store.special_hours}
                     isOpenOverride={store.is_open_override}
                   />
-                </div>
-
-                {store.address && (
-                  <p className="text-xs text-slate-500">📍 {store.address}</p>
-                )}
+                </span>
               </div>
+              <Link
+                href={`/${store.slug}`}
+                className="shrink-0 px-3 py-2.25 rounded-xl bg-slate-100 hover:bg-slate-200 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
+              >
+                Ver loja
+              </Link>
+            </div>
 
-              {/* Informações de Entrega & Formas de Pagamento da Loja */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 text-xs">
-                <div className="space-y-1.5">
-                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                    Opções de Entrega
-                  </span>
-                  <p className="text-slate-600">
-                    {store.has_delivery !== false
-                      ? store.delivery_fee_type === "free"
-                        ? "✅ Entrega Grátis em Bom Jesus da Lapa"
-                        : store.delivery_fee_type === "fixed" &&
-                          store.delivery_fee != null
-                        ? `🛵 Motoboy: Taxa fixa ${formatCurrencyBRL(
-                            store.delivery_fee
-                          )}`
-                        : "🛵 Entrega via Motoboy (taxa a combinar)"
-                      : "Somente retirada na loja"}
-                  </p>
-                  {store.has_pickup !== false && (
-                    <p className="text-slate-600">
-                      🏪 Retirada grátis direto na loja física
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                    Pagamentos na Loja
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {acceptedPayments.map((pm) => (
-                      <Badge key={pm} variant="payment" paymentMethod={pm} />
-                    ))}
-                  </div>
-                </div>
+            {/* Pagamento / Entrega */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-[18px] bg-white flex flex-col gap-0.5">
+                <span className="text-[11px] text-slate-500">Pagamento</span>
+                <span className="text-[13px] font-semibold text-slate-900">
+                  {paymentText}
+                </span>
+              </div>
+              <div className="p-3 rounded-[18px] bg-white flex flex-col gap-0.5">
+                <span className="text-[11px] text-slate-500">Entrega</span>
+                <span className="text-[13px] font-semibold text-slate-900 first-letter:uppercase">
+                  {deliveryText || "Combine com a loja"}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mais Produtos desta Loja */}
+        {/* Mais produtos desta loja */}
         {relatedProducts.length > 0 && (
           <SectionContainer
-            title={`Mais produtos de ${store.name}`}
-            subtitle={`Aproveite o mesmo frete comprando outras peças de ${store.name}`}
-            actionLabel="Ver catálogo completo da loja"
+            title={`Mais de ${store.name}`}
+            actionLabel="Ver loja"
             href={`/${store.slug}`}
+            className="px-5 md:px-0 pt-8 md:pt-12"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {relatedProducts.map((rel) => (
                 <ProductCardGrid
                   key={rel.id}
                   product={rel}
+                  hideStore
                   onAddToBag={() => setBagCount((c) => c + 1)}
                 />
               ))}
@@ -490,42 +502,22 @@ export function ProductDetailClient({
         )}
       </main>
 
-      {/* =========================================================
-          STICKY BOTTOM BAR MOBILE: "ADICIONAR À SACOLA" E "COMPRAR AGORA"
-         ========================================================= */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-lg">
-        <div className="mx-auto max-w-lg grid grid-cols-2 gap-2.5">
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={handleAddToBag}
-            leftIcon={
-              addedToBagFeedback ? (
-                <Check className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <ShoppingBag className="w-4 h-4" />
-              )
-            }
-            fullWidth
-          >
-            {addedToBagFeedback ? "Adicionado!" : "Adicionar à Sacola"}
-          </Button>
-
-          <Button
-            type="button"
-            variant="whatsapp"
-            size="md"
-            onClick={handleBuyNowWhatsApp}
-            leftIcon={<MessageCircle className="w-4 h-4" />}
-            fullWidth
-          >
-            Comprar Agora
-          </Button>
-        </div>
+      {/* Barra fixa de compra (mobile) */}
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden flex gap-2.5 px-5 pt-4 pb-[max(1.75rem,env(safe-area-inset-bottom))] bg-linear-to-b from-slate-50/0 to-slate-50 to-30%">
+        {buyButtons}
       </div>
 
-      <Footer />
+      <Footer className="hidden md:block" />
     </div>
   );
 }
+
+const PAYMENT_SHORT_LABELS: Record<string, string> = {
+  pix: "Pix",
+  credit_card: "crédito",
+  debit_card: "débito",
+  cash: "dinheiro",
+  payment_link: "link de pagamento",
+  boleto: "boleto",
+  crediario: "crediário",
+};
