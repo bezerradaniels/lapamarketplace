@@ -147,6 +147,10 @@ create trigger trg_protect_store_admin_fields
 --    política que já libera escrita a qualquer usuário nessas tabelas,
 --    remova-a — estas abaixo não restringem nada sozinhas.
 -- ---------------------------------------------------------------------
+-- Remove políticas legadas redundantes (usavam is_super_admin)
+drop policy if exists "Super Admin categorias" on public.global_categories;
+drop policy if exists "Super Admin bairros" on public.neighborhoods;
+
 drop policy if exists stores_admin_update on public.stores;
 create policy stores_admin_update on public.stores
   for update to authenticated
