@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { authorizeUserAction } from "@/lib/auth/guards";
 import { normalizeWhatsAppToDb, sanitizeStoreSlug } from "@/lib/utils";
 import type {
   DaySchedule,
@@ -69,6 +69,40 @@ export interface CreateStoryPayload {
   product_id?: string | null;
 }
 
+const NOT_OWNER_ERROR = "Você não tem permissão para alterar esta loja.";
+
+/** Confere no servidor se a loja pertence ao usuário autenticado. */
+async function userOwnsStore(
+  supabase: SupabaseClient,
+  userId: string,
+  storeId: string
+): Promise<boolean> {
+  if (!storeId) return false;
+  const { data } = await supabase
+    .from("stores")
+    .select("id")
+    .eq("id", storeId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/** Retorna o `store_id` de um produto somente se a loja for do usuário. */
+async function ownedStoreIdForProduct(
+  supabase: SupabaseClient,
+  userId: string,
+  productId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("products")
+    .select("store_id")
+    .eq("id", productId)
+    .maybeSingle();
+  const storeId = data?.store_id ? String(data.store_id) : null;
+  if (!storeId) return null;
+  return (await userOwnsStore(supabase, userId, storeId)) ? storeId : null;
+}
+
 /**
  * Switch Instantâneo (`is_active`) para pausar/ativar um produto esgotado
  * sem deletá-lo (preservando o SEO da página do produto).
@@ -81,7 +115,10 @@ export async function toggleProductActiveAction(
     return { error: "Produto inválido." };
   }
 
-  if (!isSupabaseConfigured()) {
+  const auth = await authorizeUserAction();
+  if ("error" in auth) return { error: auth.error };
+
+  if (auth.demo) {
     return {
       success: true,
       message: isActive
@@ -90,11 +127,21 @@ export async function toggleProductActiveAction(
     };
   }
 
-  const supabase = await createClient();
+  const { supabase, user } = auth;
+  const ownedStoreId = await ownedStoreIdForProduct(
+    supabase,
+    user.id,
+    productId
+  );
+  if (!ownedStoreId) {
+    return { error: NOT_OWNER_ERROR };
+  }
+
   const { error } = await supabase
     .from("products")
     .update({ is_active: isActive })
-    .eq("id", productId);
+    .eq("id", productId)
+    .eq("store_id", ownedStoreId);
 
   if (error) {
     return {
@@ -146,7 +193,10 @@ export async function upsertProductAction(
     .toString(36)
     .slice(2, 6)}`;
 
-  if (!isSupabaseConfigured()) {
+  const auth = await authorizeUserAction();
+  if ("error" in auth) return { error: auth.error };
+
+  if (auth.demo) {
     return {
       success: true,
       id: payload.id || `prod-${Date.now()}`,
@@ -156,7 +206,18 @@ export async function upsertProductAction(
     };
   }
 
-  const supabase = await createClient();
+  const { supabase, user } = auth;
+  if (!(await userOwnsStore(supabase, user.id, payload.store_id))) {
+    return { error: NOT_OWNER_ERROR };
+  }
+  if (
+    payload.id &&
+    (await ownedStoreIdForProduct(supabase, user.id, payload.id)) !==
+      payload.store_id
+  ) {
+    return { error: NOT_OWNER_ERROR };
+  }
+
   const record = {
     store_id: payload.store_id,
     title,
@@ -182,7 +243,8 @@ export async function upsertProductAction(
     const { error } = await supabase
       .from("products")
       .update(record)
-      .eq("id", payload.id);
+      .eq("id", payload.id)
+      .eq("store_id", payload.store_id);
 
     if (error) {
       return {
@@ -233,7 +295,10 @@ export async function createStoreStoryAction(
     return { error: "Envie uma foto vertical para publicar no Story." };
   }
 
-  if (!isSupabaseConfigured()) {
+  const auth = await authorizeUserAction();
+  if ("error" in auth) return { error: auth.error };
+
+  if (auth.demo) {
     return {
       success: true,
       message:
@@ -241,7 +306,11 @@ export async function createStoreStoryAction(
     };
   }
 
-  const supabase = await createClient();
+  const { supabase, user } = auth;
+  if (!(await userOwnsStore(supabase, user.id, payload.store_id))) {
+    return { error: NOT_OWNER_ERROR };
+  }
+
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   const { error } = await supabase.from("store_stories").insert({
@@ -277,7 +346,10 @@ export async function updateStoreSettingsAction(
     return { error: "Loja inválida." };
   }
 
-  if (!isSupabaseConfigured()) {
+  const auth = await authorizeUserAction();
+  if ("error" in auth) return { error: auth.error };
+
+  if (auth.demo) {
     return {
       success: true,
       message:
@@ -285,7 +357,10 @@ export async function updateStoreSettingsAction(
     };
   }
 
-  const supabase = await createClient();
+  const { supabase, user } = auth;
+  if (!(await userOwnsStore(supabase, user.id, payload.store_id))) {
+    return { error: NOT_OWNER_ERROR };
+  }
 
   const updateData: Record<string, unknown> = {};
   if (payload.name !== undefined) updateData.name = payload.name.trim();
@@ -313,7 +388,6 @@ export async function updateStoreSettingsAction(
   }
   if (payload.accepted_payments !== undefined) {
     updateData.accepted_payments = payload.accepted_payments;
-    updateData.payment_methods = payload.accepted_payments;
   }
   if (payload.installment_info !== undefined) {
     updateData.installment_info = payload.installment_info?.trim() || null;
@@ -340,7 +414,8 @@ export async function updateStoreSettingsAction(
   const { error } = await supabase
     .from("stores")
     .update(updateData)
-    .eq("id", payload.store_id);
+    .eq("id", payload.store_id)
+    .eq("owner_id", user.id);
 
   if (error) {
     return {

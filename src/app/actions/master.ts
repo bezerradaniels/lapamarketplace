@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { authorizeAdminAction } from "@/lib/auth/guards";
 import { sanitizeStoreSlug } from "@/lib/utils";
 import type { CategoryFilterConfig } from "@/types/marketplace";
 
@@ -27,6 +28,9 @@ export async function updateStoreAdminStatusAction(
     return { error: "Loja inválida." };
   }
 
+  const auth = await authorizeAdminAction();
+  if ("error" in auth) return { error: auth.error };
+
   if (!isSupabaseConfigured()) {
     return {
       success: true,
@@ -39,7 +43,6 @@ export async function updateStoreAdminStatusAction(
 
   if (patch.plan_tier !== undefined) {
     payload.plan_tier = patch.plan_tier;
-    payload.plan = patch.plan_tier;
   }
   if (patch.is_verified !== undefined) {
     payload.is_verified = patch.is_verified;
@@ -85,6 +88,9 @@ export async function upsertGlobalCategoryAction(payload: {
   }
 
   const slug = sanitizeStoreSlug(payload.slug || name);
+
+  const auth = await authorizeAdminAction();
+  if ("error" in auth) return { error: auth.error };
 
   if (!isSupabaseConfigured()) {
     return {
@@ -142,6 +148,9 @@ export async function upsertNeighborhoodAction(payload: {
   }
 
   const slug = sanitizeStoreSlug(name);
+
+  const auth = await authorizeAdminAction();
+  if ("error" in auth) return { error: auth.error };
 
   if (!isSupabaseConfigured()) {
     return {

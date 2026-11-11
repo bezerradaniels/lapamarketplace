@@ -1,17 +1,33 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSupabaseEnv } from "@/lib/supabase/config";
+import { getSupabaseEnv, isDemoModeAllowed } from "@/lib/supabase/config";
 
-export async function middleware(request: NextRequest) {
+const PROTECTED_PREFIXES = ["/painel", "/onboarding", "/minha-conta", "/master"];
+
+/**
+ * Checagem otimista de acesso (redirecionamentos). A autorização definitiva
+ * acontece no servidor em `src/lib/auth/guards.ts` (páginas e Server Actions).
+ */
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const { url, anonKey, isConfigured } = getSupabaseEnv();
 
-  // Modo de demonstração (Supabase ainda não configurado no .env.local):
-  // Permite que as páginas sejam visualizadas sem quebrar
   if (!isConfigured) {
+    // Modo de demonstração só em desenvolvimento. Em produção, sem Supabase
+    // configurado, as áreas protegidas ficam BLOQUEADAS (falha segura).
+    const { pathname } = request.nextUrl;
+    if (
+      !isDemoModeAllowed() &&
+      PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    ) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      homeUrl.search = "";
+      return NextResponse.redirect(homeUrl);
+    }
     return supabaseResponse;
   }
 
