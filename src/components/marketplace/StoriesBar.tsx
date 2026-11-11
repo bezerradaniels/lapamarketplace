@@ -123,8 +123,8 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
                     isSeen
                       ? "bg-slate-200"
                       : isPremium
-                      ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600"
-                      : "bg-gradient-to-tr from-slate-700 to-slate-900"
+                      ? "bg-linear-to-tr from-amber-500 via-rose-500 to-purple-600"
+                      : "bg-linear-to-tr from-slate-700 to-slate-900"
                   )}
                 >
                   <div className="p-0.5 bg-white rounded-full">
@@ -175,12 +175,15 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
           }
           pressedOutsideRef.current = false;
         }}
-        className="m-auto w-full h-dvh max-w-md max-h-[860px] sm:h-[90dvh] sm:rounded-3xl bg-slate-950 text-white p-0 overflow-hidden shadow-2xl border border-white/10 backdrop:bg-slate-950/85 backdrop:backdrop-blur-md"
+        className={cn(
+          "m-auto w-full h-dvh max-w-md max-h-215 sm:h-[90dvh] sm:rounded-3xl bg-slate-950 text-white p-0 overflow-hidden shadow-2xl border border-white/10",
+          "backdrop:bg-slate-950/85 backdrop:backdrop-blur-md"
+        )}
       >
         {currentGroup && currentStory && (
           <div className="relative w-full h-full flex flex-col justify-between select-none">
             {/* Barras de progresso superiores */}
-            <div className="relative z-20 pt-3 px-3 space-y-3 bg-gradient-to-b from-black/75 via-black/30 to-transparent pb-6">
+            <div className="relative z-20 pt-3 px-3 space-y-3 bg-linear-to-b from-black/75 via-black/30 to-transparent pb-6">
               <div className="flex items-center gap-1.5">
                 {currentGroup.stories.map((st, sIdx) => (
                   <button
@@ -285,7 +288,7 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
             </div>
 
             {/* Rodapé do Story com Legenda + Ação Rápida de Produto/WhatsApp */}
-            <div className="relative z-20 p-4 space-y-3 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-10">
+            <div className="relative z-20 p-4 space-y-3 bg-linear-to-t from-black/85 via-black/50 to-transparent pt-10">
               {currentStory.caption && (
                 <p className="text-sm text-white/95 font-medium leading-snug">
                   {currentStory.caption}

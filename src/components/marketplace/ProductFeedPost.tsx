@@ -258,7 +258,10 @@ export function ProductFeedPost({
                 )
               }
               aria-label="Foto anterior"
-              className="pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer touch-manipulation"
+              className={cn(
+                "pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
+                "focus-visible:opacity-100"
+              )}
             >
               <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -270,7 +273,10 @@ export function ProductFeedPost({
                 )
               }
               aria-label="Próxima foto"
-              className="pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer touch-manipulation"
+              className={cn(
+                "pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
+                "focus-visible:opacity-100"
+              )}
             >
               <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -282,7 +288,7 @@ export function ProductFeedPost({
           tabIndex={0}
           role="group"
           aria-label="Galeria de fotos do produto"
-          className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar smooth-scroll aspect-[4/5] rounded-3xl bg-slate-100 relative touch-manipulation"
+          className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar smooth-scroll aspect-4/5 rounded-3xl bg-slate-100 relative touch-manipulation"
         >
           {images.map((imgUrl, index) => (
             <div

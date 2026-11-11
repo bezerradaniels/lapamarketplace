@@ -123,7 +123,10 @@ export function MarketplaceHeader({
                 aria-label="Selecionar bairro em Bom Jesus da Lapa"
                 value={neighborhood}
                 onChange={handleNeighborhoodSelect}
-                className="appearance-none rounded-full bg-slate-100/80 hover:bg-slate-100 pl-8 pr-8 py-2 text-xs font-semibold text-slate-800 border border-transparent focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10 outline-none transition-all cursor-pointer"
+                className={cn(
+                  "appearance-none rounded-full bg-slate-100/80 hover:bg-slate-100 pl-8 pr-8 py-2 text-xs font-semibold text-slate-800 border border-transparent outline-none transition-all cursor-pointer",
+                  "focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10"
+                )}
               >
                 {LAPA_NEIGHBORHOODS.map((nb) => (
                   <option key={nb} value={nb}>
@@ -154,7 +157,10 @@ export function MarketplaceHeader({
               onChange={handleQueryChange}
               placeholder="Buscar produtos, roupas, celulares ou lojas em Lapa..."
               aria-label="Pesquisar produtos ou lojas"
-              className="w-full rounded-full bg-slate-100/90 hover:bg-slate-100 focus:bg-white pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 border border-transparent focus:border-slate-200 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
+              className={cn(
+                "w-full rounded-full bg-slate-100/90 hover:bg-slate-100 pl-10 pr-10 py-2.5 text-sm text-slate-900 border border-transparent outline-none transition-all",
+                "placeholder:text-slate-400 focus:bg-white focus:border-slate-200 focus:ring-2 focus:ring-slate-900/10"
+              )}
             />
             {query && (
               <button
@@ -225,7 +231,10 @@ export function MarketplaceHeader({
               onChange={handleQueryChange}
               placeholder="Buscar produtos ou lojas em Lapa..."
               aria-label="Pesquisar produtos ou lojas"
-              className="w-full rounded-full bg-slate-100 pl-9 pr-9 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 border border-transparent focus:border-slate-200 focus:bg-white outline-none transition-all"
+              className={cn(
+                "w-full rounded-full bg-slate-100 pl-9 pr-9 py-2.5 text-sm text-slate-900 border border-transparent outline-none transition-all",
+                "placeholder:text-slate-400 focus:border-slate-200 focus:bg-white"
+              )}
             />
             {query && (
               <button

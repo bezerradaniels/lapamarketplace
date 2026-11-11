@@ -166,7 +166,10 @@ export function StoreStatusBadge({
           }
           pressedOutsideRef.current = false;
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-6 text-slate-900 shadow-2xl border border-slate-100 backdrop:bg-slate-950/40 backdrop:backdrop-blur-xs"
+        className={cn(
+          "m-auto w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-6 text-slate-900 shadow-2xl border border-slate-100",
+          "backdrop:bg-slate-950/40 backdrop:backdrop-blur-xs"
+        )}
       >
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -231,7 +234,12 @@ export function StoreStatusBadge({
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
             Horários da Semana
           </p>
-          <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100 overflow-hidden bg-white">
+          <ul
+            className={cn(
+              "divide-y divide-slate-100 rounded-2xl overflow-hidden bg-white",
+              "border border-slate-100"
+            )}
+          >
             {status.weeklySchedule.map((day) => (
               <li
                 key={day.dayOfWeek}

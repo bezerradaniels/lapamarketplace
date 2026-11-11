@@ -72,12 +72,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             }
             className={cn(
               "w-full appearance-none bg-slate-100/80 rounded-2xl px-4 py-3 pr-10 text-sm text-slate-900",
-              "border border-transparent focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10 outline-none transition-all cursor-pointer",
+              "border border-transparent outline-none transition-all cursor-pointer",
+              "focus:border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-900/10",
               "disabled:opacity-60 disabled:cursor-not-allowed",
               pill && "rounded-full",
               Boolean(leftIcon) && "pl-10",
-              Boolean(error) &&
-                "border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-500/15",
+              Boolean(error) && "border-rose-300 bg-rose-50/40",
+              Boolean(error) && "focus:border-rose-400 focus:ring-rose-500/15",
               className
             )}
             {...props}

@@ -123,7 +123,7 @@ export function PromoBanner({
         </div>
 
         {imageUrl && (
-          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-[16/10] md:aspect-[4/3] rounded-2xl bg-slate-100/80 overflow-hidden relative">
+          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-16/10 md:aspect-4/3 rounded-2xl bg-slate-100/80 overflow-hidden relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
