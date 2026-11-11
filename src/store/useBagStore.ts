@@ -115,7 +115,7 @@ export function buildBagItemFromProduct(
 
   const effectivePrice =
     product.promotional_price != null &&
-    product.promotional_price < product.price
+      product.promotional_price < product.price
       ? product.promotional_price
       : product.price;
 
@@ -281,7 +281,7 @@ export function useBagStore<T>(selector?: (state: BagStoreState) => T) {
 
 useBagStore.getState = (): BagStoreState => getClientSnapshot();
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => { };
 
 /**
  * Hook de segurança contra Hydration Mismatch ao ler dados do `localStorage` no cliente.

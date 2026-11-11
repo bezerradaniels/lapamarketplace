@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeWhatsAppToDb, sanitizeStoreSlug } from "@/lib/utils";
+import { notifyAdminNewStoreCreated } from "@/lib/resend";
 import type {
   DaySchedule,
   DeliveryFeeType,
@@ -288,6 +289,16 @@ export async function createStoreAction(
   } catch {
     // Segue normalmente caso a coluna role seja gerenciada por trigger
   }
+
+  // Notificar administrador sobre a nova loja cadastrada via Resend
+  await notifyAdminNewStoreCreated({
+    storeName: name,
+    slug,
+    ownerEmail: user.email,
+    whatsapp: cleanWhatsapp,
+    address: payload.address,
+    neighborhoodName: payload.neighborhood_name,
+  });
 
   revalidatePath("/", "layout");
   redirect("/painel/produtos/novo?onboarding=success");

@@ -1,5 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { AccountType } from "@/types/marketplace";
+import { notifyAdminNewUserSignup } from "@/lib/resend";
 
 /**
  * Sincroniza o perfil básico na tabela `public.profiles` (se não existir)
@@ -42,6 +43,23 @@ export async function resolvePostAuthRedirect(
         id: user.id,
         full_name: metadataName,
       });
+
+      // Se for primeiro acesso via OAuth (ex: Google), notifica o administrador via Resend
+      if (user.app_metadata?.provider !== "email") {
+        const provider = user.app_metadata?.provider || "google";
+        const accountTypeIntent =
+          options?.accountTypeIntent ||
+          (user.user_metadata?.account_type as AccountType) ||
+          "customer";
+
+        await notifyAdminNewUserSignup({
+          userId: user.id,
+          fullName: metadataName,
+          email: user.email || "Não informado",
+          accountType: accountTypeIntent,
+          method: provider === "google" ? "google_oauth" : "oauth",
+        });
+      }
     } else if (
       typeof (existingProfile as Record<string, unknown>).role === "string"
     ) {

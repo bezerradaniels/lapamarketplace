@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolvePostAuthRedirect } from "@/lib/supabase/auth-redirect";
+import { notifyAdminNewUserSignup } from "@/lib/resend";
 import type { AccountType } from "@/types/marketplace";
 
 export interface AuthActionResult {
@@ -140,6 +141,15 @@ export async function signupWithEmail(
   if (error) {
     return { error: translateAuthError(error.message) };
   }
+
+  // Notificar administrador sobre o novo cadastro via Resend
+  await notifyAdminNewUserSignup({
+    userId: data.user?.id,
+    fullName: full_name,
+    email,
+    accountType: account_type,
+    method: "email_password",
+  });
 
   // Se o Supabase já criou a sessão imediatamente (confirmação de e-mail desativada)
   if (data.user && data.session) {
