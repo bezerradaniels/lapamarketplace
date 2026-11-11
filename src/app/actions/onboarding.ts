@@ -1,5 +1,6 @@
 "use server";
 
+import { queueAnalyticsEvent } from "@/lib/analytics/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -299,6 +300,8 @@ export async function createStoreAction(
     address: payload.address,
     neighborhoodName: payload.neighborhood_name,
   });
+
+  await queueAnalyticsEvent("store_created", { store_name: name });
 
   revalidatePath("/", "layout");
   redirect("/painel/produtos/novo?onboarding=success");

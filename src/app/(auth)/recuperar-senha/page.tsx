@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -25,6 +26,7 @@ export default function RecuperarSenhaPage() {
       if (result?.error) {
         setError(result.error);
       } else if (result?.success && result.message) {
+        trackEvent("password_reset_request");
         setSuccessMessage(result.message);
       }
     });

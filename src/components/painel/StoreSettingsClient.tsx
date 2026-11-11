@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useRef, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -276,6 +277,7 @@ export function StoreSettingsClient({
       if (result.error) {
         setFeedback({ type: "error", text: result.error });
       } else {
+        trackEvent("store_settings_updated");
         setFeedback({
           type: "success",
           text:

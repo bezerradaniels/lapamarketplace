@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -50,6 +51,12 @@ export function MerchantProductsListClient({
 
     startTransition(async () => {
       const res = await toggleProductActiveAction(product.id, nextActive);
+      if (!res.error) {
+        trackEvent("product_status_changed", {
+          item_id: product.id,
+          is_active: nextActive,
+        });
+      }
       if (res.message) {
         setToastMessage(res.message);
         window.setTimeout(() => setToastMessage(""), 3000);

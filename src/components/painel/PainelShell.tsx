@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -41,6 +42,11 @@ export function PainelShell({ store, children }: PainelShellProps) {
     } catch {
       // Fallback silencioso
     }
+    trackEvent("share", {
+      method: "copy_link",
+      content_type: "catalog",
+      item_id: store.id,
+    });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };

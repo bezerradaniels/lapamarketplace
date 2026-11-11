@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test:email": "node scripts/test-resend.mjs"
+    "test:email": "node scripts/test-resend.mjs",
+    "gtm:export": "node scripts/generate-gtm-export.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

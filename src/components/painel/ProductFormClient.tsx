@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@/lib/analytics";
 import React, { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -258,6 +259,9 @@ export function ProductFormClient({
       if (result.error) {
         setFeedback({ type: "error", text: result.error });
       } else {
+        trackEvent(initialProduct?.id ? "product_updated" : "product_created", {
+          item_id: result.id || initialProduct?.id,
+        });
         setFeedback({
           type: "success",
           text: result.message || "Produto salvo com sucesso!",

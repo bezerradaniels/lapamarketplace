@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { ProductItem } from "@/types/marketplace";
+import { bagItemToItem, trackEvent } from "@/lib/analytics";
 
 export const BAG_STORAGE_KEY = "lapa-marketplace-bag";
 
@@ -165,6 +166,9 @@ const storeActions: Omit<BagStoreState, "items"> = {
       incoming.cartItemId ||
       `${incoming.productId}::${incoming.selectedSize || "unico"}`;
     const addQty = Math.max(1, incoming.quantity ?? 1);
+    trackEvent("add_to_cart", {
+      items: [bagItemToItem({ ...incoming, cartItemId, quantity: addQty })],
+    });
 
     setItems((prev) => {
       const existingIndex = prev.findIndex((i) => i.cartItemId === cartItemId);
@@ -192,6 +196,11 @@ const storeActions: Omit<BagStoreState, "items"> = {
   },
 
   removeItem: (cartItemId) => {
+    ensureHydrated();
+    const removed = memoryItems.find((i) => i.cartItemId === cartItemId);
+    if (removed) {
+      trackEvent("remove_from_cart", { items: [bagItemToItem(removed)] });
+    }
     setItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
   },
 
@@ -199,6 +208,14 @@ const storeActions: Omit<BagStoreState, "items"> = {
     if (quantity <= 0) {
       storeActions.removeItem(cartItemId);
       return;
+    }
+    ensureHydrated();
+    const current = memoryItems.find((i) => i.cartItemId === cartItemId);
+    if (current && quantity !== current.quantity) {
+      const diff = quantity - current.quantity;
+      trackEvent(diff > 0 ? "add_to_cart" : "remove_from_cart", {
+        items: [bagItemToItem(current, Math.abs(diff))],
+      });
     }
     setItems((prev) =>
       prev.map((i) =>

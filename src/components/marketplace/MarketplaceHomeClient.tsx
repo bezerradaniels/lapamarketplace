@@ -1,5 +1,6 @@
 "use client";
 
+import { trackSaveProduct } from "@/lib/analytics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -209,6 +210,8 @@ export function MarketplaceHomeClient({
     const result = await toggleSaveProduct(product.id);
     if (result?.requiresAuth) {
       setAuthModalProduct(product.title);
+    } else if (!result?.error) {
+      trackSaveProduct(product, next);
     }
   };
 

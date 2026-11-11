@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent, trackSaveProduct } from "@/lib/analytics";
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronLeft, Search, Share } from "lucide-react";
@@ -107,6 +108,11 @@ export function StorefrontClient({
     if (res?.requiresAuth) {
       setAuthModalReason("follow");
       setAuthModalItemName(store.name);
+    } else if (!res?.error) {
+      trackEvent(nextState ? "follow_store" : "unfollow_store", {
+        store_id: store.id,
+        store_name: store.name,
+      });
     }
   };
 
@@ -122,6 +128,8 @@ export function StorefrontClient({
     if (res?.requiresAuth) {
       setAuthModalReason("favorite");
       setAuthModalItemName(product.title);
+    } else if (!res?.error) {
+      trackSaveProduct(product, next);
     }
   };
 
@@ -135,6 +143,11 @@ export function StorefrontClient({
     } catch {
       // Silencioso
     }
+    trackEvent("share", {
+      method: "copy_link",
+      content_type: "store",
+      item_id: store.id,
+    });
     setCopiedLink(true);
     window.setTimeout(() => setCopiedLink(false), 2200);
   };
