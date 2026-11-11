@@ -2,24 +2,15 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import {
-  PlusCircle,
-  Search,
-  Eye,
-  MessageCircle,
-  Pencil,
-  Package,
-  Sparkles,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
+  buttonBaseClasses,
+  buttonSizeClasses,
+  buttonVariantClasses,
+} from "@/components/ui/Button";
+import { PillGroup, Switch } from "@/components/ui/Switch";
 import { toggleProductActiveAction } from "@/app/actions/painel";
-import {
-  calculateDiscountPercentage,
-  cn,
-  formatCurrencyBRL,
-} from "@/lib/utils";
+import { cn, formatCurrencyBRL } from "@/lib/utils";
 import type { GlobalCategory, MerchantProduct } from "@/types/marketplace";
 
 export interface MerchantProductsListClientProps {
@@ -33,9 +24,9 @@ export function MerchantProductsListClient({
 }: MerchantProductsListClientProps) {
   const [products, setProducts] = useState<MerchantProduct[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">(
-    "all"
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "paused" | "promo"
+  >("all");
   const [toastMessage, setToastMessage] = useState<string>("");
   const [, startTransition] = useTransition();
 
@@ -66,9 +57,15 @@ export function MerchantProductsListClient({
     });
   };
 
+  const isOnPromo = (p: MerchantProduct) =>
+    p.promotional_price != null &&
+    p.promotional_price > 0 &&
+    p.promotional_price < p.price;
+
   const filteredProducts = products.filter((p) => {
     if (statusFilter === "active" && !p.is_active) return false;
     if (statusFilter === "paused" && p.is_active) return false;
+    if (statusFilter === "promo" && !isOnPromo(p)) return false;
     if (
       searchQuery.trim() &&
       !p.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -78,278 +75,223 @@ export function MerchantProductsListClient({
     return true;
   });
 
+  const activeCount = products.filter((p) => p.is_active).length;
+  const pausedCount = products.length - activeCount;
+  const rowGridClasses =
+    "md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_150px_80px_80px_70px] md:gap-3 md:items-center";
+
   return (
-    <div className="space-y-6">
-      {/* Topo: Título + Botão Novo Produto */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Meus Produtos ({products.length})
+    <div className="flex flex-col gap-4.5">
+      {/* Título + novo produto */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] text-slate-900">
+            Produtos
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Pause peças esgotadas com 1 clique sem perder seu link no Google e
-            WhatsApp.
+          <p className="text-sm text-slate-500">
+            {activeCount} {activeCount === 1 ? "ativo" : "ativos"} ·{" "}
+            {pausedCount} {pausedCount === 1 ? "pausado" : "pausados"}
           </p>
         </div>
 
-        <Link href="/painel/produtos/novo">
-          <Button
-            variant="primary"
-            size="md"
-            leftIcon={<PlusCircle className="w-4 h-4" aria-hidden="true" />}
-          >
-            Novo Produto
-          </Button>
+        <Link
+          href="/painel/produtos/novo"
+          className={cn(
+            buttonBaseClasses,
+            buttonVariantClasses.primary,
+            "h-10.5 px-4 rounded-[14px] text-sm self-start sm:self-auto"
+          )}
+        >
+          + Novo produto
         </Link>
       </div>
 
-      {/* Feedback de Switch Instantâneo */}
-      {toastMessage && (
-        <div
-          role="status"
-          className="rounded-2xl bg-slate-900 text-white px-4 py-3 text-xs font-bold flex items-center justify-between shadow-sm"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Sparkles
-              className="w-4 h-4 text-emerald-400"
-              aria-hidden="true"
-            />
-            {toastMessage}
-          </span>
-        </div>
-      )}
-
-      {/* Barra de Filtro + Pesquisa */}
-      <div className="rounded-3xl bg-white p-4 border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5">
-          {(
-            [
-              { id: "all", label: `Todos (${products.length})` },
-              {
-                id: "active",
-                label: `Ativos (${products.filter((p) => p.is_active).length})`,
-              },
-              {
-                id: "paused",
-                label: `Pausados (${
-                  products.filter((p) => !p.is_active).length
-                })`,
-              },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setStatusFilter(tab.id)}
-              className={cn(
-                "rounded-full px-3.5 py-2 text-xs font-bold transition-all cursor-pointer",
-                statusFilter === tab.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:text-slate-900"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="w-full sm:w-72">
-          <Input
-            placeholder="Buscar produto pelo nome..."
+      {/* Busca + filtros */}
+      <div className="flex flex-col md:flex-row md:items-center gap-2.5">
+        <div className="relative flex items-center md:flex-1 md:max-w-90">
+          <Search
+            className="w-4.25 h-4.25 text-slate-500 absolute left-3.5 pointer-events-none"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            aria-label="Buscar produto"
+            placeholder="Buscar produto"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            pill
-            leftIcon={<Search className="w-4 h-4" aria-hidden="true" />}
+            className="w-full h-11 rounded-[15px] bg-slate-100 pl-10.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 transition-[background-color,box-shadow] duration-150"
           />
         </div>
+        <PillGroup
+          ariaLabel="Filtrar produtos"
+          tone="brand"
+          className="[&>button]:py-2.5"
+          value={statusFilter}
+          onToggle={(value) => setStatusFilter(value)}
+          options={[
+            { value: "all", label: "Todos" },
+            { value: "active", label: "Ativos" },
+            { value: "paused", label: "Pausados" },
+            { value: "promo", label: "Em promoção" },
+          ]}
+        />
       </div>
 
-      {/* Lista de Produtos */}
+      {/* Retorno do switch */}
+      <div aria-live="polite" className="empty:hidden">
+        {toastMessage && (
+          <div className="rounded-[18px] bg-slate-900 text-white px-4 py-3 text-[13px] font-semibold animate-slide-up">
+            {toastMessage}
+          </div>
+        )}
+      </div>
+
+      {/* Tabela */}
       {filteredProducts.length === 0 ? (
-        <div className="rounded-3xl bg-white p-12 text-center border border-slate-100 shadow-xs space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
-            <Package className="w-6 h-6" aria-hidden="true" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-extrabold text-slate-900">
-              Nenhum produto encontrado
-            </h2>
-            <p className="text-xs text-slate-500">
-              Cadastre novas peças para exibir sua vitrine em Bom Jesus da Lapa.
-            </p>
-          </div>
-          <Link href="/painel/produtos/novo" className="inline-block">
-            <Button variant="primary" size="md">
-              Cadastrar Primeiro Produto
-            </Button>
+        <div className="rounded-3xl bg-white p-10 text-center flex flex-col items-center gap-3">
+          <h2 className="text-[19px] font-extrabold text-slate-900">
+            Nenhum produto por aqui
+          </h2>
+          <p className="text-sm text-slate-500">
+            Cadastre peças para montar sua vitrine em Bom Jesus da Lapa.
+          </p>
+          <Link
+            href="/painel/produtos/novo"
+            className={cn(
+              buttonBaseClasses,
+              buttonVariantClasses.primary,
+              buttonSizeClasses.md
+            )}
+          >
+            Cadastrar produto
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredProducts.map((product) => {
-            const discountPercent = calculateDiscountPercentage(
-              product.price,
-              product.promotional_price
-            );
-            const hasPromo =
-              discountPercent != null &&
-              product.promotional_price != null &&
-              product.promotional_price < product.price;
+        <div
+          role="table"
+          aria-label="Produtos da loja"
+          className="bg-white rounded-3xl px-4 md:px-5 py-2 flex flex-col"
+        >
+          <div
+            role="row"
+            className={cn(
+              "hidden py-3 text-xs text-slate-500",
+              rowGridClasses
+            )}
+          >
+            <span role="columnheader">Produto</span>
+            <span role="columnheader">Categoria</span>
+            <span role="columnheader">Preço</span>
+            <span role="columnheader" className="text-right">
+              Visualiz.
+            </span>
+            <span role="columnheader" className="text-right">
+              WhatsApp
+            </span>
+            <span role="columnheader" className="text-right">
+              Ativo
+            </span>
+          </div>
+
+          {filteredProducts.map((product, idx) => {
+            const hasPromo = isOnPromo(product);
+            const categoryName =
+              categoryMap.get(product.category_id) || "Catálogo";
+            const subcategoryName = product.subcategory_id
+              ? categoryMap.get(product.subcategory_id)
+              : null;
 
             return (
-              <article
+              <div
+                role="row"
                 key={product.id}
                 className={cn(
-                  "rounded-3xl bg-white p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs",
-                  product.is_active
-                    ? "border-slate-100"
-                    : "border-slate-200/70 bg-slate-50/70 opacity-80"
+                  "flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm transition-opacity duration-150",
+                  rowGridClasses,
+                  "border-t border-slate-100",
+                  idx === 0 && "max-md:border-t-0",
+                  !product.is_active && "opacity-55"
                 )}
               >
-                {/* Miniatura + Dados do Produto */}
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-100 overflow-hidden shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={product.image_url}
-                      alt={product.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {discountPercent != null && (
-                      <div className="absolute top-1.5 left-1.5">
-                        <Badge
-                          variant="discount"
-                          discountPercent={discountPercent}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        {categoryMap.get(product.category_id) || "Catálogo"}
-                      </span>
-                      {product.gender && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                          {product.gender}
-                        </span>
-                      )}
-                      {product.voltage && (
-                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                          {product.voltage}
-                        </span>
-                      )}
-                    </div>
-
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+                <Link
+                  role="cell"
+                  href={`/painel/produtos/${product.id}/editar`}
+                  className="flex items-center gap-3 min-w-0 basis-full md:basis-auto group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={product.image_url}
+                    alt=""
+                    className="flex-none w-12 h-12 rounded-[14px] object-cover bg-slate-100"
+                  />
+                  <span className="flex flex-col min-w-0">
+                    <span className="font-semibold text-slate-900 truncate group-hover:underline">
                       {product.title}
-                    </h2>
-
-                    {/* Preço Normal / Promocional */}
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm sm:text-base font-extrabold text-emerald-700">
-                        {formatCurrencyBRL(
-                          hasPromo ? product.promotional_price! : product.price
-                        )}
-                      </span>
-                      {hasPromo && (
-                        <span className="text-xs text-slate-400 line-through">
-                          {formatCurrencyBRL(product.price)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Tamanhos se houver */}
-                    {product.sizes && product.sizes.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                        {product.sizes.map((sz) => (
-                          <span
-                            key={sz}
-                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
-                          >
-                            {sz}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Direita: Contadores Views/Cliques + Switch Instantâneo (`is_active`) + Botão Editar */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
-                  {/* Métricas individuais */}
-                  <div className="flex items-center gap-3.5 text-xs">
-                    <div
-                      className="inline-flex items-center gap-1 font-semibold text-slate-600"
-                      title="Visualizações do produto"
-                    >
-                      <Eye
-                        className="w-4 h-4 text-slate-400"
-                        aria-hidden="true"
-                      />
-                      <span>{product.views_count} views</span>
-                    </div>
-
-                    <div
-                      className="inline-flex items-center gap-1 font-bold text-emerald-700"
-                      title="Cliques no botão de WhatsApp"
-                    >
-                      <MessageCircle className="w-4 h-4" aria-hidden="true" />
-                      <span>{product.clicks_whatsapp} cliques</span>
-                    </div>
-                  </div>
-
-                  {/* Switch Instantâneo (`is_active`) */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={product.is_active}
-                      aria-label={
-                        product.is_active
-                          ? `Pausar ${product.title}`
-                          : `Ativar ${product.title}`
-                      }
-                      onClick={() => handleToggleActive(product)}
-                      className={cn(
-                        "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                        product.is_active ? "bg-emerald-600" : "bg-slate-300"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out",
-                          product.is_active ? "translate-x-5" : "translate-x-0"
-                        )}
-                      />
-                    </button>
-                    <span
-                      className={cn(
-                        "text-xs font-bold min-w-14",
-                        product.is_active
-                          ? "text-emerald-700"
-                          : "text-slate-500"
-                      )}
-                    >
-                      {product.is_active ? "Ativo" : "Pausado"}
                     </span>
-                  </div>
+                    <span className="text-xs text-slate-500 truncate">
+                      {product.sizes && product.sizes.length > 0
+                        ? product.sizes.join(" · ")
+                        : [product.gender, product.voltage]
+                            .filter(Boolean)
+                            .join(" · ") || "Único"}
+                    </span>
+                  </span>
+                </Link>
 
-                  {/* Botão Editar */}
-                  <Link href={`/painel/produtos/${product.id}/editar`}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leftIcon={
-                        <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
-                      }
-                    >
-                      Editar
-                    </Button>
-                  </Link>
-                </div>
-              </article>
+                <span role="cell" className="text-slate-500 truncate max-md:hidden">
+                  {categoryName}
+                  {subcategoryName ? ` › ${subcategoryName}` : ""}
+                </span>
+
+                <span role="cell" className="flex items-baseline gap-1.5 max-md:flex-1">
+                  <span className="font-display font-extrabold text-slate-900">
+                    {formatCurrencyBRL(
+                      hasPromo ? product.promotional_price! : product.price
+                    )}
+                  </span>
+                  {hasPromo && (
+                    <span className="text-xs text-slate-500 line-through">
+                      {formatCurrencyBRL(product.price)}
+                    </span>
+                  )}
+                </span>
+
+                <span
+                  role="cell"
+                  className="md:text-right font-display font-bold text-slate-900"
+                >
+                  {product.views_count.toLocaleString("pt-BR")}
+                  <span className="md:hidden font-sans font-normal text-xs text-slate-500">
+                    {" "}
+                    views
+                  </span>
+                </span>
+
+                <span
+                  role="cell"
+                  className="md:text-right font-display font-bold text-whatsapp"
+                >
+                  {product.clicks_whatsapp.toLocaleString("pt-BR")}
+                  <span className="md:hidden font-sans font-normal text-xs text-slate-500">
+                    {" "}
+                    cliques
+                  </span>
+                </span>
+
+                <span role="cell" className="flex justify-end">
+                  <Switch
+                    size="sm"
+                    checked={product.is_active}
+                    onCheckedChange={() => handleToggleActive(product)}
+                    aria-label={
+                      product.is_active
+                        ? `Pausar ${product.title}`
+                        : `Ativar ${product.title}`
+                    }
+                  />
+                </span>
+              </div>
             );
           })}
         </div>
@@ -357,4 +299,3 @@ export function MerchantProductsListClient({
     </div>
   );
 }
-
