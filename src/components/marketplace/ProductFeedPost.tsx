@@ -6,11 +6,9 @@ import {
   Heart,
   ShoppingBag,
   MessageCircle,
-  BadgeCheck,
   ChevronLeft,
   ChevronRight,
-  Store,
-  MapPin,
+  Check,
 } from "lucide-react";
 import {
   buildWhatsAppUrl,
@@ -21,7 +19,10 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
+import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import { useBagStore } from "@/store/useBagStore";
+import { incrementProductWhatsappClickAction } from "@/app/actions/feed";
+import { productToItem, trackEvent } from "@/lib/analytics";
 import type { ProductItem } from "@/types/marketplace";
 
 export interface ProductFeedPostProps {
@@ -55,6 +56,8 @@ export function ProductFeedPost({
   const settledSlideRef = useRef(0);
 
   const isFav = controlledFavorite ?? internalFav;
+  const isPremium = product.store.plan === "premium";
+  const productUrl = `/${product.store.slug}/${product.slug || product.id}`;
 
   const images = React.useMemo(() => {
     const list = [product.image_url];
@@ -167,6 +170,14 @@ export function ProductFeedPost({
   };
 
   const handleWhatsAppOrder = () => {
+    void incrementProductWhatsappClickAction(product.id);
+    trackEvent("whatsapp_order", {
+      lead_source: "feed",
+      store_id: product.store.id,
+      store_name: product.store.name,
+      items: [productToItem(product, { variant: selectedSize })],
+    });
+
     const url = buildWhatsAppUrl({
       phone: product.store.whatsapp,
       storeName: product.store.name,
@@ -180,52 +191,53 @@ export function ProductFeedPost({
   return (
     <article
       className={cn(
-        "rounded-3xl bg-white p-4 sm:p-5 border border-slate-100 shadow-xs space-y-3.5",
+        "rounded-[28px] bg-white p-3.5 sm:p-4.5 flex flex-col gap-3.5",
         className
       )}
     >
       {/* 1. Header do Post */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex items-center justify-between gap-3 px-0.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href={`/${product.store.slug}`}
-            className="w-11 h-11 rounded-full bg-slate-100/80 border border-slate-200/60 overflow-hidden shrink-0 flex items-center justify-center text-slate-600 font-bold text-sm"
-          >
-            {product.store.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.store.avatar_url}
-                alt={product.store.name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <Store className="w-5 h-5 text-slate-500" aria-hidden="true" />
+            className={cn(
+              "w-11 h-11 rounded-full p-0.5 shrink-0",
+              isPremium ? "bg-story-premium" : "bg-slate-200"
             )}
+          >
+            <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-xs font-extrabold text-slate-900">
+              {product.store.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.store.avatar_url}
+                  alt={product.store.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                product.store.name.slice(0, 2).toUpperCase()
+              )}
+            </span>
           </Link>
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/${product.store.slug}`}
-                className="text-sm font-extrabold text-slate-900 hover:underline truncate"
+                className="font-display text-[15px] font-bold text-slate-900 hover:underline truncate"
               >
                 {product.store.name}
               </Link>
-              {product.store.is_verified && (
-                <BadgeCheck
-                  className="w-4 h-4 text-blue-600 shrink-0"
-                  aria-label="Loja Verificada"
-                />
-              )}
+              {product.store.is_verified && <VerifiedSeal size={16} />}
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-              <span className="inline-flex items-center gap-0.5 text-xs text-slate-500">
-                <MapPin className="w-3 h-3 text-slate-400" aria-hidden="true" />
+              <span className="text-xs text-slate-500 truncate">
                 {product.store.neighborhood}
               </span>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-300" aria-hidden="true">
+                ·
+              </span>
               <StoreStatusBadge
                 compact
                 storeName={product.store.name}
@@ -239,20 +251,20 @@ export function ProductFeedPost({
 
         <Link
           href={`/${product.store.slug}`}
-          className="shrink-0 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-800 px-3.5 py-1.5 text-xs font-semibold transition-colors"
+          className="shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
         >
-          Ver Loja
+          Ver loja
         </Link>
       </header>
 
-      {/* 2. Mídia: Carrossel Horizontal aspect-[4/5] rounded-3xl bg-slate-100 */}
+      {/* 2. Mídia: Carrossel Horizontal aspect-[4/5] */}
       <section
         aria-roledescription="carousel"
         aria-label={`Fotos de ${product.title}`}
         className="relative group"
       >
         {images.length > 1 && (
-          <div className="pointer-events-none absolute inset-y-0 inset-x-2 z-10 flex items-center justify-between">
+          <div className="pointer-events-none absolute inset-y-0 inset-x-2.5 z-10 flex items-center justify-between">
             <button
               type="button"
               onClick={() =>
@@ -262,11 +274,11 @@ export function ProductFeedPost({
               }
               aria-label="Foto anterior"
               className={cn(
-                "pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
+                "pointer-events-auto w-8.5 h-8.5 rounded-full bg-white/90 hover:bg-white text-slate-900 shadow-seg grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
                 "focus-visible:opacity-100"
               )}
             >
-              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+              <ChevronLeft className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -277,11 +289,11 @@ export function ProductFeedPost({
               }
               aria-label="Próxima foto"
               className={cn(
-                "pointer-events-auto w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
+                "pointer-events-auto w-8.5 h-8.5 rounded-full bg-white/90 hover:bg-white text-slate-900 shadow-seg grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
                 "focus-visible:opacity-100"
               )}
             >
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              <ChevronRight className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
             </button>
           </div>
         )}
@@ -291,15 +303,16 @@ export function ProductFeedPost({
           tabIndex={0}
           role="group"
           aria-label="Galeria de fotos do produto"
-          className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar smooth-scroll aspect-4/5 rounded-3xl bg-slate-100 relative touch-manipulation"
+          className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar smooth-scroll aspect-4/5 rounded-[22px] bg-slate-100 relative touch-manipulation"
         >
           {images.map((imgUrl, index) => (
-            <div
+            <Link
               key={`${imgUrl}-${index}`}
+              href={productUrl}
               role="group"
               aria-roledescription="slide"
-              aria-label={`${index + 1} de ${images.length}`}
-              className="w-full h-full shrink-0 flex-[0_0_100%] snap-center relative overflow-hidden"
+              aria-label={`${product.title} - foto ${index + 1} de ${images.length}`}
+              className="w-full h-full shrink-0 flex-[0_0_100%] snap-center relative overflow-hidden block"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -308,13 +321,13 @@ export function ProductFeedPost({
                 loading={index === 0 ? "eager" : "lazy"}
                 className="w-full h-full object-cover"
               />
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* Badge de Desconto sobre a foto */}
         {discountPercent != null && (
-          <div className="absolute top-3.5 left-3.5 z-10 pointer-events-none">
+          <div className="absolute top-3 left-3 z-10 pointer-events-none">
             <Badge
               variant="discount"
               size="md"
@@ -323,11 +336,33 @@ export function ProductFeedPost({
           </div>
         )}
 
+        {/* Botão de Favorito flutuante ou indicador de múltiplas fotos */}
+        <button
+          type="button"
+          onClick={handleFavorite}
+          aria-label={
+            isFav
+              ? `Remover ${product.title} dos favoritos`
+              : `Adicionar ${product.title} aos favoritos`
+          }
+          aria-pressed={isFav}
+          className="absolute top-3 right-3 z-10 w-9.5 h-9.5 rounded-[13px] bg-white/95 hover:bg-white grid place-items-center shadow-seg transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+        >
+          <Heart
+            className={cn(
+              "w-4.5 h-4.5 transition-colors duration-150",
+              isFav ? "fill-offer text-offer" : "text-slate-900"
+            )}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+        </button>
+
         {/* Contador / Marcadores de slide */}
         {images.length > 1 && (
           <nav
             aria-label="Escolher foto do produto"
-            className="absolute bottom-3.5 inset-x-0 z-10 flex items-center justify-center gap-1.5"
+            className="absolute bottom-3 inset-x-0 z-10 flex items-center justify-center gap-1.5"
           >
             {images.map((_, idx) => (
               <button
@@ -337,10 +372,10 @@ export function ProductFeedPost({
                 aria-label={`Ir para foto ${idx + 1}`}
                 aria-current={activeSlide === idx ? "true" : undefined}
                 className={cn(
-                  "h-2 rounded-full transition-all cursor-pointer touch-manipulation",
+                  "h-1.75 rounded-full transition-all cursor-pointer touch-manipulation",
                   activeSlide === idx
-                    ? "w-5 bg-white shadow-xs"
-                    : "w-2 bg-white/60 hover:bg-white/80"
+                    ? "w-5 bg-white shadow-seg"
+                    : "w-1.75 bg-white/60 hover:bg-white/85"
                 )}
               />
             ))}
@@ -353,52 +388,29 @@ export function ProductFeedPost({
       </section>
 
       {/* 3. Footer de Conversão */}
-      <div className="space-y-3 pt-1">
-        {/* Linha: Preço em destaque + Botão de Curtir/Favoritar */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-extrabold text-slate-900 tracking-tight">
-                {formatCurrencyBRL(effectivePrice)}
+      <div className="space-y-3 px-0.5 pt-0.5">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-[21px] font-extrabold text-slate-900 tracking-[-0.02em]">
+              {formatCurrencyBRL(effectivePrice)}
+            </span>
+            {hasPromo && (
+              <span className="text-xs font-medium text-slate-500 line-through">
+                {formatCurrencyBRL(product.price)}
               </span>
-              {hasPromo && (
-                <span className="text-xs font-medium text-slate-400 line-through">
-                  {formatCurrencyBRL(product.price)}
-                </span>
-              )}
-            </div>
-            <Link
-              href={`/${product.store.slug}/${product.slug || product.id}`}
-              className="block text-base font-bold text-slate-800 hover:text-slate-950 hover:underline mt-0.5"
-            >
-              {product.title}
-            </Link>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleFavorite}
-            aria-label={
-              isFav ? "Remover dos favoritos" : "Favoritar esta peça"
-            }
-            aria-pressed={isFav}
-            className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer touch-manipulation",
-              isFav
-                ? "bg-rose-50 text-rose-500 border border-rose-200"
-                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/70"
             )}
+          </div>
+          <Link
+            href={productUrl}
+            className="block font-display text-base font-bold text-slate-900 hover:underline mt-0.5 leading-snug"
           >
-            <Heart
-              className={cn("w-5 h-5", isFav && "fill-current")}
-              aria-hidden="true"
-            />
-          </button>
+            {product.title}
+          </Link>
         </div>
 
         {/* Descrição curta */}
         {product.description && (
-          <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
+          <p className="text-[13px] text-slate-600 line-clamp-2 leading-normal">
             {product.description}
           </p>
         )}
@@ -407,7 +419,7 @@ export function ProductFeedPost({
         {product.sizes && product.sizes.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-500">
-              Tamanhos:
+              Tamanho:
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {product.sizes.map((size) => {
@@ -419,10 +431,10 @@ export function ProductFeedPost({
                     onClick={() => setSelectedSize(size)}
                     aria-pressed={isSelected}
                     className={cn(
-                      "px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer touch-manipulation",
+                      "min-w-8.5 h-7.5 px-2.5 rounded-[10px] font-display text-xs font-bold transition-colors duration-150 cursor-pointer touch-manipulation",
                       isSelected
-                        ? "bg-slate-900 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                     )}
                   >
                     {size}
@@ -433,12 +445,18 @@ export function ProductFeedPost({
           </div>
         )}
 
-        {/* Dois botões lado a lado: "Por na Sacola" (secondary) e "Pedir no Zap" (primary ou whatsapp) */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
+        {/* Dois botões lado a lado: "Por na sacola" e "Pedir no Zap" */}
+        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
           <Button
             variant="secondary"
             size="md"
-            leftIcon={<ShoppingBag className="w-4 h-4" aria-hidden="true" />}
+            leftIcon={
+              justAdded ? (
+                <Check className="w-4 h-4 text-whatsapp" strokeWidth={2.4} aria-hidden="true" />
+              ) : (
+                <ShoppingBag className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+              )
+            }
             onClick={() => {
               addProduct(product, selectedSize);
               onAddToBag?.(product, selectedSize);
@@ -447,13 +465,13 @@ export function ProductFeedPost({
             }}
             fullWidth
           >
-            {justAdded ? "Adicionado!" : "Por na Sacola"}
+            {justAdded ? "Adicionado!" : "Por na sacola"}
           </Button>
 
           <Button
             variant={whatsappVariant}
             size="md"
-            leftIcon={<MessageCircle className="w-4 h-4" aria-hidden="true" />}
+            leftIcon={<MessageCircle className="w-4 h-4" strokeWidth={2} aria-hidden="true" />}
             onClick={handleWhatsAppOrder}
             fullWidth
           >
@@ -464,4 +482,3 @@ export function ProductFeedPost({
     </article>
   );
 }
-

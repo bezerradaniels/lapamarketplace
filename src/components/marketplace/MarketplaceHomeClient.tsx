@@ -4,7 +4,12 @@ import { trackSaveProduct } from "@/lib/analytics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, SlidersHorizontal } from "lucide-react";
+import {
+  LayoutGrid,
+  Loader2,
+  Rows3,
+  SlidersHorizontal,
+} from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
 import { StoriesBar } from "@/components/marketplace/StoriesBar";
@@ -16,13 +21,18 @@ import { PromoBanner } from "@/components/ui/PromoBanner";
 import { SectionContainer } from "@/components/ui/SectionContainer";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
 import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
+import { ProductFeedPost } from "@/components/marketplace/ProductFeedPost";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { Button } from "@/components/ui/Button";
 import { getMarketplaceFeed } from "@/app/actions/feed";
 import { toggleSaveProduct } from "@/app/actions/social";
 import { Badge } from "@/components/ui/Badge";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
-import { calculateDiscountPercentage, cn, formatCurrencyBRL } from "@/lib/utils";
+import {
+  calculateDiscountPercentage,
+  cn,
+  formatCurrencyBRL,
+} from "@/lib/utils";
 import type {
   CategoryItem,
   GlobalCategory,
@@ -30,6 +40,8 @@ import type {
   StoreSummary,
   StoreWithStories,
 } from "@/types/marketplace";
+
+const FEED_PAGE_SIZE = 6;
 
 export interface MarketplaceHomeClientProps {
   stories: StoreWithStories[];
@@ -48,7 +60,6 @@ export function MarketplaceHomeClient({
   categories,
   dailyOffers,
   featuredStores,
-  recentProducts,
   initialFeed,
   hasMoreFeed: initialHasMore,
   userId,
@@ -69,10 +80,9 @@ export function MarketplaceHomeClient({
   );
   const [authModalProduct, setAuthModalProduct] = useState<string | null>(null);
 
-  // Estado do Feed Social Mobile (Abas "Explorar Lapa" | "Seguindo" + Paginação Infinita)
-  const [mobileTab, setMobileTab] = useState<"explorar" | "seguindo">(
-    "explorar"
-  );
+  // Estado do Feed Infinito (Abas "Toda a Lapa" | "Seguindo" + Modo "Feed" | "Grade")
+  const [feedTab, setFeedTab] = useState<"explorar" | "seguindo">("explorar");
+  const [viewMode, setViewMode] = useState<"feed" | "grid">("feed");
   const [feedItems, setFeedItems] = useState<ProductItem[]>(initialFeed);
   const [feedPage, setFeedPage] = useState<number>(1);
   const [hasMoreFeed, setHasMoreFeed] = useState<boolean>(initialHasMore);
@@ -95,7 +105,7 @@ export function MarketplaceHomeClient({
     ];
   }, [categories]);
 
-  // Recarrega a página 1 do feed quando mudar aba mobile, categoria ou bairro
+  // Recarrega a página 1 do feed quando mudar aba, categoria ou bairro
   const reloadFirstFeedPage = useCallback(
     async (
       nextTab: "explorar" | "seguindo",
@@ -106,7 +116,7 @@ export function MarketplaceHomeClient({
       try {
         const res = await getMarketplaceFeed({
           page: 1,
-          pageSize: 4,
+          pageSize: FEED_PAGE_SIZE,
           tab: nextTab,
           userId,
           categorySlug: nextCat,
@@ -122,7 +132,7 @@ export function MarketplaceHomeClient({
     [userId]
   );
 
-  // Carrega a próxima página ao rolar até o fim da tela (IntersectionObserver)
+  // Carrega a próxima página ao rolar até o fim da lista (IntersectionObserver)
   const loadNextFeedPage = useCallback(async () => {
     if (isLoadingFeed || !hasMoreFeed) return;
     setIsLoadingFeed(true);
@@ -130,8 +140,8 @@ export function MarketplaceHomeClient({
       const nextPage = feedPage + 1;
       const res = await getMarketplaceFeed({
         page: nextPage,
-        pageSize: 4,
-        tab: mobileTab,
+        pageSize: FEED_PAGE_SIZE,
+        tab: feedTab,
         userId,
         categorySlug: activeCategory,
         neighborhoodSlug: selectedNeighborhood,
@@ -150,7 +160,7 @@ export function MarketplaceHomeClient({
     isLoadingFeed,
     hasMoreFeed,
     feedPage,
-    mobileTab,
+    feedTab,
     userId,
     activeCategory,
     selectedNeighborhood,
@@ -167,7 +177,7 @@ export function MarketplaceHomeClient({
           void loadNextFeedPage();
         }
       },
-      { rootMargin: "220px" }
+      { rootMargin: "320px" }
     );
 
     observer.observe(target);
@@ -176,16 +186,16 @@ export function MarketplaceHomeClient({
 
   const handleSelectCategory = (cat: CategoryItem) => {
     setActiveCategory(cat.slug);
-    void reloadFirstFeedPage(mobileTab, cat.slug, selectedNeighborhood);
+    void reloadFirstFeedPage(feedTab, cat.slug, selectedNeighborhood);
   };
 
   const handleSelectNeighborhood = (nb: string) => {
     setSelectedNeighborhood(nb);
-    void reloadFirstFeedPage(mobileTab, activeCategory, nb);
+    void reloadFirstFeedPage(feedTab, activeCategory, nb);
   };
 
-  const handleSelectMobileTab = (tab: "explorar" | "seguindo") => {
-    setMobileTab(tab);
+  const handleSelectFeedTab = (tab: "explorar" | "seguindo") => {
+    setFeedTab(tab);
     void reloadFirstFeedPage(tab, activeCategory, selectedNeighborhood);
   };
 
@@ -215,28 +225,24 @@ export function MarketplaceHomeClient({
     }
   };
 
-  // Filtra produtos na visão Desktop conforme categoria e bairro ativos
-  const filterDesktopProducts = (list: ProductItem[]) =>
-    list.filter((p) => {
-      if (
-        activeCategory !== "all" &&
-        p.category_slug !== activeCategory &&
-        p.category_id !== activeCategory
-      ) {
-        return false;
-      }
-      if (
-        selectedNeighborhood !== "Toda Bom Jesus da Lapa" &&
-        p.store.neighborhood.toLowerCase() !==
-          selectedNeighborhood.toLowerCase()
-      ) {
-        return false;
-      }
-      return true;
-    });
-
-  const filteredOffers = filterDesktopProducts(dailyOffers);
-  const filteredRecent = filterDesktopProducts(recentProducts);
+  // Filtra produtos de ofertas conforme categoria e bairro ativos
+  const filteredOffers = dailyOffers.filter((p) => {
+    if (
+      activeCategory !== "all" &&
+      p.category_slug !== activeCategory &&
+      p.category_id !== activeCategory
+    ) {
+      return false;
+    }
+    if (
+      selectedNeighborhood !== "Toda Bom Jesus da Lapa" &&
+      p.store.neighborhood.toLowerCase() !==
+        selectedNeighborhood.toLowerCase()
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -259,9 +265,9 @@ export function MarketplaceHomeClient({
 
       <main className="flex-1 mx-auto w-full max-w-7xl md:px-6 lg:px-8 md:py-6 pb-48 md:pb-10">
         {/* Stories + pílulas de categoria */}
-        <StoriesBar items={stories} className="px-5 md:px-0 pb-4.5" />
+        <StoriesBar items={stories} className="px-5 md:px-0 pb-4" />
 
-        <div className="flex items-center gap-3 pb-6">
+        <div className="flex items-center gap-3 pb-4 md:pb-6">
           <CategoryPills
             categories={categoryPillsList}
             activeSlug={activeCategory}
@@ -277,7 +283,7 @@ export function MarketplaceHomeClient({
           </Link>
         </div>
 
-        {/* Banner institucional (desktop) */}
+        {/* Banner institucional (somente desktop — no mobile o feed é prioritário) */}
         <PromoBanner
           className="hidden md:block mb-10"
           variant="emerald"
@@ -289,24 +295,15 @@ export function MarketplaceHomeClient({
           imageUrl="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80"
         />
 
-        {/* Ofertas do dia */}
+        {/* Ofertas do dia no topo (somente desktop — no mobile entram intercaladas no feed) */}
         {filteredOffers.length > 0 && (
           <SectionContainer
             title="Ofertas do dia"
             actionLabel="Ver tudo"
             href="/explorar?promocao=true"
-            headerClassName="px-5 md:px-0"
-            className="pb-6.5 md:pb-10"
+            className="hidden md:block pb-10"
           >
-            {/* Mobile: cards horizontais de 280px */}
-            <div className="md:hidden flex gap-3 px-5 overflow-x-auto no-scrollbar">
-              {filteredOffers.map((product) => (
-                <OfferCard key={product.id} product={product} />
-              ))}
-            </div>
-
-            {/* Desktop: grid */}
-            <div className="hidden md:grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {filteredOffers.slice(0, 4).map((product) => (
                 <ProductCardGrid
                   key={product.id}
@@ -403,135 +400,201 @@ export function MarketplaceHomeClient({
           </SectionContainer>
         )}
 
-        {/* Novidades no comércio local */}
-        <SectionContainer
-          title="Novidades no comércio local"
-          actionLabel="Ver tudo"
-          href="/explorar"
-          headerClassName="px-5 md:px-0"
-        >
-          {/* Mobile: Explorar | Seguindo + grid de 2 colunas com rolagem infinita */}
-          <div className="md:hidden px-5 space-y-3">
-            <div
-              role="tablist"
-              aria-label="Origem das novidades"
-              className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100"
-            >
-              {(
-                [
-                  ["explorar", "Toda a Lapa"],
-                  ["seguindo", "Seguindo"],
-                ] as const
-              ).map(([tab, label]) => (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={mobileTab === tab}
-                  onClick={() => handleSelectMobileTab(tab)}
-                  className={cn(
-                    "h-10 rounded-[13px] font-display text-[13px] font-bold transition duration-150 cursor-pointer",
-                    mobileTab === tab
-                      ? "bg-white text-slate-900 shadow-seg"
-                      : "text-slate-500"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+        {/* =================================================================
+            FEED INFINITO DO COMÉRCIO LOCAL (PRIORITÁRIO NO MOBILE + DESKTOP)
+           ================================================================= */}
+        <section aria-label="Feed do comércio local" className="space-y-4">
+          {/* Barra de Controle: Abas (Toda a Lapa | Seguindo) + Alternador (Feed | Grade) */}
+          <div className="px-5 md:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="hidden md:block">
+              <h2 className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em]">
+                Feed do comércio local
+              </h2>
+              <p className="text-sm text-slate-500">
+                Novidades intercaladas das lojas de Bom Jesus da Lapa
+              </p>
             </div>
 
-            {feedItems.length === 0 && !isLoadingFeed ? (
-              <div className="rounded-[28px] bg-white p-6 text-center space-y-3">
-                <h2 className="text-[17px] font-extrabold text-slate-900 text-balance">
-                  {mobileTab === "seguindo"
-                    ? "Nada novo das lojas que você segue"
-                    : "Nenhum produto neste filtro"}
-                </h2>
-                <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
-                  {mobileTab === "seguindo"
-                    ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
-                    : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
-                </p>
-                {mobileTab === "seguindo" && (
-                  <Button
-                    variant="primary"
-                    onClick={() => handleSelectMobileTab("explorar")}
+            <div className="flex items-center gap-2.5">
+              {/* Abas: Toda a Lapa | Seguindo */}
+              <div
+                role="tablist"
+                aria-label="Origem das publicações"
+                className="flex-1 sm:flex-initial grid grid-cols-2 p-1 rounded-2xl bg-slate-200/70 sm:min-w-64"
+              >
+                {(
+                  [
+                    ["explorar", "Toda a Lapa"],
+                    ["seguindo", "Seguindo"],
+                  ] as const
+                ).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={feedTab === tab}
+                    onClick={() => handleSelectFeedTab(tab)}
+                    className={cn(
+                      "h-9.5 px-4 rounded-[13px] font-display text-[13px] font-bold transition duration-150 cursor-pointer",
+                      feedTab === tab
+                        ? "bg-white text-slate-900 shadow-seg"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
                   >
-                    Ver toda a Lapa
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {feedItems.map((product) => (
-                  <ProductCardGrid
-                    key={product.id}
-                    product={product}
-                    isFavorite={savedSet.has(product.id)}
-                    onAddToBag={() => setBagCount((c) => c + 1)}
-                    onToggleFavorite={handleProductFavorite}
-                  />
+                    {label}
+                  </button>
                 ))}
               </div>
-            )}
 
-            {/* Sentinela do IntersectionObserver para paginação infinita */}
-            <div
-              ref={loadMoreTriggerRef}
-              className="py-3 flex flex-col items-center justify-center gap-2"
-            >
-              {isLoadingFeed ? (
-                <div className="inline-flex items-center gap-2 text-[13px] text-slate-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Carregando mais novidades…</span>
-                </div>
-              ) : !hasMoreFeed && feedItems.length > 0 ? (
-                <p className="text-[13px] text-slate-500">
-                  Você viu todas as novidades.{" "}
-                  <Link
-                    href="/explorar"
-                    className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
-                  >
-                    Explorar com filtros
-                  </Link>
-                </p>
-              ) : null}
+              {/* Alternador de Visualização: Feed Social vs Grade */}
+              <div
+                role="group"
+                aria-label="Modo de visualização"
+                className="inline-flex p-1 rounded-2xl bg-slate-200/70 shrink-0"
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewMode("feed")}
+                  aria-pressed={viewMode === "feed"}
+                  title="Visualização em Feed"
+                  className={cn(
+                    "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
+                    viewMode === "feed"
+                      ? "bg-white text-slate-900 shadow-seg"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Rows3 className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                  <span>Feed</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  aria-pressed={viewMode === "grid"}
+                  title="Visualização em Grade"
+                  className={cn(
+                    "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
+                    viewMode === "grid"
+                      ? "bg-white text-slate-900 shadow-seg"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <LayoutGrid className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                  <span>Grade</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Desktop: grid de 4–5 colunas */}
-          <div className="hidden md:block">
-            {filteredRecent.length === 0 ? (
-              <div className="rounded-[28px] bg-white p-10 text-center space-y-3">
-                <p className="font-display text-[17px] font-extrabold text-slate-900">
-                  Nenhum produto para o filtro selecionado.
-                </p>
+          {/* Lista / Grade de Publicações */}
+          {feedItems.length === 0 && !isLoadingFeed ? (
+            <div className="mx-5 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
+              <h3 className="text-[17px] font-extrabold text-slate-900 text-balance">
+                {feedTab === "seguindo"
+                  ? "Nada novo das lojas que você segue"
+                  : "Nenhum produto neste filtro"}
+              </h3>
+              <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
+                {feedTab === "seguindo"
+                  ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
+                  : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
+              </p>
+              {feedTab === "seguindo" ? (
+                <Button
+                  variant="primary"
+                  onClick={() => handleSelectFeedTab("explorar")}
+                >
+                  Ver toda a Lapa
+                </Button>
+              ) : (
                 <Button
                   variant="outline"
                   onClick={() => {
                     setActiveCategory("all");
                     setSelectedNeighborhood("Toda Bom Jesus da Lapa");
+                    void reloadFirstFeedPage(
+                      feedTab,
+                      "all",
+                      "Toda Bom Jesus da Lapa"
+                    );
                   }}
                 >
                   Limpar filtros
                 </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredRecent.map((product) => (
-                  <ProductCardGrid
-                    key={product.id}
+              )}
+            </div>
+          ) : viewMode === "feed" ? (
+            <div className="px-4 sm:px-5 md:px-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+              {feedItems.map((product, index) => (
+                <React.Fragment key={product.id}>
+                  <ProductFeedPost
                     product={product}
                     isFavorite={savedSet.has(product.id)}
                     onAddToBag={() => setBagCount((c) => c + 1)}
                     onToggleFavorite={handleProductFavorite}
                   />
-                ))}
+
+                  {/* Ofertas do dia in-feed no mobile: entra após o 2º post sem quebrar o grid desktop */}
+                  {index === 1 && filteredOffers.length > 0 && (
+                    <div className="md:hidden -mx-4 sm:-mx-5 py-1">
+                      <div className="flex items-baseline justify-between px-5 pb-2.5">
+                        <h3 className="font-display text-[17px] font-extrabold text-slate-900">
+                          Ofertas do dia
+                        </h3>
+                        <Link
+                          href="/explorar?promocao=true"
+                          className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                        >
+                          Ver tudo
+                        </Link>
+                      </div>
+                      <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
+                        {filteredOffers.map((offer) => (
+                          <OfferCard key={offer.id} product={offer} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          ) : (
+            <div className="px-5 md:px-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+              {feedItems.map((product) => (
+                <ProductCardGrid
+                  key={product.id}
+                  product={product}
+                  isFavorite={savedSet.has(product.id)}
+                  onAddToBag={() => setBagCount((c) => c + 1)}
+                  onToggleFavorite={handleProductFavorite}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Sentinela única do IntersectionObserver para paginação infinita (Mobile + Desktop) */}
+          <div
+            ref={loadMoreTriggerRef}
+            className="py-5 px-5 flex flex-col items-center justify-center gap-2"
+          >
+            {isLoadingFeed ? (
+              <div className="inline-flex items-center gap-2 text-[13px] text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Carregando mais publicações…</span>
               </div>
-            )}
+            ) : !hasMoreFeed && feedItems.length > 0 ? (
+              <p className="text-[13px] text-slate-500 text-center">
+                Você viu todas as publicações recentes.{" "}
+                <Link
+                  href="/explorar"
+                  className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
+                >
+                  Explorar catálogo com filtros
+                </Link>
+              </p>
+            ) : null}
           </div>
-        </SectionContainer>
+        </section>
       </main>
 
       <Footer />
@@ -539,7 +602,7 @@ export function MarketplaceHomeClient({
   );
 }
 
-/** Card horizontal de oferta (mobile): foto 96×112 com badge, loja · bairro e preço De/Por. */
+/** Card horizontal de oferta (mobile in-feed): foto 96×112 com badge, loja · bairro e preço De/Por. */
 function OfferCard({ product }: { product: ProductItem }) {
   const discountPercent = calculateDiscountPercentage(
     product.price,

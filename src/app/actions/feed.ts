@@ -789,7 +789,7 @@ export async function getMarketplaceFeed(
   input: GetMarketplaceFeedInput = {}
 ): Promise<GetMarketplaceFeedOutput> {
   const page = Math.max(1, input.page ?? 1);
-  const pageSize = Math.max(1, input.pageSize ?? 4);
+  const pageSize = Math.max(1, input.pageSize ?? 6);
   const tab = input.tab ?? "explorar";
 
   const snapshot = await loadCatalogSnapshot();
@@ -875,8 +875,8 @@ export async function getMarketplaceHomeData() {
     dailyOffers,
     featuredStores,
     recentProducts: interleaved,
-    initialFeed: interleaved.slice(0, 4),
-    hasMoreFeed: interleaved.length > 4,
+    initialFeed: interleaved.slice(0, 6),
+    hasMoreFeed: interleaved.length > 6,
     userId: snapshot.userId,
     followedStoreIds: snapshot.followedStoreIds,
     savedProductIds: snapshot.savedProductIds,
