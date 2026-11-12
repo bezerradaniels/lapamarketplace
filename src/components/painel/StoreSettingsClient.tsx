@@ -389,7 +389,7 @@ export function StoreSettingsClient({
             <section className={cardClasses}>
               <h2 className={cardTitle}>Identidade</h2>
               <div className="flex items-center gap-3.5">
-                <span className="w-16 h-16 rounded-full bg-brand-soft overflow-hidden grid place-items-center shrink-0 shadow-[0_0_0_2px_#264E9C]">
+                <span className="w-16 h-16 rounded-full bg-brand-soft overflow-hidden grid place-items-center shrink-0 shadow-[0_0_0_2px_#0F172A]">
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarUrl} alt="Logo da loja" className="w-full h-full object-cover" />

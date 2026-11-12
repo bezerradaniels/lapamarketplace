@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/CategoryPills";
 import { PromoBanner } from "@/components/ui/PromoBanner";
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
 import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
 import { ProductFeedPost } from "@/components/marketplace/ProductFeedPost";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
@@ -31,9 +30,13 @@ import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
 import { Select } from "@/components/ui/Select";
 import { getMarketplaceFeed } from "@/app/actions/feed";
-import { toggleSaveProduct } from "@/app/actions/social";
+import { toggleFollowStore, toggleSaveProduct } from "@/app/actions/social";
+import { trackEvent } from "@/lib/analytics";
+import {
+  FeaturedStoresSection,
+  type StoreShowcase,
+} from "@/components/marketplace/FeaturedStores";
 import { Badge } from "@/components/ui/Badge";
-import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import {
   calculateDiscountPercentage,
   cn,
@@ -79,6 +82,8 @@ export interface MarketplaceHomeClientProps {
   userId: string | null;
   savedProductIds: string[];
   neighborhoods?: NeighborhoodItem[];
+  storeShowcases?: Record<string, StoreShowcase>;
+  followedStoreIds?: string[];
 }
 
 export function MarketplaceHomeClient({
@@ -91,6 +96,8 @@ export function MarketplaceHomeClient({
   userId,
   savedProductIds,
   neighborhoods,
+  storeShowcases,
+  followedStoreIds = [],
 }: MarketplaceHomeClientProps) {
   const router = useRouter();
 
@@ -131,10 +138,68 @@ export function MarketplaceHomeClient({
     () => new Set(savedProductIds)
   );
   const [authModalProduct, setAuthModalProduct] = useState<string | null>(null);
+  const [authReason, setAuthReason] = useState<"favorite" | "follow">("favorite");
+  const [followingIds, setFollowingIds] = useState<Set<string>>(
+    () => new Set(followedStoreIds)
+  );
+  const storyStoreIds = React.useMemo(
+    () =>
+      new Set(
+        stories.filter((s) => s.stories.length > 0).map((s) => s.store.id)
+      ),
+    [stories]
+  );
+
+  const handleToggleFollow = async (store: StoreSummary) => {
+    const next = !followingIds.has(store.id);
+    setFollowingIds((prev) => {
+      const copy = new Set(prev);
+      if (next) copy.add(store.id);
+      else copy.delete(store.id);
+      return copy;
+    });
+    const res = await toggleFollowStore(store.id);
+    if (res?.requiresAuth || res?.error) {
+      // Desfaz a troca otimista
+      setFollowingIds((prev) => {
+        const copy = new Set(prev);
+        if (next) copy.delete(store.id);
+        else copy.add(store.id);
+        return copy;
+      });
+      if (res?.requiresAuth) {
+        setAuthReason("follow");
+        setAuthModalProduct(store.name);
+      }
+    } else {
+      trackEvent(next ? "follow_store" : "unfollow_store", {
+        store_id: store.id,
+        store_name: store.name,
+      });
+    }
+  };
 
   // Estado do Feed Infinito (Abas "Toda a Lapa" | "Seguindo" + Modo "Feed" | "Grade")
   const [feedTab, setFeedTab] = useState<"explorar" | "seguindo">("explorar");
-  const [viewMode, setViewMode] = useState<"feed" | "grid">("feed");
+  const [viewMode, setViewMode] = useState<"feed" | "grid">(() => {
+    if (typeof window === "undefined") return "feed";
+    try {
+      return localStorage.getItem("lapa_home_view_mode") === "grid" ? "grid" : "feed";
+    } catch {
+      return "feed";
+    }
+  });
+
+  // Visualização do feed persistida (feed | grade)
+  const handleChangeViewMode = (mode: "feed" | "grid") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("lapa_home_view_mode", mode);
+    } catch {
+      // Ignora erro
+    }
+  };
+
   const [feedItems, setFeedItems] = useState<ProductItem[]>(initialFeed);
   const [feedPage, setFeedPage] = useState<number>(1);
   const [hasMoreFeed, setHasMoreFeed] = useState<boolean>(initialHasMore);
@@ -336,6 +401,7 @@ export function MarketplaceHomeClient({
 
     const result = await toggleSaveProduct(product.id);
     if (result?.requiresAuth) {
+      setAuthReason("favorite");
       setAuthModalProduct(product.title);
     } else if (!result?.error) {
       trackSaveProduct(product, next);
@@ -362,10 +428,14 @@ export function MarketplaceHomeClient({
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col atmosfera">
       <MarketplaceHeader
         selectedNeighborhood={selectedNeighborhood}
         onNeighborhoodChange={handleSelectNeighborhood}
+        neighborhoods={[
+          "Toda Bom Jesus da Lapa",
+          ...availableNeighborhoods.map((nb) => nb.name),
+        ]}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchSubmit={handleSearchSubmit}
@@ -376,11 +446,11 @@ export function MarketplaceHomeClient({
       <AuthPromptModal
         isOpen={Boolean(authModalProduct)}
         onClose={() => setAuthModalProduct(null)}
-        reason="favorite"
+        reason={authReason}
         itemName={authModalProduct || undefined}
       />
 
-      <main className="flex-1 mx-auto w-full max-w-7xl md:px-6 lg:px-8 md:py-6 pb-48 md:pb-10">
+      <main className="flex-1 mx-auto w-full max-w-7xl md:px-6 lg:px-8 pt-5 md:py-6 pb-48 md:pb-10">
         {/* Estrutura Desktop: Sidebar Lateral à Esquerda (Colapsável) + Feed */}
         <div
           className={cn(
@@ -394,7 +464,7 @@ export function MarketplaceHomeClient({
           {isSidebarOpen && (
             <aside
               aria-label="Filtros do comércio"
-              className="hidden lg:block sticky top-24 rounded-3xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-6"
+              className="hidden lg:block sticky top-26 rounded-[28px] bg-white border border-media p-5 shadow-card space-y-6"
             >
               {/* Topo da Sidebar: Título, Contador, Limpar e Botão de Recolher */}
               <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
@@ -403,7 +473,7 @@ export function MarketplaceHomeClient({
                     className="w-4.5 h-4.5 text-brand"
                     strokeWidth={2}
                   />
-                  <h2 className="font-display text-[17px] font-extrabold text-slate-900 tracking-[-0.01em]">
+                  <h2 className="font-display text-[17px] font-semibold text-ink tracking-[-0.01em]">
                     Filtros
                   </h2>
                   {activeFiltersCount > 0 && (
@@ -436,7 +506,7 @@ export function MarketplaceHomeClient({
 
               {/* Categorias */}
               <div className="space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-500">
                   <Tag className="w-3.5 h-3.5 text-brand" />
                   <span>Categorias</span>
                 </div>
@@ -451,10 +521,10 @@ export function MarketplaceHomeClient({
                       })
                     }
                     className={cn(
-                      "flex items-center justify-between px-3.5 py-2.25 rounded-2xl text-[13px] font-bold transition-colors duration-150 cursor-pointer text-left",
+                      "flex items-center justify-between h-10.5 shrink-0 px-3.5 rounded-full text-[14px] font-semibold transition-colors duration-150 cursor-pointer text-left",
                       activeCategory === "all"
-                        ? "bg-brand text-white shadow-xs"
-                        : "text-slate-700 hover:bg-slate-100"
+                        ? "bg-brand text-white"
+                        : "text-muted hover:bg-media hover:text-ink"
                     )}
                   >
                     <span>Todas as categorias</span>
@@ -476,10 +546,10 @@ export function MarketplaceHomeClient({
                           })
                         }
                         className={cn(
-                          "flex items-center justify-between px-3.5 py-2 rounded-2xl text-[13px] font-bold transition-colors duration-150 cursor-pointer text-left",
+                          "flex items-center justify-between h-10.5 shrink-0 px-3.5 rounded-full text-[14px] font-semibold transition-colors duration-150 cursor-pointer text-left",
                           active
-                            ? "bg-brand text-white shadow-xs"
-                            : "text-slate-700 hover:bg-slate-100"
+                            ? "bg-brand text-white"
+                            : "text-muted hover:bg-media hover:text-ink"
                         )}
                       >
                         <span className="truncate">{cat.name}</span>
@@ -494,7 +564,7 @@ export function MarketplaceHomeClient({
 
               {/* Bairro da Loja */}
               <div className="space-y-2.5 pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-500">
                   <MapPin className="w-3.5 h-3.5 text-brand" />
                   <span>Bairro da Loja</span>
                 </div>
@@ -520,7 +590,7 @@ export function MarketplaceHomeClient({
               <div className="space-y-3.5 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-col">
-                    <span className="text-[13px] font-bold text-slate-900">
+                    <span className="text-[13px] font-semibold text-ink">
                       Lojas abertas agora
                     </span>
                     <span className="text-[11px] text-slate-500">
@@ -536,7 +606,7 @@ export function MarketplaceHomeClient({
 
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-col">
-                    <span className="text-[13px] font-bold text-slate-900">
+                    <span className="text-[13px] font-semibold text-ink">
                       Apenas em promoção
                     </span>
                     <span className="text-[11px] text-slate-500">
@@ -630,94 +700,21 @@ export function MarketplaceHomeClient({
               </SectionContainer>
             )}
 
-            {/* Lojas em destaque (desktop) */}
+            {/* Lojas em destaque (mobile: carrossel; desktop: abas + setas) */}
             {featuredStores.length > 0 && (
-              <SectionContainer
-                title="Lojas em destaque"
-                subtitle="Comércios de Bom Jesus da Lapa com atendimento direto no WhatsApp"
-                actionLabel="Ver todas"
-                href="/explorar"
-                className="hidden md:block pb-2"
-              >
-                <div
-                  className={cn(
-                    "grid gap-4",
-                    isSidebarOpen
-                      ? "grid-cols-2 xl:grid-cols-4"
-                      : "grid-cols-2 lg:grid-cols-4"
-                  )}
-                >
-                  {featuredStores.map((store) => {
-                    const isPremium = store.plan === "premium";
-                    return (
-                      <div
-                        key={store.id}
-                        className="rounded-3xl bg-white p-4 flex flex-col justify-between gap-4"
-                      >
-                        <div className="space-y-3">
-                          <Link
-                            href={`/${store.slug}`}
-                            className="flex items-center gap-3 min-w-0"
-                          >
-                            <span
-                              className={cn(
-                                "w-13 h-13 rounded-full p-0.5 shrink-0",
-                                isPremium ? "bg-story-premium" : "bg-slate-200"
-                              )}
-                            >
-                              <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-sm font-extrabold text-slate-900">
-                                {store.avatar_url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={store.avatar_url}
-                                    alt={store.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  store.name.slice(0, 2).toUpperCase()
-                                )}
-                              </span>
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <h3 className="text-[15px] font-bold text-slate-900 truncate">
-                                  {store.name}
-                                </h3>
-                                {store.is_verified && <VerifiedSeal size={16} />}
-                              </div>
-                              <p className="text-xs text-slate-500 truncate">
-                                {store.neighborhood}
-                              </p>
-                            </div>
-                          </Link>
-
-                          {store.description && (
-                            <p className="text-[13px] text-slate-700 line-clamp-2 leading-normal">
-                              {store.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2">
-                          <StoreStatusBadge
-                            compact
-                            storeName={store.name}
-                            businessHours={store.business_hours}
-                            specialHours={store.special_hours}
-                            isOpenOverride={store.is_open_override}
-                          />
-                          <Link
-                            href={`/${store.slug}`}
-                            className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2.25 font-display text-xs font-bold text-slate-900 transition-colors duration-150 shrink-0"
-                          >
-                            Ver loja
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SectionContainer>
+              <FeaturedStoresSection
+                stores={featuredStores}
+                showcases={storeShowcases}
+                storyStoreIds={storyStoreIds}
+                followingIds={followingIds}
+                onToggleFollow={handleToggleFollow}
+                neighborhood={
+                  selectedNeighborhood !== "Toda Bom Jesus da Lapa"
+                    ? selectedNeighborhood
+                    : null
+                }
+                className="pb-2"
+              />
             )}
 
             {/* =================================================================
@@ -744,8 +741,8 @@ export function MarketplaceHomeClient({
                     </button>
                   )}
                   <div className="hidden md:block">
-                    <h2 className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em]">
-                      Feed do comércio local
+                    <h2 className="font-display text-[26px] font-semibold text-ink tracking-[-0.02em]">
+                      Feed do comércio <span className="aura-text">local</span>
                     </h2>
                     <p className="text-sm text-slate-500">
                       Novidades intercaladas das lojas de Bom Jesus da Lapa
@@ -753,12 +750,12 @@ export function MarketplaceHomeClient({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   {/* Abas: Toda a Lapa | Seguindo */}
                   <div
                     role="tablist"
                     aria-label="Origem das publicações"
-                    className="flex-1 sm:flex-initial grid grid-cols-2 p-1 rounded-2xl bg-slate-200/70 sm:min-w-64"
+                    className="flex-1 sm:flex-initial grid h-11 grid-cols-2 p-1 rounded-full bg-seg sm:min-w-64"
                   >
                     {(
                       [
@@ -773,10 +770,10 @@ export function MarketplaceHomeClient({
                         aria-selected={feedTab === tab}
                         onClick={() => handleSelectFeedTab(tab)}
                         className={cn(
-                          "h-9.5 px-4 rounded-[13px] font-display text-[13px] font-bold transition duration-150 cursor-pointer",
+                          "whitespace-nowrap rounded-full px-4 font-display text-sm font-semibold transition duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light",
                           feedTab === tab
-                            ? "bg-white text-slate-900 shadow-seg"
-                            : "text-slate-600 hover:text-slate-900"
+                            ? "bg-white text-ink shadow-seg"
+                            : "text-slate-600 hover:text-ink"
                         )}
                       >
                         {label}
@@ -786,40 +783,34 @@ export function MarketplaceHomeClient({
 
                   {/* Alternador de Visualização: Feed Social vs Grade */}
                   <div
-                    role="group"
-                    aria-label="Modo de visualização"
-                    className="inline-flex p-1 rounded-2xl bg-slate-200/70 shrink-0"
+                    role="radiogroup"
+                    aria-label="Visualização"
+                    className="flex h-11 flex-none gap-0.5 rounded-full bg-seg p-1"
                   >
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("feed")}
-                      aria-pressed={viewMode === "feed"}
-                      title="Visualização em Feed"
-                      className={cn(
-                        "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
-                        viewMode === "feed"
-                          ? "bg-white text-slate-900 shadow-seg"
-                          : "text-slate-600 hover:text-slate-900"
-                      )}
-                    >
-                      <Rows3 className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                      <span>Feed</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("grid")}
-                      aria-pressed={viewMode === "grid"}
-                      title="Visualização em Grade"
-                      className={cn(
-                        "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
-                        viewMode === "grid"
-                          ? "bg-white text-slate-900 shadow-seg"
-                          : "text-slate-600 hover:text-slate-900"
-                      )}
-                    >
-                      <LayoutGrid className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                      <span>Grade</span>
-                    </button>
+                    {(
+                      [
+                        ["feed", "Ver em feed", Rows3],
+                        ["grid", "Ver em grade", LayoutGrid],
+                      ] as const
+                    ).map(([mode, label, Icon]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        role="radio"
+                        aria-checked={viewMode === mode}
+                        aria-label={label}
+                        title={label}
+                        onClick={() => handleChangeViewMode(mode)}
+                        className={cn(
+                          "grid w-10 cursor-pointer place-items-center rounded-full transition duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light",
+                          viewMode === mode
+                            ? "bg-white text-ink shadow-seg"
+                            : "text-slate-600 hover:text-ink"
+                        )}
+                      >
+                        <Icon className="size-4.5" strokeWidth={1.9} aria-hidden="true" />
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -867,6 +858,9 @@ export function MarketplaceHomeClient({
                         isFavorite={savedSet.has(product.id)}
                         onAddToBag={() => setBagCount((c) => c + 1)}
                         onToggleFavorite={handleProductFavorite}
+                        isFollowing={followingIds.has(product.store.id)}
+                        onToggleFollow={(p) => void handleToggleFollow(p.store)}
+                        hasStory={storyStoreIds.has(product.store.id)}
                       />
 
                       {/* Ofertas do dia in-feed no mobile: entra após o 2º post sem quebrar o grid desktop */}

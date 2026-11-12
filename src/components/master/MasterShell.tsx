@@ -17,11 +17,11 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
 
   const brand = (
     <Link href="/master/lojas" className="flex items-center gap-2 px-2">
-      <LapaSymbol size={28} ink="#FFFFFF" />
-      <span className="font-display text-[19px] font-extrabold tracking-[-0.03em] text-white">
+      <LapaSymbol size={28} />
+      <span className="font-display text-[20px] font-semibold tracking-[-0.025em] text-white">
         Lapa
       </span>
-      <span className="px-2 py-0.5 rounded-full bg-brand text-white text-[10px] font-bold">
+      <span className="px-2 py-0.5 rounded-full bg-white/14 ring-1 ring-white/20 text-white text-[11px] font-bold">
         Master
       </span>
     </Link>
@@ -36,10 +36,10 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-2.5 h-10.5 px-3 rounded-[14px] text-sm font-semibold whitespace-nowrap transition-colors duration-150",
+          "flex items-center gap-2.5 h-10.5 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
           active
-            ? "bg-slate-800 text-brand"
-            : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+            ? "bg-white/12 text-white"
+            : "text-slate-300 hover:bg-white/8 hover:text-white"
         )}
       >
         <Icon className="w-4.5 h-4.5 shrink-0" strokeWidth={1.8} aria-hidden="true" />
@@ -49,12 +49,12 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
   });
 
   const shortcutClasses =
-    "h-10.5 px-3.5 rounded-[14px] grid place-items-center font-display text-[13px] font-bold whitespace-nowrap transition duration-150 active:scale-[0.98]";
+    "h-10.5 px-3.5 rounded-full grid place-items-center font-display text-[13px] font-semibold whitespace-nowrap transition duration-150 active:scale-[0.98]";
 
   return (
-    <div className="min-h-dvh bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      {/* Sidebar master (desktop): ink */}
-      <aside className="hidden lg:flex sticky top-0 h-dvh bg-slate-900 text-white px-4 py-6 flex-col gap-5.5">
+    <div className="min-h-dvh atmosfera text-ink lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+      {/* Sidebar master (desktop): deep night */}
+      <aside className="hidden lg:flex sticky top-0 h-dvh deep-night px-4 py-6 flex-col gap-5.5">
         {brand}
         <nav aria-label="Navegação master" className="flex flex-col gap-1">
           {navLinks}
@@ -63,13 +63,13 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col gap-2">
           <Link
             href="/painel"
-            className={cn(shortcutClasses, "bg-slate-800 hover:bg-slate-700 text-white")}
+            className={cn(shortcutClasses, "bg-white/12 hover:bg-white/20 text-white")}
           >
             Painel do lojista
           </Link>
           <Link
             href="/"
-            className={cn(shortcutClasses, "bg-brand hover:bg-brand-hover text-white")}
+            className={cn(shortcutClasses, "bg-white hover:bg-slate-100 text-ink")}
           >
             Ver o portal
           </Link>
@@ -77,12 +77,12 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Barra superior (mobile/tablet) */}
-      <header className="lg:hidden sticky top-0 z-40 bg-slate-900 text-white">
+      <header className="lg:hidden sticky top-0 z-40 deep-night">
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
           {brand}
           <Link
             href="/"
-            className={cn(shortcutClasses, "bg-brand hover:bg-brand-hover text-white")}
+            className={cn(shortcutClasses, "bg-white hover:bg-slate-100 text-ink")}
           >
             Ver o portal
           </Link>
@@ -95,7 +95,7 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <main className="min-w-0 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <main className="min-w-0 brisa-ceu px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <div className="mx-auto w-full max-w-6xl">{children}</div>
       </main>
     </div>

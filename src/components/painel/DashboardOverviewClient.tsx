@@ -3,7 +3,7 @@
 import { trackEvent } from "@/lib/analytics";
 import React, { useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, X } from "lucide-react";
+import { Eye, Loader2, MessageCircle, Package, Users, X } from "lucide-react";
 import {
   Button,
   buttonBaseClasses,
@@ -155,13 +155,15 @@ export function DashboardOverviewClient({
       label: "Produtos ativos",
       value: activeProductsCount.toLocaleString("pt-BR"),
       tag: `de ${products.length} cadastrados`,
-      highlight: false,
+      tone: "sky",
+      icon: Package,
     },
     {
       label: "Visualizações",
       value: totalViews.toLocaleString("pt-BR"),
       tag: "soma de todas as peças",
-      highlight: false,
+      tone: "pink",
+      icon: Eye,
     },
     {
       label: "Cliques no WhatsApp",
@@ -173,20 +175,29 @@ export function DashboardOverviewClient({
               { maximumFractionDigits: 1 }
             )}% das visualizações`
           : "intenções de compra",
-      highlight: true,
+      tone: "mint",
+      icon: MessageCircle,
     },
     {
       label: "Seguidores",
       value: totalFollowers.toLocaleString("pt-BR"),
       tag: "acompanhando a loja",
-      highlight: false,
+      tone: "peach",
+      icon: Users,
     },
-  ];
+  ] as const;
+
+  const METRIC_TONE = {
+    sky: "bg-sky-soft text-sky-ink",
+    pink: "bg-pink-soft text-pink-ink",
+    mint: "bg-mint-soft text-mint-ink",
+    peach: "bg-peach-soft text-peach-ink",
+  } as const;
 
   const primaryLinkClasses = cn(
     buttonBaseClasses,
     buttonVariantClasses.primary,
-    "h-10.5 px-4 rounded-[14px] text-sm"
+    "h-10.5 px-4 rounded-full text-sm"
   );
 
   return (
@@ -201,10 +212,10 @@ export function DashboardOverviewClient({
             {todayLabel}
           </span>
           <h1
-            className="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] text-slate-900"
+            className="font-display text-[26px] sm:text-[30px] font-medium tracking-[-0.025em] text-ink"
             suppressHydrationWarning
           >
-            {greeting}, {store.name}
+            {greeting}, <span className="aura-text">{store.name}</span>
           </h1>
         </div>
 
@@ -230,18 +241,21 @@ export function DashboardOverviewClient({
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className="p-4.5 rounded-3xl bg-white flex flex-col gap-2 min-w-0"
+            className="p-4.5 rounded-[28px] bg-white border border-media shadow-[0_8px_30px_rgba(15,23,42,0.04)] flex flex-col gap-2 min-w-0"
           >
-            <span className="text-[13px] text-slate-500">{metric.label}</span>
-            <span className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-tight text-slate-900">
+            <span className="flex items-center gap-2 text-[13px] text-slate-500">
+              <span className={cn("grid size-7 flex-none place-items-center rounded-[10px]", METRIC_TONE[metric.tone])}>
+                <metric.icon className="size-3.75" strokeWidth={2} aria-hidden="true" />
+              </span>
+              <span className="truncate">{metric.label}</span>
+            </span>
+            <span className="font-display text-[26px] sm:text-[30px] font-bold tracking-[-0.03em] leading-tight text-ink">
               {metric.value}
             </span>
             <span
               className={cn(
                 "self-start max-w-full truncate px-2 py-0.75 rounded-full text-xs font-semibold",
-                metric.highlight
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-slate-100 text-slate-700"
+                METRIC_TONE[metric.tone]
               )}
             >
               {metric.tag}
@@ -252,9 +266,9 @@ export function DashboardOverviewClient({
 
       <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         {/* Mais vistos */}
-        <section className="p-5 rounded-3xl bg-white flex flex-col gap-3">
+        <section className="p-5 rounded-[28px] bg-white border border-media shadow-[0_8px_30px_rgba(15,23,42,0.04)] flex flex-col gap-3">
           <div className="flex justify-between items-baseline gap-3">
-            <h2 className="text-[17px] font-extrabold text-slate-900">
+            <h2 className="text-[17px] font-semibold text-ink">
               Mais vistos
             </h2>
             <Link
@@ -319,7 +333,7 @@ export function DashboardOverviewClient({
                   </span>
                   <span
                     role="cell"
-                    className="text-right font-display font-bold text-whatsapp"
+                    className="text-right font-display font-bold text-whatsapp-strong"
                   >
                     {prod.clicks_whatsapp.toLocaleString("pt-BR")}
                   </span>
@@ -330,21 +344,21 @@ export function DashboardOverviewClient({
         </section>
 
         {/* Story Premium ou convite de upgrade */}
-        <section className="p-5 rounded-3xl bg-brand-soft flex gap-4 items-center">
-          <span className="flex-none w-16 h-16 rounded-full p-0.75 bg-story-premium">
-            <span className="w-full h-full rounded-full bg-white shadow-[inset_0_0_0_3px_#BFDBFE] grid place-items-center">
+        <section className="p-5 rounded-[28px] deep-night flex gap-4 items-center">
+          <span className="flex-none w-16 h-16 rounded-full p-0.75 aura-ring shadow-[0_0_24px_rgba(244,114,182,0.45)]">
+            <span className="w-full h-full rounded-full bg-deep-night shadow-[inset_0_0_0_2px_#060B19] grid place-items-center">
               <LapaSymbol size={30} />
             </span>
           </span>
           {simulatedTier === "premium" ? (
             <div className="flex flex-col gap-2 items-start">
-              <h2 className="text-base font-extrabold leading-[1.2] text-slate-900">
+              <h2 className="text-base font-semibold leading-[1.2] text-white">
                 Poste um story de 24h no topo da Lapa
               </h2>
               <Button
                 type="button"
                 size="sm"
-                className="px-3.5 rounded-xl"
+                className="px-3.5 !bg-white !text-ink hover:!bg-slate-100"
                 onClick={() => {
                   setStoryFeedback(null);
                   setIsStoryModalOpen(true);
@@ -355,10 +369,10 @@ export function DashboardOverviewClient({
             </div>
           ) : (
             <div className="flex flex-col gap-2 items-start">
-              <h2 className="text-base font-extrabold leading-[1.2] text-slate-900">
+              <h2 className="text-base font-semibold leading-[1.2] text-white">
                 Seja Premium e poste stories no topo da Lapa
               </h2>
-              <p className="text-[13px] text-slate-700 leading-[1.4]">
+              <p className="text-[13px] text-slate-300 leading-[1.4]">
                 Stories de 24h na home, selo verificado e prioridade nas
                 buscas.
               </p>
@@ -373,9 +387,9 @@ export function DashboardOverviewClient({
                 rel="noopener noreferrer"
                 className={cn(
                   buttonBaseClasses,
-                  buttonVariantClasses.primary,
+                  "bg-white text-ink hover:bg-slate-100",
                   buttonSizeClasses.sm,
-                  "px-3.5 rounded-xl"
+                  "px-3.5"
                 )}
               >
                 Quero ser Premium
@@ -439,7 +453,7 @@ export function DashboardOverviewClient({
 
             <form onSubmit={handlePublishStory} className="flex flex-col gap-3.5">
               <div className="flex items-center gap-3.5">
-                <span className="relative w-16 h-24 rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#264E9C] overflow-hidden grid place-items-center shrink-0 text-slate-400">
+                <span className="relative w-16 h-24 rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#0F172A] overflow-hidden grid place-items-center shrink-0 text-slate-400">
                   {storyMediaUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

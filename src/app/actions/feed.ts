@@ -8,6 +8,12 @@ import {
   FALLBACK_NEIGHBORHOODS,
 } from "@/lib/panel-data";
 import { getStoreOpenStatus } from "@/lib/store-hours";
+import {
+  DEMO_PRODUCTS,
+  DEMO_STORES,
+  DEMO_STORIES,
+  LEGACY_CATEGORY_MAP,
+} from "@/lib/demo-catalog";
 import { sanitizeStoreSlug } from "@/lib/utils";
 import type {
   GlobalCategory,
@@ -147,9 +153,10 @@ const CATALOG_STORES: StoreSummary[] = [
     delivery_fee: 0,
     followers_count: 37,
   },
+  ...DEMO_STORES,
 ];
 
-const CATALOG_PRODUCTS: ProductItem[] = [
+const CATALOG_PRODUCTS: ProductItem[] = ([
   {
     id: "prod-1",
     title: "Conjunto Alfaiataria Linho Off-White",
@@ -355,7 +362,21 @@ const CATALOG_PRODUCTS: ProductItem[] = [
     created_at: "2026-11-09T14:00:00Z",
     store: CATALOG_STORES[0],
   },
-];
+] satisfies ProductItem[]).map((p): ProductItem => {
+  // Alinha os mocks originais às categorias reais de global_categories
+  const mapped = p.subcategory_slug ? LEGACY_CATEGORY_MAP[p.subcategory_slug] : undefined;
+  return mapped
+    ? {
+        ...p,
+        category_id: mapped.category.id,
+        category_slug: mapped.category.slug,
+        subcategory_id: mapped.sub.id,
+        subcategory_slug: mapped.sub.slug,
+      }
+    : p;
+});
+
+CATALOG_PRODUCTS.push(...DEMO_PRODUCTS);
 
 const CATALOG_STORIES: StoreWithStories[] = [
   {
@@ -421,6 +442,7 @@ const CATALOG_STORIES: StoreWithStories[] = [
       },
     ],
   },
+  ...DEMO_STORIES,
 ];
 
 /**
@@ -591,6 +613,7 @@ async function loadCatalogSnapshot(): Promise<{
           delivery_fee:
             raw.delivery_fee != null ? Number(raw.delivery_fee) : 0,
           followers_count: Number(raw.followers_count || 0),
+          created_at: raw.created_at ? String(raw.created_at) : undefined,
         };
       });
     }
@@ -892,12 +915,47 @@ export async function getMarketplaceHomeData() {
     return (b.is_verified ? 1 : 0) - (a.is_verified ? 1 : 0);
   });
 
+  // Vitrine de cada loja (3 fotos recentes + total + categoria principal),
+  // montada a partir dos produtos já carregados (sem consulta extra por loja).
+  const categoryNames = new Map(
+    snapshot.categories.map((c) => [c.slug, c.name] as const)
+  );
+  const byRecent = [...snapshot.products].sort(
+    (a, b) =>
+      new Date(b.created_at ?? 0).getTime() -
+      new Date(a.created_at ?? 0).getTime()
+  );
+  const storeShowcases: Record<
+    string,
+    { thumbs: string[]; productCount: number; category: string | null }
+  > = {};
+  const categoryCounts: Record<string, Record<string, number>> = {};
+  for (const p of byRecent) {
+    const sid = p.store.id;
+    const entry = (storeShowcases[sid] ??= {
+      thumbs: [],
+      productCount: 0,
+      category: null,
+    });
+    entry.productCount += 1;
+    if (entry.thumbs.length < 3 && p.image_url) entry.thumbs.push(p.image_url);
+    if (p.category_slug) {
+      const counts = (categoryCounts[sid] ??= {});
+      counts[p.category_slug] = (counts[p.category_slug] ?? 0) + 1;
+    }
+  }
+  for (const [sid, counts] of Object.entries(categoryCounts)) {
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (top) storeShowcases[sid].category = categoryNames.get(top) ?? null;
+  }
+
   return {
     stories: snapshot.stories,
     categories: snapshot.categories,
     neighborhoods: snapshot.neighborhoods,
     dailyOffers,
     featuredStores,
+    storeShowcases,
     recentProducts: interleaved,
     initialFeed: interleaved.slice(0, 6),
     hasMoreFeed: interleaved.length > 6,

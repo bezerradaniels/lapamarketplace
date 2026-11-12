@@ -2,8 +2,10 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Identidade v3 — sacola facetada em perspectiva, alças duplas, cores chapadas.
+ * Símbolo do Lapa — sacola facetada em perspectiva, alças duplas.
  * Desenho fixo (não alterar a forma). Paths de `bag-original.svg`, viewBox recortado.
+ * Tema Aura: variante `aurora` (frente azul com luz colorida difusa, alças azul-escuro).
+ * Abaixo de 24px a aurora vira a sólida automaticamente.
  */
 const BAG_VIEWBOX = "39 51 690 690";
 
@@ -17,10 +19,10 @@ const BAG_HANDLES = [
 const BAG_SIDE =
   "M 279.746094 176.867188 L 307.546875 731.464844 L 207.46875 677.285156 L 107.390625 686.984375 L 185.230469 218.566406 L 231.097656 218.566406 Z";
 
-export type LapaBagVariant = "solid" | "white" | "mono";
+export type LapaBagVariant = "aurora" | "solid" | "white" | "mono";
 
 const BAG_PALETTES: Record<
-  LapaBagVariant,
+  Exclude<LapaBagVariant, "aurora">,
   { front: string; side: string; handle: string }
 > = {
   solid: { front: "#264E9C", side: "#3B82F6", handle: "#1E3A8A" },
@@ -28,36 +30,90 @@ const BAG_PALETTES: Record<
   mono: { front: "#0F172A", side: "#334155", handle: "#0F172A" },
 };
 
+/** Círculos de luz difusa da variante aurora (recortados pela frente da sacola). */
+const AURORA_LIGHTS = [
+  { cx: 150, cy: 260, r: 180, fill: "#60A5FA" },
+  { cx: 520, cy: 210, r: 150, fill: "#EF4444" },
+  { cx: 630, cy: 560, r: 160, fill: "#F59E0B" },
+  { cx: 230, cy: 700, r: 170, fill: "#10B981" },
+  { cx: 400, cy: 460, r: 110, fill: "#264E9C" },
+];
+
 export interface LapaBagProps
   extends Omit<React.SVGProps<SVGSVGElement>, "ref"> {
   /** Lado do símbolo em px. */
   size?: number;
-  /** `solid` (fundos claros), `white` (sobre azul/slate) ou `mono` (1 cor). */
+  /**
+   * `aurora` (padrão do tema Aura), `solid` (tamanhos pequenos),
+   * `white` (sobre preto/deep night) ou `mono` (1 cor).
+   */
   variant?: LapaBagVariant;
   title?: string;
 }
 
-/** Símbolo do Lapa Marketplace: sacola sólida em cores chapadas. */
+/** Símbolo do Lapa Marketplace: sacola aurora (ou sólida/branca/mono). */
 export function LapaBag({
   size = 64,
-  variant = "solid",
+  variant = "aurora",
   title,
   className,
   ...props
 }: LapaBagProps) {
-  const pal = BAG_PALETTES[variant];
+  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const resolved: LapaBagVariant =
+    variant === "aurora" && size < 24 ? "solid" : variant;
+
+  const svgProps = {
+    viewBox: BAG_VIEWBOX,
+    width: size,
+    height: size,
+    fill: "none",
+    role: title ? "img" : undefined,
+    "aria-label": title,
+    "aria-hidden": title ? undefined : true,
+    className: cn("block shrink-0 overflow-visible", className),
+    ...props,
+  } as React.SVGProps<SVGSVGElement>;
+
+  if (resolved === "aurora") {
+    const clipId = `lb-c-${uid}`;
+    const blurId = `lb-f-${uid}`;
+    return (
+      <svg {...svgProps}>
+        <defs>
+          <clipPath id={clipId}>
+            <path d={BAG_BODY} />
+          </clipPath>
+          <filter
+            id={blurId}
+            filterUnits="userSpaceOnUse"
+            x="-200"
+            y="-200"
+            width="1168"
+            height="1168"
+          >
+            <feGaussianBlur stdDeviation="80" />
+          </filter>
+        </defs>
+        <path d={BAG_BODY} fill="#264E9C" />
+        <g clipPath={`url(#${clipId})`}>
+          <g filter={`url(#${blurId})`}>
+            {AURORA_LIGHTS.map((c) => (
+              <circle key={c.fill + c.cx} {...c} />
+            ))}
+          </g>
+        </g>
+        {BAG_HANDLES.map((d) => (
+          <path key={d.slice(0, 24)} d={d} fill="#1E3A8A" />
+        ))}
+        <path d={BAG_SIDE} fill="#FFFFFF" fillOpacity={0.26} />
+      </svg>
+    );
+  }
+
+  const pal = BAG_PALETTES[resolved];
   return (
-    <svg
-      viewBox={BAG_VIEWBOX}
-      width={size}
-      height={size}
-      fill="none"
-      role={title ? "img" : undefined}
-      aria-label={title}
-      aria-hidden={title ? undefined : true}
-      className={cn("block shrink-0 overflow-visible", className)}
-      {...props}
-    >
+    <svg {...svgProps}>
       <path d={BAG_BODY} fill={pal.front} />
       {BAG_HANDLES.map((d) => (
         <path key={d.slice(0, 24)} d={d} fill={pal.handle} />
@@ -68,7 +124,7 @@ export function LapaBag({
 }
 
 /**
- * Compatibilidade com a v1: `LapaSymbol` agora renderiza a sacola sólida.
+ * Compatibilidade com a v1: `LapaSymbol` renderiza a sacola (aurora por padrão).
  * `ink="#FFFFFF"` mapeia para a versão branca.
  */
 export interface LapaSymbolProps extends LapaBagProps {
@@ -82,7 +138,7 @@ export function LapaSymbol({ ink, variant, ...props }: LapaSymbolProps) {
       ? "white"
       : ink?.toUpperCase() === "#0F172A"
         ? "mono"
-        : "solid");
+        : "aurora");
   return <LapaBag variant={resolved} {...props} />;
 }
 
@@ -90,14 +146,14 @@ export interface LapaWordmarkProps {
   /** `full` mostra "Lapa Marketplace"; `short` só "Lapa" (assinatura de canto / navbar mobile). */
   variant?: "full" | "short";
   symbolSize?: number;
-  /** Versão negativa: `true`/`"brand"` sobre #264E9C, `"slate"` sobre #0F172A. */
+  /** Versão negativa (sobre preto ou deep night). */
   inverted?: boolean | "brand" | "slate";
   className?: string;
   textClassName?: string;
 }
 
 /**
- * Logotipo horizontal: sacola + "Lapa" (Figtree 600, -0.025em) + "Marketplace" (Figtree 500, muted).
+ * Logotipo horizontal: sacola aurora + "Lapa" (Figtree 600, -0.025em) + "Marketplace" (Figtree 500, muted).
  */
 export function LapaWordmark({
   variant = "full",
@@ -107,14 +163,13 @@ export function LapaWordmark({
   textClassName,
 }: LapaWordmarkProps) {
   const negative = Boolean(inverted);
-  const onSlate = inverted === "slate";
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <LapaBag size={symbolSize} variant={negative ? "white" : "solid"} />
+    <span className={cn("inline-flex items-center gap-2.5", className)}>
+      <LapaBag size={symbolSize} variant="aurora" />
       <span
         className={cn(
-          "font-display text-[22px] leading-none",
-          negative ? "text-white" : "text-slate-900",
+          "font-display text-[22px] leading-none whitespace-nowrap",
+          negative ? "text-white" : "text-ink",
           textClassName
         )}
       >
@@ -123,11 +178,7 @@ export function LapaWordmark({
           <span
             className={cn(
               "font-medium tracking-[-0.02em]",
-              negative
-                ? onSlate
-                  ? "text-slate-400"
-                  : "text-blue-200"
-                : "text-slate-500"
+              negative ? "text-slate-300" : "text-muted"
             )}
           >
             {" "}
@@ -146,43 +197,38 @@ export interface VerifiedSealProps {
 }
 
 /**
- * Selo de loja verificada: círculo Azul Lapa com check branco.
+ * Selo de loja verificada (Aura): círculo #0F172A com check âmbar #FDBA74.
  */
 export function VerifiedSeal({
   size = 18,
   className,
-  label = "Loja verificada em Lapa",
+  label = "Loja verificada",
 }: VerifiedSealProps) {
   return (
-    <span
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
       role="img"
       aria-label={label}
-      title={label}
-      style={{ width: size, height: size }}
-      className={cn(
-        "inline-grid place-items-center rounded-full bg-brand shrink-0",
-        className
-      )}
+      className={cn("inline-block shrink-0", className)}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width={size * 0.62}
-        height={size * 0.62}
+      <title>{label}</title>
+      <circle cx="8" cy="8" r="8" fill="#0F172A" />
+      <path
+        d="M4.8 8.2l2.1 2.1 4.3-4.5"
         fill="none"
-        stroke="#FFFFFF"
-        strokeWidth={3.2}
+        stroke="#FDBA74"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M5 12.5l4.5 4.5L19 7.5" />
-      </svg>
-    </span>
+      />
+    </svg>
   );
 }
 
 /**
- * Pílula "Loja verificada em Lapa": fundo #EFF6FF, texto Azul Lapa, selo à esquerda.
+ * Pílula "Loja verificada em Lapa": fundo pêssego, texto preto, selo à esquerda.
  */
 export function VerifiedPill({
   label = "Loja verificada em Lapa",
@@ -194,7 +240,7 @@ export function VerifiedPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full bg-brand-soft py-1.5 pl-1.5 pr-3.5 font-display text-[13px] font-semibold text-brand",
+        "inline-flex items-center gap-2 rounded-full bg-brand-soft py-1.5 pl-1.5 pr-3.5 font-display text-[13px] font-semibold text-ink",
         className
       )}
     >

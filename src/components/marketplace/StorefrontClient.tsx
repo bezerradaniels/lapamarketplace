@@ -375,6 +375,7 @@ export function StorefrontClient({
                   key={product.id}
                   product={product}
                   hideStore
+                  variant="catalogo"
                   isFavorite={savedSet.has(product.id)}
                   onAddToBag={() => setBagCount((c) => c + 1)}
                   onToggleFavorite={handleProductFavorite}

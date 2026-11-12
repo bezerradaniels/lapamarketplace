@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  Search,
-  Heart,
-  User,
-  ShoppingBag,
-  ChevronDown,
-  X,
   ArrowRight,
+  ChevronDown,
+  Heart,
+  MapPin,
+  Search,
+  ShoppingBag,
+  User,
+  X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencyBRL } from "@/lib/utils";
 import { useBagHydrated, useBagStore } from "@/store/useBagStore";
-import { LapaWordmark } from "@/components/brand/LapaSymbol";
+import { useViewer } from "@/lib/use-viewer";
+import { LapaBag } from "@/components/brand/LapaSymbol";
 
 export const LAPA_NEIGHBORHOODS = [
   "Toda Bom Jesus da Lapa",
@@ -33,15 +36,18 @@ export const LAPA_NEIGHBORHOODS = [
 export interface MarketplaceHeaderProps {
   selectedNeighborhood?: string;
   onNeighborhoodChange?: (neighborhood: string) => void;
+  /** Bairros do menu (o primeiro é "toda a cidade"). Padrão: `LAPA_NEIGHBORHOODS`. */
+  neighborhoods?: string[];
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onSearchSubmit?: (query: string) => void;
+  /** @deprecated A sacola lê o `useBagStore`. Mantido por compatibilidade. */
   bagCount?: number;
   favoritesCount?: number;
   onOpenBag?: () => void;
   onOpenFavorites?: () => void;
   /**
-   * `full` (padrão): no mobile mostra marca, bairro, favoritos e busca.
+   * `full` (padrão): no mobile mostra logo, bairro, favoritos e busca.
    * `hidden`: a tela tem cabeçalho mobile próprio; o header só aparece do `md` em diante.
    */
   mobileVariant?: "full" | "hidden";
@@ -49,12 +55,198 @@ export interface MarketplaceHeaderProps {
   className?: string;
 }
 
-const iconButtonClasses =
-  "relative w-10.5 h-10.5 rounded-[14px] grid place-items-center text-slate-900 transition-colors duration-150 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light";
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light";
 
+function useScrolled(threshold = 80) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
+function useScrollDirectionHidden(min = 48) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      setHidden(y > last && y > min);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [min]);
+  return hidden;
+}
+
+/* ---------- Bairro ---------- */
+
+function NeighborhoodMenu({
+  value,
+  options,
+  onChange,
+  compact,
+}: {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
+  const label = value === options[0] ? "Toda Lapa" : value;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    listRef.current?.focus();
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const choose = (v: string) => {
+    onChange(v);
+    setOpen(false);
+    buttonRef.current?.focus();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      buttonRef.current?.focus();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => Math.min(options.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => Math.max(0, i - 1));
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      choose(options[active]);
+    }
+  };
+
+  return (
+    <div ref={rootRef} className="relative flex-none">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={`Bairro: ${label}. Trocar bairro`}
+        onClick={() => {
+          setActive(Math.max(0, options.indexOf(value)));
+          setOpen((o) => !o);
+        }}
+        className={cn(
+          "flex cursor-pointer items-center rounded-full bg-media text-left transition-colors hover:bg-line",
+          focusRing,
+          compact
+            ? "h-10 gap-1.5 pl-2.5 pr-3 font-display text-sm font-semibold text-ink"
+            : "h-12 gap-2.5 pl-3 pr-3.5"
+        )}
+      >
+        {compact ? (
+          <MapPin className="size-3.75 text-ink" strokeWidth={2} aria-hidden="true" />
+        ) : (
+          <span className="grid size-7 flex-none place-items-center rounded-full bg-white">
+            <MapPin className="size-3.75 text-ink" strokeWidth={2} aria-hidden="true" />
+          </span>
+        )}
+        {compact ? (
+          <span className="max-w-26 truncate">{label}</span>
+        ) : (
+          <span className="flex flex-col leading-[1.15]">
+            <span className="text-[11px] font-medium text-muted">Entregar em</span>
+            <span className="max-w-36 truncate font-display text-sm font-semibold text-ink">
+              {label}
+            </span>
+          </span>
+        )}
+        <ChevronDown
+          className={cn("text-muted", compact ? "size-3.25" : "size-3.5")}
+          strokeWidth={2}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <div
+          className={cn(
+            "z-50 rounded-3xl border border-media bg-white p-3 shadow-menu",
+            compact
+              ? "fixed inset-x-2 bottom-2 max-h-[70vh] overflow-y-auto md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-[calc(100%+10px)] md:w-85"
+              : "absolute left-0 top-[calc(100%+10px)] w-85"
+          )}
+        >
+          <p className="px-3 pb-1 pt-2 font-display text-[15px] font-semibold text-ink">
+            Onde você está?
+          </p>
+          <p className="px-3 pb-2 text-[13px] leading-normal text-muted">
+            Mostramos primeiro as lojas do seu bairro.
+          </p>
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            tabIndex={-1}
+            aria-label="Escolha o bairro"
+            aria-activedescendant={`${listId}-${active}`}
+            onKeyDown={onKeyDown}
+            className="flex max-h-80 flex-col gap-1 overflow-y-auto outline-none"
+          >
+            {options.map((opt, i) => {
+              const sel = opt === value;
+              return (
+                <li
+                  key={opt}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={sel}
+                  onClick={() => choose(opt)}
+                  onMouseEnter={() => setActive(i)}
+                  className={cn(
+                    "flex h-11 flex-none cursor-pointer items-center rounded-[14px] px-3 text-[15px]",
+                    sel ? "bg-brand-soft font-semibold text-brand-deep" : "text-ink",
+                    !sel && i === active && "bg-media"
+                  )}
+                >
+                  {i === 0 ? "Toda Bom Jesus da Lapa" : opt}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Header ---------- */
+
+/**
+ * Header v2 (tema Aura). Desktop: uma linha (logo, bairro, busca com halo, favoritos,
+ * conta, sacola), com estado compacto após 80px de rolagem. Mobile: logo + bairro +
+ * favoritos, e a busca fica fixa; a linha do logo some ao rolar para baixo.
+ */
 export function MarketplaceHeader({
   selectedNeighborhood: controlledNeighborhood,
   onNeighborhoodChange,
+  neighborhoods = LAPA_NEIGHBORHOODS,
   searchQuery: controlledQuery,
   onSearchChange,
   onSearchSubmit,
@@ -66,253 +258,273 @@ export function MarketplaceHeader({
   searchPlaceholder = "O que você procura em Lapa hoje?",
   className,
 }: MarketplaceHeaderProps) {
-  const [internalNeighborhood, setInternalNeighborhood] = useState(
-    LAPA_NEIGHBORHOODS[0]
-  );
+  const [internalNeighborhood, setInternalNeighborhood] = useState(neighborhoods[0]);
   const [internalQuery, setInternalQuery] = useState("");
+  const router = useRouter();
+  const scrolled = useScrolled(80);
+  const mobileHidden = useScrollDirectionHidden(48);
+  const viewer = useViewer();
 
   const isMounted = useBagHydrated();
   const bagItems = useBagStore((s) => s.items);
-  const storeBagTotalQty = bagItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
-  const displayedBagCount = isMounted ? storeBagTotalQty : bagCount;
+  const count = isMounted ? bagItems.reduce((sum, i) => sum + i.quantity, 0) : bagCount;
+  const total = isMounted ? bagItems.reduce((sum, i) => sum + i.price * i.quantity, 0) : 0;
+  const hasItems = count > 0;
+  const totalLabel = formatCurrencyBRL(total);
 
   const neighborhood = controlledNeighborhood ?? internalNeighborhood;
   const query = controlledQuery ?? internalQuery;
-  const neighborhoodLabel =
-    neighborhood === LAPA_NEIGHBORHOODS[0] ? "Toda Lapa" : neighborhood;
 
-  const handleNeighborhoodSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setInternalNeighborhood(val);
-    onNeighborhoodChange?.(val);
+  const setNeighborhood = (v: string) => {
+    setInternalNeighborhood(v);
+    onNeighborhoodChange?.(v);
   };
 
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInternalQuery(val);
-    onSearchChange?.(val);
+  const setQuery = (v: string) => {
+    setInternalQuery(v);
+    onSearchChange?.(v);
   };
 
-  const handleClearQuery = () => {
-    setInternalQuery("");
-    onSearchChange?.("");
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearchSubmit?.(query);
+    if (onSearchSubmit) {
+      onSearchSubmit(query);
+    } else if (query.trim()) {
+      router.push(`/explorar?q=${encodeURIComponent(query.trim())}`);
+    }
   };
 
-  /** Chip de bairro: ponto pêssego + nome, com <select> nativo por cima. */
-  const neighborhoodChip = (surface: "white" | "soft") => (
-    <label
-      className={cn(
-        "relative h-10.5 pl-3 pr-2.5 rounded-[14px] inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-900 cursor-pointer transition-colors duration-150 focus-within:ring-2 focus-within:ring-slate-900",
-        surface === "white" ? "bg-white" : "bg-slate-100 hover:bg-slate-200"
-      )}
-    >
-      <span className="w-1.75 h-1.75 rounded-full bg-brand" aria-hidden="true" />
-      <span className="max-w-28 truncate">{neighborhoodLabel}</span>
-      <ChevronDown
-        className="w-3.5 h-3.5 text-slate-500"
-        strokeWidth={1.8}
-        aria-hidden="true"
-      />
-      <select
-        aria-label="Selecionar bairro em Bom Jesus da Lapa"
-        value={neighborhood}
-        onChange={handleNeighborhoodSelect}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-      >
-        {LAPA_NEIGHBORHOODS.map((nb) => (
-          <option key={nb} value={nb}>
-            {nb}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-
-  const favoritesDot = favoritesCount > 0 && (
-    <span
-      className="absolute top-2.5 right-2.75 w-2 h-2 rounded-full bg-offer ring-2 ring-white"
-      aria-hidden="true"
-    />
-  );
-
-  const favoritesButton = (surface: "white" | "soft") => {
-    const classes = cn(
-      iconButtonClasses,
-      surface === "white" ? "bg-white" : "bg-slate-100 hover:bg-slate-200"
-    );
-    const label =
-      favoritesCount > 0 ? `Favoritos (${favoritesCount})` : "Favoritos";
-    const icon = (
-      <>
-        <Heart className="w-5 h-5" strokeWidth={1.8} aria-hidden="true" />
-        {favoritesDot}
-      </>
-    );
-
-    return onOpenFavorites ? (
-      <button
-        type="button"
-        onClick={onOpenFavorites}
-        aria-label={label}
-        className={classes}
-      >
-        {icon}
-      </button>
-    ) : (
-      <Link
-        href="/minha-conta?aba=favorites"
-        aria-label={label}
-        className={classes}
-      >
-        {icon}
-      </Link>
-    );
-  };
-
-  const searchForm = (size: "mobile" | "desktop") => (
+  const searchForm = (size: "lg" | "md") => (
     <form
-      onSubmit={handleFormSubmit}
       role="search"
-      className={cn(
-        "relative flex items-center lapa-aurora-glow rounded-full",
-        size === "desktop" ? "hidden md:flex flex-1 max-w-xl" : "w-full"
-      )}
+      onSubmit={submit}
+      className={cn("aura-glow rounded-full", size === "lg" ? "min-w-55 max-w-160 flex-1" : "w-full")}
     >
-      <Search
-        className="w-4.5 h-4.5 text-slate-500 absolute left-4.5 pointer-events-none"
-        strokeWidth={1.8}
-        aria-hidden="true"
-      />
-      <input
-        type="search"
-        value={query}
-        onChange={handleQueryChange}
-        placeholder={searchPlaceholder}
-        aria-label="Pesquisar produtos ou lojas"
+      <label
         className={cn(
-          "w-full rounded-full bg-white border border-slate-200 pl-11.5 pr-13 text-sm text-slate-900 outline-none transition-[border-color] duration-150",
-          "placeholder:text-slate-500 focus:border-brand focus:outline-none [&::-webkit-search-cancel-button]:hidden",
-          size === "desktop" ? "h-11.5" : "h-12"
+          "flex items-center gap-2.5 rounded-full border border-line bg-white",
+          size === "lg" ? "h-13 pl-4.5 pr-1.5" : "h-12 pl-4 pr-1"
         )}
-      />
-      {query ? (
-        <div className="absolute right-1.5 flex items-center gap-1">
+      >
+        <Search
+          className={cn("flex-none text-muted", size === "lg" ? "size-4.75" : "size-4.5")}
+          strokeWidth={1.9}
+          aria-hidden="true"
+        />
+        <span className="sr-only">Buscar produtos e lojas</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={size === "lg" ? searchPlaceholder : "O que você procura hoje?"}
+          className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
           <button
             type="button"
-            onClick={handleClearQuery}
-            aria-label="Limpar pesquisa"
-            className="w-7 h-7 rounded-full hover:bg-slate-100 grid place-items-center text-slate-400 hover:text-slate-700 cursor-pointer"
+            onClick={() => setQuery("")}
+            aria-label="Limpar busca"
+            className={cn(
+              "grid size-8 flex-none cursor-pointer place-items-center rounded-full text-slate-400 hover:bg-media hover:text-slate-700",
+              focusRing
+            )}
           >
-            <X className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+            <X className="size-3.5" strokeWidth={2} aria-hidden="true" />
           </button>
-          <button
-            type="submit"
-            aria-label="Buscar"
-            className="w-8.5 h-8.5 rounded-full bg-brand hover:bg-brand-hover text-white grid place-items-center transition duration-150 active:scale-95 cursor-pointer shrink-0"
-          >
-            <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-          </button>
-        </div>
-      ) : (
+        )}
         <button
           type="submit"
           aria-label="Buscar"
-          className="absolute right-1.5 w-8.5 h-8.5 rounded-full bg-brand hover:bg-brand-hover text-white grid place-items-center transition duration-150 active:scale-95 cursor-pointer shrink-0"
+          className={cn(
+            "grid size-10 flex-none cursor-pointer place-items-center rounded-full bg-ink text-white transition-colors hover:bg-ink-hover active:scale-95",
+            focusRing
+          )}
         >
-          <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+          <ArrowRight className={size === "lg" ? "size-4.25" : "size-4"} strokeWidth={2.2} aria-hidden="true" />
         </button>
-      )}
+      </label>
     </form>
   );
 
-  const bagClasses =
-    "relative inline-flex items-center gap-2 h-10.5 pl-3.5 pr-2.5 rounded-[14px] bg-brand hover:bg-brand-hover text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer touch-manipulation";
-  const bagContent = (
+  const favoritesLabel = favoritesCount > 0 ? `Favoritos (${favoritesCount})` : "Favoritos";
+  const favoritesClasses = (sizeCls: string) =>
+    cn(
+      "relative grid flex-none cursor-pointer place-items-center rounded-full bg-media transition-colors hover:bg-line",
+      sizeCls,
+      focusRing
+    );
+  const favoritesInner = (iconCls: string) => (
     <>
-      <ShoppingBag className="w-4.5 h-4.5" strokeWidth={1.8} aria-hidden="true" />
-      <span>Sacola</span>
-      <span className="min-w-5 h-5 px-1.5 rounded-full bg-offer text-white text-[11px] font-bold inline-grid place-items-center">
-        {displayedBagCount}
+      <Heart className={cn("text-ink", iconCls)} strokeWidth={1.8} aria-hidden="true" />
+      {favoritesCount > 0 && (
+        <span
+          className="absolute right-2.5 top-2.25 size-2 rounded-full bg-offer ring-2 ring-media"
+          aria-hidden="true"
+        />
+      )}
+    </>
+  );
+  const favorites = (sizeCls: string, iconCls: string) =>
+    onOpenFavorites ? (
+      <button type="button" onClick={onOpenFavorites} aria-label={favoritesLabel} className={favoritesClasses(sizeCls)}>
+        {favoritesInner(iconCls)}
+      </button>
+    ) : (
+      <Link href="/minha-conta?aba=favorites" aria-label={favoritesLabel} className={favoritesClasses(sizeCls)}>
+        {favoritesInner(iconCls)}
+      </Link>
+    );
+
+  const bagLabel = hasItems
+    ? `Sacola, ${count} ${count === 1 ? "item" : "itens"}, ${totalLabel}`
+    : "Sacola vazia";
+  const bagClasses = cn(
+    "flex h-12 flex-none cursor-pointer items-center gap-2.5 rounded-full bg-brand pl-4 pr-2 text-white transition-colors hover:bg-brand-hover active:scale-[0.98]",
+    focusRing
+  );
+  const bagInner = (
+    <>
+      <ShoppingBag className="size-5" strokeWidth={1.8} aria-hidden="true" />
+      <span className="flex flex-col text-left leading-[1.15]">
+        {hasItems && <span className="text-[11px] font-medium text-slate-300">{totalLabel}</span>}
+        <span className="font-display text-[15px] font-semibold">Sacola</span>
+      </span>
+      <span
+        className={cn(
+          "grid h-7.5 min-w-7.5 place-items-center rounded-full px-2 font-display text-[13px] font-bold",
+          hasItems ? "bg-white text-ink" : "bg-white/16 text-slate-300"
+        )}
+      >
+        {count > 99 ? "99+" : count}
       </span>
     </>
   );
 
   return (
     <>
-      {/* Desktop: barra fixa branca */}
+      {/* Desktop */}
       <header
         className={cn(
-          "hidden md:block sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md",
+          "sticky top-0 z-40 hidden w-full border-b border-seg backdrop-blur-[16px] transition-shadow duration-200 md:block",
+          scrolled ? "bg-white/86 shadow-[0_8px_30px_rgba(15,23,42,0.06)]" : "bg-white/72",
           className
         )}
       >
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 h-18 flex items-center justify-between gap-5">
-          <div className="flex items-center gap-4 shrink-0">
-            <Link
-              href="/"
-              aria-label="Lapa Marketplace — início"
-              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light rounded-lg"
+        <div
+          className={cn(
+            "mx-auto flex max-w-7xl items-center gap-4 px-6 transition-[height] duration-200 lg:px-8",
+            scrolled ? "h-17" : "h-20"
+          )}
+        >
+          <Link
+            href="/"
+            aria-label="Lapa Marketplace, página inicial"
+            className={cn("flex flex-none items-center gap-2.5 rounded-lg", focusRing)}
+          >
+            <LapaBag variant="aurora" size={scrolled ? 28 : 34} />
+            <span
+              className={cn(
+                "whitespace-nowrap font-display tracking-[-0.025em] transition-[font-size] duration-200",
+                scrolled ? "text-[21px]" : "text-2xl"
+              )}
             >
-              <LapaWordmark symbolSize={30} />
-            </Link>
-            {neighborhoodChip("soft")}
+              <span className="font-semibold text-ink">Lapa</span>
+              <span className="hidden font-medium tracking-[-0.02em] text-muted xl:inline"> Marketplace</span>
+            </span>
+          </Link>
+
+          <div className="hidden lg:block">
+            <NeighborhoodMenu value={neighborhood} options={neighborhoods} onChange={setNeighborhood} />
           </div>
+          {searchForm("lg")}
 
-          {searchForm("desktop")}
+          <nav aria-label="Atalhos da conta" className="ml-auto flex flex-none items-center gap-2">
+            {favorites("size-12", "size-5")}
 
-          <div className="flex items-center gap-2 shrink-0">
-            {favoritesButton("soft")}
-            <Link
-              href="/minha-conta"
-              aria-label="Minha conta ou painel do lojista"
-              className="h-10.5 px-3.5 rounded-[14px] bg-slate-100 hover:bg-slate-200 text-slate-900 inline-flex items-center gap-2 font-display text-sm font-bold transition-colors duration-150"
-            >
-              <User className="w-4.5 h-4.5" strokeWidth={1.8} aria-hidden="true" />
-              <span className="hidden lg:inline">Conta</span>
-            </Link>
-            {onOpenBag ? (
-              <button
-                type="button"
-                onClick={onOpenBag}
-                aria-label={`Sacola de compras (${displayedBagCount} itens)`}
-                className={bagClasses}
+            {viewer ? (
+              <Link
+                href={viewer.store ? "/painel" : "/minha-conta"}
+                className={cn(
+                  "flex h-12 items-center gap-2.5 rounded-full bg-media pl-1.5 pr-4 transition-colors hover:bg-line",
+                  focusRing
+                )}
               >
-                {bagContent}
-              </button>
+                <span className="grid size-9 place-items-center overflow-hidden rounded-full bg-brand-soft font-display text-[13px] font-bold text-brand-deep">
+                  {viewer.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={viewer.avatarUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    viewer.initials
+                  )}
+                </span>
+                <span className="hidden flex-col leading-[1.15] lg:flex">
+                  <span className="max-w-28 truncate text-[11px] font-medium text-muted">
+                    Olá, {viewer.firstName}
+                  </span>
+                  <span className="whitespace-nowrap font-display text-sm font-semibold text-ink">
+                    {viewer.store ? "Meu painel" : "Minha conta"}
+                  </span>
+                </span>
+              </Link>
             ) : (
               <Link
-                href="/sacola"
-                aria-label={`Sacola de compras (${displayedBagCount} itens)`}
-                className={bagClasses}
+                href="/minha-conta"
+                className={cn(
+                  "flex h-12 items-center gap-2 rounded-full bg-media pl-3.5 pr-4.5 font-display text-[15px] font-semibold text-ink transition-colors hover:bg-line",
+                  focusRing
+                )}
               >
-                {bagContent}
+                <User className="size-4.75" strokeWidth={1.8} aria-hidden="true" />
+                <span className="hidden lg:inline">Entrar</span>
               </Link>
             )}
-          </div>
+
+            {onOpenBag ? (
+              <button type="button" onClick={onOpenBag} aria-label={bagLabel} className={bagClasses}>
+                {bagInner}
+              </button>
+            ) : (
+              <Link href="/sacola" aria-label={bagLabel} className={bagClasses}>
+                {bagInner}
+              </Link>
+            )}
+            <span className="sr-only" aria-live="polite">
+              {hasItems ? `${count} itens na sacola` : ""}
+            </span>
+          </nav>
         </div>
       </header>
 
-      {/* Mobile: marca + bairro + favoritos, busca logo abaixo */}
+      {/* Mobile */}
       {mobileVariant === "full" && (
-        <header className="md:hidden w-full">
-          <div className="flex items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-3.5">
-            <Link href="/" aria-label="Lapa Marketplace — início">
-              <LapaWordmark variant="short" symbolSize={30} />
-            </Link>
-            <div className="flex items-center gap-2">
-              {neighborhoodChip("white")}
-              {favoritesButton("white")}
+        <header className="sticky top-0 z-40 w-full border-b border-seg bg-white/86 backdrop-blur-[16px] md:hidden">
+          <div
+            className={cn(
+              "flex flex-col gap-3 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] transition-shadow duration-200",
+              mobileHidden && "shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center gap-2 transition-all duration-200",
+                mobileHidden && "pointer-events-none -mb-3 h-0 -translate-y-2 overflow-hidden opacity-0"
+              )}
+              aria-hidden={mobileHidden || undefined}
+            >
+              <Link
+                href="/"
+                aria-label="Lapa Marketplace, página inicial"
+                className={cn("mr-auto flex flex-none items-center gap-2 rounded-lg", focusRing)}
+              >
+                <LapaBag variant="aurora" size={28} />
+                <span className="font-display text-xl font-semibold tracking-[-0.025em] text-ink">Lapa</span>
+              </Link>
+              <NeighborhoodMenu value={neighborhood} options={neighborhoods} onChange={setNeighborhood} compact />
+              {favorites("size-10", "size-4.75")}
             </div>
+
+            {searchForm("md")}
           </div>
-          <div className="px-5 pb-4">{searchForm("mobile")}</div>
         </header>
       )}
     </>

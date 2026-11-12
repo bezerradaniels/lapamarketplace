@@ -52,12 +52,14 @@ export function CategoryPills({
               onClick={() => onSelect?.(cat)}
               aria-pressed={isActive}
               className={cn(
-                "inline-flex items-center gap-2 rounded-[14px] font-display font-bold text-slate-900 transition-colors duration-150 ease-out cursor-pointer select-none touch-manipulation active:scale-[0.98]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light",
+                "inline-flex items-center gap-2 rounded-full border font-display font-semibold whitespace-nowrap transition-colors duration-150 ease-out cursor-pointer select-none touch-manipulation active:scale-[0.98]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light",
                 size === "md"
-                  ? "px-4 py-2.5 text-sm"
-                  : "px-3.5 py-2.25 text-[13px]",
-                isActive ? "bg-brand" : "bg-white hover:bg-slate-100"
+                  ? "h-9 px-3.5 text-sm"
+                  : "h-8.5 px-3.5 text-[13px]",
+                isActive
+                  ? "border-ink bg-ink text-white"
+                  : "border-line bg-white text-ink hover:bg-slate-50"
               )}
             >
               <span>{cat.name}</span>
@@ -65,7 +67,7 @@ export function CategoryPills({
                 <span
                   className={cn(
                     "px-1.5 rounded-full text-[10px] font-bold leading-4",
-                    isActive ? "bg-white/50" : "bg-slate-100 text-slate-500"
+                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
                   )}
                 >
                   {cat.count}

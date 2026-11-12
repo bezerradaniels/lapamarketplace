@@ -325,7 +325,7 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
                   })}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 h-13 rounded-[17px] bg-whatsapp hover:bg-whatsapp-strong text-white font-display text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                  className="flex-1 h-13 rounded-[17px] bg-whatsapp-strong hover:bg-whatsapp-hover text-white font-display text-sm font-bold flex items-center justify-center gap-2 transition-colors"
                 >
                   <MessageCircle className="w-4 h-4" aria-hidden="true" />
                   <span>Responder no WhatsApp</span>

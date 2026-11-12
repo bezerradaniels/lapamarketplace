@@ -95,7 +95,7 @@ function SignupFormContent() {
               className={cn(
                 "p-3.5 rounded-[22px] flex flex-col gap-2.5 text-left cursor-pointer transition-[background-color,box-shadow] duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
                 selected
-                  ? "bg-brand-soft shadow-[inset_0_0_0_2px_#264E9C]"
+                  ? "bg-white shadow-[inset_0_0_0_2px_#0F172A,0_10px_24px_-12px_rgba(244,114,182,0.6)]"
                   : "bg-white ring-line"
               )}
             >

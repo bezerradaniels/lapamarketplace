@@ -535,7 +535,7 @@ export function OnboardingWizard({
       {step === 1 && (
         <>
           <div className="flex items-center gap-3.5">
-            <span className="relative w-19 h-19 rounded-full bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#264E9C] overflow-hidden grid place-items-center shrink-0">
+            <span className="relative w-19 h-19 rounded-full bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#0F172A] overflow-hidden grid place-items-center shrink-0">
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

@@ -885,7 +885,7 @@ export function ExploreMarketplaceClient({
                   <ProductCardGrid
                     key={product.id}
                     product={product}
-                    ratio="portrait"
+                    variant="catalogo"
                     isFavorite={savedSet.has(product.id)}
                     onAddToBag={() => setBagCount((c) => c + 1)}
                     onToggleFavorite={handleProductFavorite}

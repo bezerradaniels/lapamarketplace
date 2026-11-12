@@ -26,10 +26,10 @@ export interface ButtonProps
 
 export const buttonVariantClasses: Record<ButtonVariant, string> = {
   primary: "bg-brand text-white hover:bg-brand-hover active:bg-brand-hover",
-  secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-  whatsapp: "bg-whatsapp text-white hover:bg-whatsapp-strong",
+  secondary: "bg-media text-ink hover:bg-line",
+  whatsapp: "bg-whatsapp-strong text-white hover:bg-whatsapp-hover",
   brand: "bg-brand text-white hover:bg-brand-hover",
-  outline: "bg-white text-brand shadow-[inset_0_0_0_1.5px_#264E9C] hover:bg-brand-soft",
+  outline: "bg-white text-ink ring-ink hover:bg-media",
   ghost: "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
 };
 

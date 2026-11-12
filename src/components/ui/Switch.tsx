@@ -15,7 +15,7 @@ export interface SwitchProps
 }
 
 /**
- * Switch do sistema: ligado em verde #10B981, knob animado em 150ms ease-out.
+ * Switch do sistema (Aura): ligado em preto #0F172A, desligado #CBD5E1, knob animado em 150ms ease-out.
  */
 export function Switch({
   checked,
@@ -37,7 +37,7 @@ export function Switch({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
         "disabled:opacity-55 disabled:cursor-not-allowed",
         size === "md" ? "w-11.5 h-7" : "w-10.5 h-6.5",
-        checked ? "bg-whatsapp" : "bg-slate-200",
+        checked ? "bg-ink" : "bg-slate-300",
         className
       )}
       {...props}

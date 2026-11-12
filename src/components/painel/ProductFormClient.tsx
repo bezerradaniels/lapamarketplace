@@ -348,7 +348,7 @@ export function ProductFormClient({
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr] gap-2.5">
-              <div className="col-span-2 sm:col-span-1 relative aspect-square rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#264E9C] overflow-hidden grid place-items-center">
+              <div className="col-span-2 sm:col-span-1 relative aspect-square rounded-[18px] bg-slate-100 shadow-[0_0_0_3px_#fff,0_0_16px_2px_rgba(56,189,248,0.45),0_0_26px_6px_rgba(244,114,182,0.28)] overflow-hidden grid place-items-center">
                 {mainImageUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -416,7 +416,7 @@ export function ProductFormClient({
             />
 
             {/* Filtros condicionais (filter_config) */}
-            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-brand-tint shadow-[inset_0_0_0_1.5px_#BFDBFE] flex flex-col gap-3.5">
+            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-[linear-gradient(135deg,#FFF7ED,#FDF2F8_50%,#E0F2FE)] shadow-[inset_0_0_0_1px_#F1F5F9] flex flex-col gap-3.5">
               {filterConfig.has_gender && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold text-brand-ink">Gênero · filtro da categoria</span>
@@ -533,11 +533,12 @@ export function ProductFormClient({
         {/* Coluna direita: prévia + ações */}
         <aside className="flex flex-col gap-3 lg:sticky lg:top-7">
           <span className={eyebrow}>Prévia no feed</span>
-          <div className="p-2 pb-3.5 rounded-3xl bg-white flex flex-col gap-2.5">
-            <div className="relative aspect-square rounded-[18px] bg-slate-100 overflow-hidden grid place-items-center text-xs text-slate-500">
+          <div className="moldura rounded-[32px] p-3">
+          <div className="p-2 pb-3.5 rounded-3xl border border-media bg-white shadow-card flex flex-col gap-2.5">
+            <div className="relative aspect-4/5 rounded-[18px] bg-media overflow-hidden grid place-items-center text-xs text-slate-500">
               {mainImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mainImageUrl} alt="" className="w-full h-full object-cover" />
+                <img src={mainImageUrl} alt="" className="w-full h-full object-cover object-top" />
               ) : (
                 "foto principal"
               )}
@@ -546,11 +547,11 @@ export function ProductFormClient({
               )}
             </div>
             <div className="flex flex-col gap-0.5 px-1.5">
-              <span className="font-display text-[15px] font-semibold text-slate-900 truncate">
+              <span className="font-display text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-ink line-clamp-2 min-h-9.5">
                 {title || "Título do produto"}
               </span>
-              <span className="flex items-baseline gap-1.5">
-                <span className="font-display text-lg font-extrabold text-slate-900">
+              <span className="flex items-baseline gap-1.5 pt-1">
+                <span className="font-display text-[19px] font-extrabold tracking-[-0.02em] text-ink">
                   {formatCurrencyBRL(previewPrice)}
                 </span>
                 {discountPercent != null && (
@@ -559,15 +560,25 @@ export function ProductFormClient({
               </span>
             </div>
           </div>
+          </div>
 
           <div className="flex items-center justify-between gap-3 p-3.5 rounded-[18px] bg-white">
             <span className="text-sm font-semibold text-slate-900">Visível na vitrine</span>
             <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Produto visível na vitrine" />
           </div>
 
-          <Button type="submit" size="lg" fullWidth isLoading={isPending} onClick={() => (draftRef.current = false)}>
-            {isEditing ? "Salvar alterações" : "Publicar produto"}
-          </Button>
+          <div className="aura-glow rounded-full">
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              className="h-13"
+              isLoading={isPending}
+              onClick={() => (draftRef.current = false)}
+            >
+              {isEditing ? "Salvar alterações" : "Publicar produto"}
+            </Button>
+          </div>
           <Button
             type="button"
             variant="secondary"

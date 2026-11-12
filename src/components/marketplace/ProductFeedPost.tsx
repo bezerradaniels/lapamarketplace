@@ -1,24 +1,19 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Heart, MessageCircle, ShoppingBag, Truck } from "lucide-react";
+import { buildWhatsAppUrl, cn, formatCurrencyBRL } from "@/lib/utils";
 import {
-  Heart,
-  ShoppingBag,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-} from "lucide-react";
-import {
-  buildWhatsAppUrl,
-  calculateDiscountPercentage,
-  cn,
-  formatCurrencyBRL,
-} from "@/lib/utils";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
+  STATUS_TONE,
+  discountLabel,
+  initialsOf,
+  installmentsFor,
+  perkFor,
+  priceOf,
+  shippingFor,
+  storeStatusLine,
+} from "@/lib/aura-display";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import { useBagStore } from "@/store/useBagStore";
 import { incrementProductWhatsappClickAction } from "@/app/actions/feed";
@@ -30,137 +25,76 @@ export interface ProductFeedPostProps {
   isFavorite?: boolean;
   onToggleFavorite?: (product: ProductItem, nextState: boolean) => void;
   onAddToBag?: (product: ProductItem, selectedSize?: string | null) => void;
-  whatsappVariant?: "whatsapp" | "primary";
+  /** Seguir a loja (sem o handler, o botão não aparece). */
+  isFollowing?: boolean;
+  onToggleFollow?: (product: ProductItem, nextState: boolean) => void;
+  /** Loja com story ativo (anel prismático no avatar). */
+  hasStory?: boolean;
+  onOpenStory?: () => void;
   className?: string;
 }
 
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light";
+
+/**
+ * Post do feed v2 (tema Aura): cabeçalho da loja com Seguir, carrossel 4:5,
+ * nome → preço → descrição → tamanhos em grade → entrega → botões gêmeos.
+ */
 export function ProductFeedPost({
   product,
   isFavorite: controlledFavorite,
   onToggleFavorite,
   onAddToBag,
-  whatsappVariant = "whatsapp",
+  isFollowing = false,
+  onToggleFollow,
+  hasStory = false,
+  onOpenStory,
   className,
 }: ProductFeedPostProps) {
+  const sizeLabelId = useId();
   const [internalFav, setInternalFav] = useState(false);
-  const [justAdded, setJustAdded] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const [size, setSize] = useState<string | null>(null);
+  const [sizeError, setSizeError] = useState(false);
+  const sizesRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+
+  const items = useBagStore((s) => s.items);
   const addProduct = useBagStore((s) => s.addProduct);
-  const [selectedSize, setSelectedSize] = useState<string | null>(
-    product.sizes && product.sizes.length > 0 ? product.sizes[0] : null
-  );
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [settledAnnouncement, setSettledAnnouncement] = useState("");
+  const removeItem = useBagStore((s) => s.removeItem);
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pendingTargetRef = useRef<number | null>(null);
-  const settledSlideRef = useRef(0);
-
+  const store = product.store;
   const isFav = controlledFavorite ?? internalFav;
-  const isPremium = product.store.plan === "premium";
-  const productUrl = `/${product.store.slug}/${product.slug || product.id}`;
+  const productUrl = `/${store.slug}/${product.slug || product.id}`;
+  const sizes = product.sizes ?? [];
+  const needSize = sizes.length > 0 && !size;
+  const cartItemId = `${product.id}::${size || "unico"}`;
+  const bagItem = items.find((i) => i.cartItemId === cartItemId);
 
-  const images = React.useMemo(() => {
+  const images = useMemo(() => {
     const list = [product.image_url];
-    if (product.gallery_urls && product.gallery_urls.length > 0) {
-      for (const url of product.gallery_urls) {
-        if (url && !list.includes(url)) {
-          list.push(url);
-        }
-      }
+    for (const url of product.gallery_urls ?? []) {
+      if (url && !list.includes(url)) list.push(url);
     }
     return list;
   }, [product.image_url, product.gallery_urls]);
 
-  const discountPercent = calculateDiscountPercentage(
-    product.price,
-    product.promotional_price
-  );
-  const hasPromo =
-    discountPercent != null &&
-    product.promotional_price != null &&
-    product.promotional_price < product.price;
-  const effectivePrice = hasPromo
-    ? product.promotional_price!
-    : product.price;
+  const { final, compareAt } = priceOf(product);
+  const off = discountLabel(product.price, product.promotional_price);
+  const status = storeStatusLine(store);
+  const tone = STATUS_TONE[status.tone];
+  const perk = perkFor(store, status);
+  const shipping = shippingFor(store, status);
+  const installments = installmentsFor(store, final);
 
-  // Sincronização de scroll do carrossel seguindo modern-web-guidance
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track || images.length <= 1) return;
-
-    let rafId = 0;
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const getNearestIndex = () => {
-      const width = track.clientWidth || 1;
-      const idx = Math.round(track.scrollLeft / width);
-      return Math.max(0, Math.min(images.length - 1, idx));
-    };
-
-    const onScroll = () => {
-      if (pendingTargetRef.current !== null) return;
-      if (rafId) return;
-      rafId = window.requestAnimationFrame(() => {
-        rafId = 0;
-        const idx = getNearestIndex();
-        setActiveSlide((prev) => (prev !== idx ? idx : prev));
-      });
-    };
-
-    const onSettled = () => {
-      pendingTargetRef.current = null;
-      const idx = getNearestIndex();
-      setActiveSlide(idx);
-      if (settledSlideRef.current !== idx) {
-        settledSlideRef.current = idx;
-        setSettledAnnouncement(`Foto ${idx + 1} de ${images.length}`);
-      }
-    };
-
-    const supportsScrollEnd = "onscrollend" in window;
-    const onScrollFallback = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(onSettled, 140);
-    };
-
-    track.addEventListener("scroll", onScroll, { passive: true });
-    if (supportsScrollEnd) {
-      track.addEventListener("scrollend", onSettled);
-    } else {
-      track.addEventListener("scroll", onScrollFallback, { passive: true });
+  const runGuarded = (fn: () => void) => {
+    if (needSize) {
+      setSizeError(true);
+      sizesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     }
-
-    return () => {
-      if (rafId) window.cancelAnimationFrame(rafId);
-      if (debounceTimer) clearTimeout(debounceTimer);
-      track.removeEventListener("scroll", onScroll);
-      if (supportsScrollEnd) {
-        track.removeEventListener("scrollend", onSettled);
-      } else {
-        track.removeEventListener("scroll", onScrollFallback);
-      }
-    };
-  }, [images.length]);
-
-  const scrollToSlide = (targetIndex: number) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const bounded =
-      ((targetIndex % images.length) + images.length) % images.length;
-    pendingTargetRef.current = bounded;
-    setActiveSlide(bounded);
-
-    const slideEl = track.children[bounded] as HTMLElement | undefined;
-    if (slideEl) {
-      const offset = slideEl.offsetLeft - track.scrollLeft;
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches;
-      track.scrollBy({
-        left: offset,
-        behavior: prefersReducedMotion ? "auto" : "smooth",
-      });
-    }
+    fn();
   };
 
   const handleFavorite = () => {
@@ -169,316 +103,358 @@ export function ProductFeedPost({
     onToggleFavorite?.(product, next);
   };
 
+  const handleBag = () => {
+    if (bagItem) {
+      removeItem(bagItem.cartItemId);
+      return;
+    }
+    addProduct(product, size);
+    onAddToBag?.(product, size);
+  };
+
   const handleWhatsAppOrder = () => {
     void incrementProductWhatsappClickAction(product.id);
     trackEvent("whatsapp_order", {
       lead_source: "feed",
-      store_id: product.store.id,
-      store_name: product.store.name,
-      items: [productToItem(product, { variant: selectedSize })],
+      store_id: store.id,
+      store_name: store.name,
+      items: [productToItem(product, { variant: size })],
     });
-
     const url = buildWhatsAppUrl({
-      phone: product.store.whatsapp,
-      storeName: product.store.name,
+      phone: store.whatsapp,
+      storeName: store.name,
       productTitle: product.title,
-      productPrice: effectivePrice,
-      selectedSize,
+      productPrice: final,
+      selectedSize: size,
     });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const scrollToSlide = (i: number) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rail.scrollTo({ left: i * rail.clientWidth, behavior: reduce ? "auto" : "smooth" });
+  };
+
+  const avatar = (
+    <span
+      className={cn(
+        "block size-11 rounded-full",
+        hasStory ? "aura-ring p-[2.5px]" : "bg-line p-px"
+      )}
+    >
+      <span className="grid size-full place-items-center overflow-hidden rounded-full bg-brand-soft font-display text-[13px] font-bold text-brand-deep shadow-[0_0_0_2px_#fff]">
+        {store.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={store.avatar_url} alt="" loading="lazy" className="size-full object-cover" />
+        ) : (
+          initialsOf(store.name)
+        )}
+      </span>
+    </span>
+  );
+
   return (
     <article
       className={cn(
-        "rounded-[28px] bg-white p-3.5 sm:p-4.5 flex flex-col gap-3.5",
+        "flex flex-col rounded-[28px] border border-media bg-white px-3 pb-4 pt-3 shadow-card",
         className
       )}
     >
-      {/* 1. Header do Post */}
-      <header className="flex items-center justify-between gap-3 px-0.5">
-        <div className="flex items-center gap-2.5 min-w-0">
+      {/* Cabeçalho da loja */}
+      <div className="flex items-center gap-2.5 px-0.5 pb-3 pt-0.5">
+        {hasStory && onOpenStory ? (
+          <button
+            type="button"
+            onClick={onOpenStory}
+            aria-label={`Ver story de ${store.name}`}
+            className={cn("flex-none cursor-pointer rounded-full", focusRing)}
+          >
+            {avatar}
+          </button>
+        ) : (
           <Link
-            href={`/${product.store.slug}`}
+            href={`/${store.slug}`}
+            aria-label={`Ver loja ${store.name}`}
+            className={cn("flex-none rounded-full", focusRing)}
+          >
+            {avatar}
+          </Link>
+        )}
+        <Link
+          href={`/${store.slug}`}
+          className={cn("flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg", focusRing)}
+        >
+          <span className="flex min-w-0 items-center gap-1.25">
+            <span className="truncate font-display text-base font-semibold tracking-[-0.01em] text-ink">
+              {store.name}
+            </span>
+            {store.is_verified && <VerifiedSeal size={15} />}
+          </span>
+          <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[13px] font-medium text-muted">
+            {store.neighborhood && (
+              <>
+                <span className="flex-none">{store.neighborhood}</span>
+                <span aria-hidden="true">·</span>
+              </>
+            )}
+            <span className={cn("inline-flex min-w-0 items-center gap-1.25 font-semibold", tone.text)}>
+              <span className={cn("size-1.75 flex-none rounded-full", tone.dot)} aria-hidden="true" />
+              <span className="truncate">{status.short}</span>
+            </span>
+          </span>
+        </Link>
+        {onToggleFollow && (
+          <button
+            type="button"
+            onClick={() => onToggleFollow(product, !isFollowing)}
+            aria-pressed={isFollowing}
+            aria-label={
+              isFollowing ? `Seguindo ${store.name}. Deixar de seguir` : `Seguir ${store.name}`
+            }
             className={cn(
-              "w-11 h-11 rounded-full p-0.5 shrink-0",
-              isPremium ? "bg-story-premium" : "bg-slate-200"
+              "h-9 min-w-21 flex-none cursor-pointer whitespace-nowrap rounded-full px-3.5 font-display text-[13px] font-semibold transition-colors duration-200",
+              focusRing,
+              isFollowing ? "bg-media text-slate-700" : "bg-white text-ink ring-ink hover:bg-media"
             )}
           >
-            <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-xs font-extrabold text-slate-900">
-              {product.store.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.store.avatar_url}
-                  alt={product.store.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                product.store.name.slice(0, 2).toUpperCase()
-              )}
-            </span>
-          </Link>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <Link
-                href={`/${product.store.slug}`}
-                className="font-display text-[15px] font-bold text-slate-900 hover:underline truncate"
-              >
-                {product.store.name}
-              </Link>
-              {product.store.is_verified && <VerifiedSeal size={16} />}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-slate-500 truncate">
-                {product.store.neighborhood}
-              </span>
-              <span className="text-slate-300" aria-hidden="true">
-                ·
-              </span>
-              <StoreStatusBadge
-                compact
-                storeName={product.store.name}
-                businessHours={product.store.business_hours}
-                specialHours={product.store.special_hours}
-                isOpenOverride={product.store.is_open_override}
-              />
-            </div>
-          </div>
-        </div>
-
-        <Link
-          href={`/${product.store.slug}`}
-          className="shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
-        >
-          Ver loja
-        </Link>
-      </header>
-
-      {/* 2. Mídia: Carrossel Horizontal aspect-[4/5] */}
-      <section
-        aria-roledescription="carousel"
-        aria-label={`Fotos de ${product.title}`}
-        className="relative group"
-      >
-        {images.length > 1 && (
-          <div className="pointer-events-none absolute inset-y-0 inset-x-2.5 z-10 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() =>
-                scrollToSlide(
-                  (pendingTargetRef.current ?? activeSlide) - 1
-                )
-              }
-              aria-label="Foto anterior"
-              className={cn(
-                "pointer-events-auto w-8.5 h-8.5 rounded-full bg-white/90 hover:bg-white text-slate-900 shadow-seg grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
-                "focus-visible:opacity-100"
-              )}
-            >
-              <ChevronLeft className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                scrollToSlide(
-                  (pendingTargetRef.current ?? activeSlide) + 1
-                )
-              }
-              aria-label="Próxima foto"
-              className={cn(
-                "pointer-events-auto w-8.5 h-8.5 rounded-full bg-white/90 hover:bg-white text-slate-900 shadow-seg grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation",
-                "focus-visible:opacity-100"
-              )}
-            >
-              <ChevronRight className="w-4 h-4" strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          </div>
+            {isFollowing ? "Seguindo" : "Seguir"}
+          </button>
         )}
+      </div>
 
+      {/* Fotos */}
+      <div className="relative aspect-4/5 overflow-hidden rounded-[20px] bg-media">
         <div
-          ref={trackRef}
-          tabIndex={0}
-          role="group"
-          aria-label="Galeria de fotos do produto"
-          className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar smooth-scroll aspect-4/5 rounded-[22px] bg-slate-100 relative touch-manipulation"
+          ref={railRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+            if (i !== slide) setSlide(i);
+          }}
+          className="no-scrollbar flex size-full snap-x snap-mandatory overflow-x-auto touch-manipulation"
         >
-          {images.map((imgUrl, index) => (
+          {images.map((src, i) => (
             <Link
-              key={`${imgUrl}-${index}`}
+              key={`${src}-${i}`}
               href={productUrl}
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`${product.title} - foto ${index + 1} de ${images.length}`}
-              className="w-full h-full shrink-0 flex-[0_0_100%] snap-center relative overflow-hidden block"
+              tabIndex={i === 0 ? 0 : -1}
+              aria-label={i === 0 ? `Ver ${product.title}` : undefined}
+              className="relative block size-full flex-none snap-center"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={imgUrl}
-                alt={`${product.title} - Foto ${index + 1}`}
-                loading={index === 0 ? "eager" : "lazy"}
-                className="w-full h-full object-cover"
+                src={src}
+                alt={`${product.title}, foto ${i + 1} de ${images.length}`}
+                loading={i === 0 ? "eager" : "lazy"}
+                className="size-full object-cover"
               />
             </Link>
           ))}
         </div>
 
-        {/* Badge de Desconto sobre a foto */}
-        {discountPercent != null && (
-          <div className="absolute top-3 left-3 z-10 pointer-events-none">
-            <Badge
-              variant="discount"
-              size="md"
-              discountPercent={discountPercent}
-            />
-          </div>
+        {off && (
+          <span className="pointer-events-none absolute left-3 top-3 inline-flex h-7 items-center rounded-full bg-offer-strong px-2.75 font-display text-[13px] font-bold text-white">
+            {off}
+          </span>
         )}
 
-        {/* Botão de Favorito flutuante ou indicador de múltiplas fotos */}
         <button
           type="button"
           onClick={handleFavorite}
-          aria-label={
-            isFav
-              ? `Remover ${product.title} dos favoritos`
-              : `Adicionar ${product.title} aos favoritos`
-          }
           aria-pressed={isFav}
-          className="absolute top-3 right-3 z-10 w-9.5 h-9.5 rounded-[13px] bg-white/95 hover:bg-white grid place-items-center shadow-seg transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light"
+          aria-label={isFav ? `Remover ${product.title} dos favoritos` : `Favoritar ${product.title}`}
+          className={cn(
+            "absolute right-3 top-3 grid size-10 cursor-pointer place-items-center rounded-full bg-white shadow-fav transition-transform duration-200 touch-manipulation active:scale-110",
+            focusRing
+          )}
         >
           <Heart
-            className={cn(
-              "w-4.5 h-4.5 transition-colors duration-150",
-              isFav ? "fill-offer text-offer" : "text-slate-900"
-            )}
-            strokeWidth={2}
+            className={cn("size-5 transition-colors", isFav ? "fill-offer text-offer" : "text-ink")}
+            strokeWidth={1.8}
             aria-hidden="true"
           />
         </button>
 
-        {/* Contador / Marcadores de slide */}
-        {images.length > 1 && (
-          <nav
-            aria-label="Escolher foto do produto"
-            className="absolute bottom-3 inset-x-0 z-10 flex items-center justify-center gap-1.5"
+        {perk && (
+          <span
+            className={cn(
+              "pointer-events-none absolute bottom-3 left-3 inline-flex h-7 items-center gap-1.5 rounded-full bg-white/88 pl-2.25 pr-2.75 text-xs font-semibold backdrop-blur-[10px]",
+              perk.tone === "success" ? "text-mint-ink" : "text-sky-ink"
+            )}
           >
-            {images.map((_, idx) => (
+            <span
+              className={cn(
+                "size-1.75 rounded-full",
+                perk.tone === "success" ? "bg-whatsapp" : "bg-aura-sky"
+              )}
+              aria-hidden="true"
+            />
+            {perk.label}
+          </span>
+        )}
+
+        {images.length > 1 && (
+          <div
+            role="group"
+            aria-label="Fotos do produto"
+            className="absolute bottom-3 right-3 flex h-7 items-center gap-1.5 rounded-full bg-[rgba(15,23,42,0.45)] px-2.5 backdrop-blur-[10px]"
+          >
+            {images.map((_, i) => (
               <button
-                key={idx}
+                key={i}
                 type="button"
-                onClick={() => scrollToSlide(idx)}
-                aria-label={`Ir para foto ${idx + 1}`}
-                aria-current={activeSlide === idx ? "true" : undefined}
+                aria-label={`Foto ${i + 1}`}
+                aria-current={i === slide ? "true" : undefined}
+                onClick={() => scrollToSlide(i)}
                 className={cn(
-                  "h-1.75 rounded-full transition-all cursor-pointer touch-manipulation",
-                  activeSlide === idx
-                    ? "w-5 bg-white shadow-seg"
-                    : "w-1.75 bg-white/60 hover:bg-white/85"
+                  "relative h-1.5 cursor-pointer rounded-full transition-[width] duration-200 after:absolute after:-inset-2 after:content-['']",
+                  i === slide ? "w-4 bg-white" : "w-1.5 bg-white/60"
                 )}
               />
             ))}
-          </nav>
+          </div>
         )}
+      </div>
 
-        <p className="sr-only" role="status" aria-live="polite">
-          {settledAnnouncement}
-        </p>
-      </section>
-
-      {/* 3. Footer de Conversão */}
-      <div className="space-y-3 px-0.5 pt-0.5">
-        <div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-[21px] font-extrabold text-slate-900 tracking-[-0.02em]">
-              {formatCurrencyBRL(effectivePrice)}
+      {/* Corpo */}
+      <div className="flex flex-col gap-3.5 px-1 pt-4">
+        <div className="flex flex-col gap-1.5">
+          <h3 className="line-clamp-2 font-display text-lg font-semibold leading-[1.3] tracking-[-0.01em] text-ink">
+            <Link href={productUrl} className={cn("rounded", focusRing)}>
+              {product.title}
+            </Link>
+          </h3>
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            {compareAt != null && (
+              <span className="sr-only">de {formatCurrencyBRL(compareAt)} por</span>
+            )}
+            <span className="whitespace-nowrap font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-ink">
+              {formatCurrencyBRL(final)}
             </span>
-            {hasPromo && (
-              <span className="text-xs font-medium text-slate-500 line-through">
-                {formatCurrencyBRL(product.price)}
+            {compareAt != null && (
+              <span aria-hidden="true" className="whitespace-nowrap text-sm text-muted line-through">
+                {formatCurrencyBRL(compareAt)}
               </span>
             )}
-          </div>
-          <Link
-            href={productUrl}
-            className="block font-display text-base font-bold text-slate-900 hover:underline mt-0.5 leading-snug"
-          >
-            {product.title}
-          </Link>
+            {installments && (
+              <span className="whitespace-nowrap text-[13px] text-muted">{installments}</span>
+            )}
+          </p>
+          {product.description && (
+            <p className="mt-0.5 line-clamp-2 text-sm leading-normal text-slate-600">
+              {product.description}
+            </p>
+          )}
         </div>
 
-        {/* Descrição curta */}
-        {product.description && (
-          <p className="text-[13px] text-slate-600 line-clamp-2 leading-normal">
-            {product.description}
-          </p>
-        )}
-
-        {/* Tamanhos disponíveis em pílulas */}
-        {product.sizes && product.sizes.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-500">
-              Tamanho:
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {product.sizes.map((size) => {
-                const isSelected = selectedSize === size;
+        {sizes.length > 0 && (
+          <div ref={sizesRef} className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <span id={sizeLabelId} className="text-[13px] font-semibold text-slate-700">
+                Tamanho
+                {size && <span className="font-medium text-muted">: {size}</span>}
+              </span>
+              <Link
+                href={`${productUrl}#medidas`}
+                className="whitespace-nowrap text-[13px] font-semibold text-ink underline decoration-aura-amber decoration-2 underline-offset-[3px]"
+              >
+                Guia de medidas
+              </Link>
+            </div>
+            <div
+              role="radiogroup"
+              aria-labelledby={sizeLabelId}
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${Math.max(4, sizes.length)}, minmax(0, 1fr))`,
+              }}
+            >
+              {sizes.map((label) => {
+                const on = size === label;
                 return (
                   <button
-                    key={size}
+                    key={label}
                     type="button"
-                    onClick={() => setSelectedSize(size)}
-                    aria-pressed={isSelected}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => {
+                      setSize(label);
+                      setSizeError(false);
+                    }}
                     className={cn(
-                      "min-w-8.5 h-7.5 px-2.5 rounded-[10px] font-display text-xs font-bold transition-colors duration-150 cursor-pointer touch-manipulation",
-                      isSelected
-                        ? "bg-brand text-white"
-                        : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+                      "h-11 min-w-0 cursor-pointer truncate rounded-full px-1 font-display text-[15px] font-semibold transition-colors duration-150",
+                      focusRing,
+                      on ? "bg-brand text-white" : "bg-white text-ink shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-slate-50"
                     )}
                   >
-                    {size}
+                    {label}
                   </button>
                 );
               })}
             </div>
+            {sizeError && needSize && (
+              <p role="alert" className="text-[13px] font-semibold text-error-ink">
+                Escolha um tamanho para continuar
+              </p>
+            )}
           </div>
         )}
 
-        {/* Dois botões lado a lado: "Por na sacola" e "Pedir no Zap" */}
-        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={
-              justAdded ? (
-                <Check className="w-4 h-4 text-whatsapp" strokeWidth={2.4} aria-hidden="true" />
-              ) : (
-                <ShoppingBag className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-              )
-            }
-            onClick={() => {
-              addProduct(product, selectedSize);
-              onAddToBag?.(product, selectedSize);
-              setJustAdded(true);
-              window.setTimeout(() => setJustAdded(false), 1400);
-            }}
-            fullWidth
-          >
-            {justAdded ? "Adicionado!" : "Por na sacola"}
-          </Button>
+        {shipping && (
+          <p className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-slate-600">
+            <Truck className="size-4 flex-none" strokeWidth={1.8} aria-hidden="true" />
+            <span className="truncate">{shipping.label}</span>
+          </p>
+        )}
 
-          <Button
-            variant={whatsappVariant}
-            size="md"
-            leftIcon={<MessageCircle className="w-4 h-4" strokeWidth={2} aria-hidden="true" />}
-            onClick={handleWhatsAppOrder}
-            fullWidth
+        {/* Botões gêmeos: sempre 1fr 1fr */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => runGuarded(handleBag)}
+            className={cn(
+              "flex h-13 min-w-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 font-display text-[15px] font-semibold transition-colors touch-manipulation active:scale-[0.98]",
+              focusRing,
+              bagItem ? "bg-mint-soft text-mint-ink" : "bg-media text-ink hover:bg-line"
+            )}
           >
+            <ShoppingBag className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
+            {bagItem ? "Na sacola" : "Pôr na sacola"}
+          </button>
+          <button
+            type="button"
+            onClick={() => runGuarded(handleWhatsAppOrder)}
+            className={cn(
+              "flex h-13 min-w-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-whatsapp-strong px-3 font-display text-[15px] font-semibold text-white transition-colors hover:bg-whatsapp-hover touch-manipulation active:scale-[0.98]",
+              focusRing
+            )}
+          >
+            <MessageCircle className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
             Pedir no Zap
-          </Button>
+          </button>
         </div>
       </div>
     </article>
+  );
+}
+
+export function ProductFeedPostSkeleton() {
+  return (
+    <div aria-hidden="true" className="flex animate-pulse flex-col gap-3 rounded-[28px] border border-media bg-white p-3 pb-4">
+      <div className="flex items-center gap-2.5">
+        <div className="size-11 rounded-full bg-media" />
+        <div className="h-4 flex-1 rounded-full bg-media" />
+        <div className="h-9 w-21 rounded-full bg-media" />
+      </div>
+      <div className="aspect-4/5 rounded-[20px] bg-media" />
+      <div className="h-5 w-3/4 rounded-full bg-media" />
+      <div className="h-7 w-1/2 rounded-full bg-media" />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-13 rounded-full bg-media" />
+        <div className="h-13 rounded-full bg-media" />
+      </div>
+    </div>
   );
 }

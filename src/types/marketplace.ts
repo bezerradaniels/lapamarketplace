@@ -61,6 +61,7 @@ export interface StoreSummary {
   delivery_fee_type?: DeliveryFeeType;
   delivery_fee?: number | null;
   followers_count?: number;
+  created_at?: string;
 }
 
 export interface ProductItem {

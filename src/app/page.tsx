@@ -11,6 +11,8 @@ export default async function HomePage() {
       categories={data.categories}
       dailyOffers={data.dailyOffers}
       featuredStores={data.featuredStores}
+      storeShowcases={data.storeShowcases}
+      followedStoreIds={data.followedStoreIds}
       recentProducts={data.recentProducts}
       initialFeed={data.initialFeed}
       hasMoreFeed={data.hasMoreFeed}
