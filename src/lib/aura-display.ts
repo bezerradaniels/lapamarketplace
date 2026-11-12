@@ -166,14 +166,16 @@ export function shippingFor(
       return { label: `Frete grátis no ${store.neighborhood || "bairro"}`, free: true };
     }
     const when = deliversToday(status.minutesToClose, status.tone)
-      ? "Entrega hoje no bairro"
-      : "Entrega amanhã";
+      ? "Entrega hoje · "
+      : "";
     const fee =
       store.delivery_fee_type === "fixed" && store.delivery_fee
-        ? ` · ${formatCurrencyBRL(store.delivery_fee)}`
-        : store.delivery_fee_type === "combine"
-          ? " · taxa a combinar"
-          : "";
+        ? when
+          ? formatCurrencyBRL(store.delivery_fee)
+          : `Entrega ${formatCurrencyBRL(store.delivery_fee)}`
+        : when
+          ? "taxa a combinar"
+          : "Taxa a combinar";
     const pickup = store.has_pickup ? " · ou retire na loja" : "";
     return { label: `${when}${fee}${pickup}`, free: false };
   }
@@ -219,7 +221,7 @@ export function storeChips(store: StoreSummary, status = storeStatusLine(store))
   } else if (!store.has_delivery && store.has_pickup && status.tone !== "closed") {
     chips.push({ label: "Retire hoje", tone: "sky" });
   } else if (store.has_delivery) {
-    chips.push({ label: "Entrega amanhã", tone: "neutral" });
+    chips.push({ label: "Entrega", tone: "neutral" });
   } else if (store.has_pickup) {
     chips.push({ label: "Retirada", tone: "neutral" });
   }

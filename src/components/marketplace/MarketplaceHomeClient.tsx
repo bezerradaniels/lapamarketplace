@@ -628,19 +628,14 @@ export function MarketplaceHomeClient({
             {/* Stories: posicionado na coluna de conteúdo (alinhado com o banner e o feed) */}
             <StoriesBar items={stories} className="px-5 md:px-0 pb-1" />
 
-            {/* Pílulas de categoria horizontais (sempre no mobile, e no desktop apenas se a sidebar estiver colapsada) */}
-            <div
-              className={cn(
-                "items-center gap-2.5 pb-2",
-                isSidebarOpen ? "flex lg:hidden" : "flex"
-              )}
-            >
-              {/* Botão de Filtros à ESQUERDA (antes de 'Tudo'), visível no desktop quando a sidebar estiver colapsada */}
-              {!isSidebarOpen && (
+            {/* Pílulas de categoria horizontais no desktop (quando a barra lateral de filtros estiver colapsada) */}
+            {!isSidebarOpen && (
+              <div className="hidden lg:flex items-center gap-2.5 pb-2">
+                {/* Botão de Filtros à ESQUERDA (antes de 'Tudo'), visível no desktop quando a sidebar estiver colapsada */}
                 <button
                   type="button"
                   onClick={handleToggleSidebar}
-                  className="hidden lg:inline-flex items-center gap-2 h-10.5 px-4 rounded-full bg-white border border-slate-200 hover:bg-slate-50 font-display text-sm font-bold text-slate-900 shrink-0 transition-colors duration-150 cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-2 h-10.5 px-4 rounded-full bg-white border border-slate-200 hover:bg-slate-50 font-display text-sm font-bold text-slate-900 shrink-0 transition-colors duration-150 cursor-pointer shadow-xs"
                 >
                   <PanelLeftOpen className="w-4 h-4 text-brand" strokeWidth={2} />
                   <span>Filtros</span>
@@ -650,15 +645,15 @@ export function MarketplaceHomeClient({
                     </span>
                   )}
                 </button>
-              )}
 
-              <CategoryPills
-                categories={categoryPillsList}
-                activeSlug={activeCategory}
-                onSelect={handleSelectCategory}
-                className="flex-1 min-w-0 px-5 md:px-0"
-              />
-            </div>
+                <CategoryPills
+                  categories={categoryPillsList}
+                  activeSlug={activeCategory}
+                  onSelect={handleSelectCategory}
+                  className="flex-1 min-w-0"
+                />
+              </div>
+            )}
             {/* Banner institucional (somente desktop — no mobile o feed é prioritário) */}
             <PromoBanner
               className="hidden md:block"
@@ -700,7 +695,7 @@ export function MarketplaceHomeClient({
               </SectionContainer>
             )}
 
-            {/* Lojas em destaque (mobile: carrossel; desktop: abas + setas) */}
+            {/* Lojas em destaque (desktop no topo; no mobile fica intercalado no feed após o 3º produto) */}
             {featuredStores.length > 0 && (
               <FeaturedStoresSection
                 stores={featuredStores}
@@ -713,7 +708,8 @@ export function MarketplaceHomeClient({
                     ? selectedNeighborhood
                     : null
                 }
-                className="pb-2"
+                className="hidden md:flex pb-2"
+                idPrefix="desktop"
               />
             )}
 
@@ -817,31 +813,51 @@ export function MarketplaceHomeClient({
 
               {/* Lista / Grade de Publicações */}
               {feedItems.length === 0 && !isLoadingFeed ? (
-                <div className="mx-5 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
-                  <h3 className="text-[17px] font-extrabold text-slate-900 text-balance">
-                    {feedTab === "seguindo"
-                      ? "Nada novo das lojas que você segue"
-                      : "Nenhum produto neste filtro"}
-                  </h3>
-                  <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
-                    {feedTab === "seguindo"
-                      ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
-                      : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
-                  </p>
-                  {feedTab === "seguindo" ? (
-                    <Button
-                      variant="primary"
-                      onClick={() => handleSelectFeedTab("explorar")}
-                    >
-                      Ver toda a Lapa
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={handleResetFilters}
-                    >
-                      Limpar filtros
-                    </Button>
+                <div className="space-y-6">
+                  <div className="mx-5 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
+                    <h3 className="text-[17px] font-extrabold text-slate-900 text-balance">
+                      {feedTab === "seguindo"
+                        ? "Nada novo das lojas que você segue"
+                        : "Nenhum produto neste filtro"}
+                    </h3>
+                    <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
+                      {feedTab === "seguindo"
+                        ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
+                        : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
+                    </p>
+                    {feedTab === "seguindo" ? (
+                      <Button
+                        variant="primary"
+                        onClick={() => handleSelectFeedTab("explorar")}
+                      >
+                        Ver toda a Lapa
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={handleResetFilters}
+                      >
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </div>
+
+                  {featuredStores.length > 0 && (
+                    <div className="md:hidden py-2">
+                      <FeaturedStoresSection
+                        stores={featuredStores}
+                        showcases={storeShowcases}
+                        storyStoreIds={storyStoreIds}
+                        followingIds={followingIds}
+                        onToggleFollow={handleToggleFollow}
+                        neighborhood={
+                          selectedNeighborhood !== "Toda Bom Jesus da Lapa"
+                            ? selectedNeighborhood
+                            : null
+                        }
+                        idPrefix="empty-mobile"
+                      />
+                    </div>
                   )}
                 </div>
               ) : viewMode === "feed" ? (
@@ -863,8 +879,30 @@ export function MarketplaceHomeClient({
                         hasStory={storyStoreIds.has(product.store.id)}
                       />
 
-                      {/* Ofertas do dia in-feed no mobile: entra após o 2º post sem quebrar o grid desktop */}
-                      {index === 1 && filteredOffers.length > 0 && (
+                      {/* Lojas em destaque no mobile: entra após os 3 primeiros produtos do feed */}
+                      {featuredStores.length > 0 &&
+                        (index === 2 ||
+                          (index === feedItems.length - 1 &&
+                            feedItems.length < 3)) && (
+                          <div className="md:hidden -mx-4 sm:-mx-5 py-2">
+                            <FeaturedStoresSection
+                              stores={featuredStores}
+                              showcases={storeShowcases}
+                              storyStoreIds={storyStoreIds}
+                              followingIds={followingIds}
+                              onToggleFollow={handleToggleFollow}
+                              neighborhood={
+                                selectedNeighborhood !== "Toda Bom Jesus da Lapa"
+                                  ? selectedNeighborhood
+                                  : null
+                              }
+                              idPrefix="feed-mobile"
+                            />
+                          </div>
+                        )}
+
+                      {/* Ofertas do dia in-feed no mobile: entra após o 6º post (index 5) sem quebrar o grid desktop */}
+                      {index === 5 && filteredOffers.length > 0 && (
                         <div className="md:hidden -mx-4 sm:-mx-5 py-1">
                           <div className="flex items-baseline justify-between px-5 pb-2.5">
                             <h3 className="font-display text-[17px] font-extrabold text-slate-900">
@@ -896,14 +934,37 @@ export function MarketplaceHomeClient({
                       : "lg:grid-cols-4 xl:grid-cols-5"
                   )}
                 >
-                  {feedItems.map((product) => (
-                    <ProductCardGrid
-                      key={product.id}
-                      product={product}
-                      isFavorite={savedSet.has(product.id)}
-                      onAddToBag={() => setBagCount((c) => c + 1)}
-                      onToggleFavorite={handleProductFavorite}
-                    />
+                  {feedItems.map((product, index) => (
+                    <React.Fragment key={product.id}>
+                      <ProductCardGrid
+                        product={product}
+                        isFavorite={savedSet.has(product.id)}
+                        onAddToBag={() => setBagCount((c) => c + 1)}
+                        onToggleFavorite={handleProductFavorite}
+                      />
+
+                      {/* Lojas em destaque no mobile (modo grade): entra após os 3 primeiros produtos */}
+                      {featuredStores.length > 0 &&
+                        (index === 2 ||
+                          (index === feedItems.length - 1 &&
+                            feedItems.length < 3)) && (
+                          <div className="col-span-full md:hidden -mx-5 py-2">
+                            <FeaturedStoresSection
+                              stores={featuredStores}
+                              showcases={storeShowcases}
+                              storyStoreIds={storyStoreIds}
+                              followingIds={followingIds}
+                              onToggleFollow={handleToggleFollow}
+                              neighborhood={
+                                selectedNeighborhood !== "Toda Bom Jesus da Lapa"
+                                  ? selectedNeighborhood
+                                  : null
+                              }
+                              idPrefix="grid-mobile"
+                            />
+                          </div>
+                        )}
+                    </React.Fragment>
                   ))}
                 </div>
               )}

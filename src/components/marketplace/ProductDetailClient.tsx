@@ -212,7 +212,7 @@ export function ProductDetailClient({
           ) : undefined
         }
       >
-        {addedToBagFeedback ? "Na sacola" : "Pôr na sacola"}
+        {addedToBagFeedback ? "Adicionado" : "Adicionar"}
       </Button>
       <Button
         type="button"
@@ -221,7 +221,7 @@ export function ProductDetailClient({
         className="flex-[1.3] px-3 text-[15px]"
         onClick={handleBuyNowWhatsApp}
       >
-        Pedir no WhatsApp
+        WhatsApp
       </Button>
     </>
   );

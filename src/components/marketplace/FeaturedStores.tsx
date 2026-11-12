@@ -238,6 +238,7 @@ export interface FeaturedStoresSectionProps {
   /** Bairro escolhido no header (aba "Perto de você"). */
   neighborhood?: string | null;
   className?: string;
+  idPrefix?: string;
 }
 
 /** Seção "Lojas em destaque" v2: abas, setas e carrossel com scroll-snap. */
@@ -249,10 +250,12 @@ export function FeaturedStoresSection({
   onToggleFollow,
   neighborhood,
   className,
+  idPrefix,
 }: FeaturedStoresSectionProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<TabKey>("destaque");
   const [edge, setEdge] = useState({ start: true, end: false });
+  const headingId = idPrefix ? `${idPrefix}-lojas-destaque` : "lojas-destaque";
 
   const visible = useMemo(() => {
     if (tab === "abertas") {
@@ -303,11 +306,11 @@ export function FeaturedStoresSection({
   );
 
   return (
-    <section aria-labelledby="lojas-destaque" className={cn("flex flex-col gap-4 md:gap-5", className)}>
+    <section aria-labelledby={headingId} className={cn("flex flex-col gap-4 md:gap-5", className)}>
       <div className="flex items-end justify-between gap-4 px-4 md:px-0">
         <div className="flex min-w-0 flex-col gap-0.5 md:gap-1">
           <h2
-            id="lojas-destaque"
+            id={headingId}
             className="font-display text-[21px] font-semibold tracking-[-0.02em] text-ink md:text-[26px]"
           >
             Lojas em <span className="md:aura-text">destaque</span>

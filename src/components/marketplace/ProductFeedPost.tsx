@@ -1,8 +1,18 @@
 "use client";
 
-import React, { useId, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, ShoppingBag, Truck } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Share2,
+  ShoppingBag,
+  Store,
+  UserMinus,
+} from "lucide-react";
 import { buildWhatsAppUrl, cn, formatCurrencyBRL } from "@/lib/utils";
 import {
   STATUS_TONE,
@@ -11,7 +21,6 @@ import {
   installmentsFor,
   perkFor,
   priceOf,
-  shippingFor,
   storeStatusLine,
 } from "@/lib/aura-display";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
@@ -85,7 +94,6 @@ export function ProductFeedPost({
   const status = storeStatusLine(store);
   const tone = STATUS_TONE[status.tone];
   const perk = perkFor(store, status);
-  const shipping = shippingFor(store, status);
   const installments = installmentsFor(store, final);
 
   const runGuarded = (fn: () => void) => {
@@ -137,6 +145,64 @@ export function ProductFeedPost({
     rail.scrollTo({ left: i * rail.clientWidth, behavior: reduce ? "auto" : "smooth" });
   };
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMenuOpen]);
+
+  const getStoreUrl = () => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/${store.slug}`;
+    }
+    return `/${store.slug}`;
+  };
+
+  const handleShareStore = async () => {
+    setIsMenuOpen(false);
+    const url = getStoreUrl();
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: store.name,
+          text: `Conheça a loja ${store.name} no Lapa Marketplace:`,
+          url,
+        });
+        return;
+      } catch {
+        // Ignora cancelamento do share nativo
+      }
+    }
+    await handleCopyLink();
+  };
+
+  const handleCopyLink = async () => {
+    const url = getStoreUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+        setIsMenuOpen(false);
+      }, 1200);
+    } catch {
+      // Ignora erro
+    }
+  };
+
+  const storeWhatsAppUrl = useMemo(() => {
+    return buildWhatsAppUrl({
+      phone: store.whatsapp,
+      storeName: store.name,
+    });
+  }, [store.whatsapp, store.name]);
+
   const avatar = (
     <span
       className={cn(
@@ -162,7 +228,7 @@ export function ProductFeedPost({
         className
       )}
     >
-      {/* Cabeçalho da loja */}
+      {/* Cabeçalho da loja (Instagram-style: Logo + Nome + Seguir + 3 Pontos) */}
       <div className="flex items-center gap-2.5 px-0.5 pb-3 pt-0.5">
         {hasStory && onOpenStory ? (
           <button
@@ -182,29 +248,24 @@ export function ProductFeedPost({
             {avatar}
           </Link>
         )}
+
         <Link
           href={`/${store.slug}`}
-          className={cn("flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg", focusRing)}
+          className={cn("flex min-w-0 flex-1 flex-col justify-center rounded-lg", focusRing)}
         >
           <span className="flex min-w-0 items-center gap-1.25">
-            <span className="truncate font-display text-base font-semibold tracking-[-0.01em] text-ink">
+            <span className="truncate font-display text-[15px] font-semibold tracking-[-0.01em] text-ink">
               {store.name}
             </span>
-            {store.is_verified && <VerifiedSeal size={15} />}
+            {store.is_verified && <VerifiedSeal size={14} className="flex-none" />}
           </span>
-          <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[13px] font-medium text-muted">
-            {store.neighborhood && (
-              <>
-                <span className="flex-none">{store.neighborhood}</span>
-                <span aria-hidden="true">·</span>
-              </>
-            )}
-            <span className={cn("inline-flex min-w-0 items-center gap-1.25 font-semibold", tone.text)}>
-              <span className={cn("size-1.75 flex-none rounded-full", tone.dot)} aria-hidden="true" />
-              <span className="truncate">{status.short}</span>
+          {store.neighborhood && (
+            <span className="truncate text-xs font-medium text-muted">
+              {store.neighborhood}
             </span>
-          </span>
+          )}
         </Link>
+
         {onToggleFollow && (
           <button
             type="button"
@@ -214,14 +275,143 @@ export function ProductFeedPost({
               isFollowing ? `Seguindo ${store.name}. Deixar de seguir` : `Seguir ${store.name}`
             }
             className={cn(
-              "h-9 min-w-21 flex-none cursor-pointer whitespace-nowrap rounded-full px-3.5 font-display text-[13px] font-semibold transition-colors duration-200",
+              "h-8 min-w-18 flex-none cursor-pointer whitespace-nowrap rounded-full px-3 font-display text-xs font-semibold transition-colors duration-150 touch-manipulation active:scale-95",
               focusRing,
-              isFollowing ? "bg-media text-slate-700" : "bg-white text-ink ring-ink hover:bg-media"
+              isFollowing
+                ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                : "bg-slate-100 text-ink hover:bg-slate-200 font-bold"
             )}
           >
             {isFollowing ? "Seguindo" : "Seguir"}
           </button>
         )}
+
+        {/* 3 pontos para abrir mais opções da loja */}
+        <div className="relative flex-none">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            aria-expanded={isMenuOpen}
+            aria-label={`Mais opções de ${store.name}`}
+            className={cn(
+              "grid size-8 cursor-pointer place-items-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 hover:text-ink touch-manipulation",
+              focusRing,
+              isMenuOpen && "bg-slate-100 text-ink"
+            )}
+          >
+            <MoreHorizontal className="size-5" strokeWidth={2} aria-hidden="true" />
+          </button>
+
+          {isMenuOpen && (
+            <>
+              {/* Backdrop para fechar ao clicar fora */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsMenuOpen(false)}
+                aria-hidden="true"
+              />
+
+              {/* Menu flutuante estilo Instagram */}
+              <div
+                role="menu"
+                aria-orientation="vertical"
+                aria-label={`Opções da loja ${store.name}`}
+                className="absolute right-0 top-10 z-50 w-56 overflow-hidden rounded-2xl border border-slate-100 bg-white p-1.5 shadow-float transition-all animate-in fade-in zoom-in-95 duration-150"
+              >
+                <Link
+                  href={`/${store.slug}`}
+                  role="menuitem"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-slate-800 transition-colors hover:bg-slate-100 hover:text-ink"
+                >
+                  <Store className="size-4 text-slate-500" strokeWidth={1.9} />
+                  <span>Ver loja</span>
+                </Link>
+
+                {store.whatsapp && (
+                  <a
+                    href={storeWhatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      trackEvent("click_whatsapp_profile", { store_id: store.id });
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-slate-800 transition-colors hover:bg-slate-100 hover:text-ink"
+                  >
+                    <MessageCircle className="size-4 text-whatsapp" strokeWidth={1.9} />
+                    <span>Falar no WhatsApp</span>
+                  </a>
+                )}
+
+                {store.instagram && (
+                  <a
+                    href={
+                      store.instagram.startsWith("http")
+                        ? store.instagram
+                        : `https://instagram.com/${store.instagram.replace(/^@/, "")}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    role="menuitem"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-slate-800 transition-colors hover:bg-slate-100 hover:text-ink"
+                  >
+                    <InstagramIcon className="size-4 text-pink-600" />
+                    <span>Instagram da loja</span>
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleShareStore}
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-slate-800 transition-colors hover:bg-slate-100 hover:text-ink"
+                >
+                  <Share2 className="size-4 text-slate-500" strokeWidth={1.9} />
+                  <span>Compartilhar loja</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleCopyLink}
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-slate-800 transition-colors hover:bg-slate-100 hover:text-ink"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="size-4 text-mint-ink" strokeWidth={2.2} />
+                      <span className="text-mint-ink">Link copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-4 text-slate-500" strokeWidth={1.9} />
+                      <span>Copiar link</span>
+                    </>
+                  )}
+                </button>
+
+                {onToggleFollow && isFollowing && (
+                  <div className="mt-1 border-t border-slate-100 pt-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onToggleFollow(product, false);
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold text-error-ink transition-colors hover:bg-red-50"
+                    >
+                      <UserMinus className="size-4 text-error-ink" strokeWidth={1.9} />
+                      <span>Deixar de seguir</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Fotos */}
@@ -402,13 +592,6 @@ export function ProductFeedPost({
           </div>
         )}
 
-        {shipping && (
-          <p className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-slate-600">
-            <Truck className="size-4 flex-none" strokeWidth={1.8} aria-hidden="true" />
-            <span className="truncate">{shipping.label}</span>
-          </p>
-        )}
-
         {/* Botões gêmeos: sempre 1fr 1fr */}
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -421,7 +604,7 @@ export function ProductFeedPost({
             )}
           >
             <ShoppingBag className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
-            {bagItem ? "Na sacola" : "Pôr na sacola"}
+            {bagItem ? "Adicionado" : "Adicionar"}
           </button>
           <button
             type="button"
@@ -432,7 +615,7 @@ export function ProductFeedPost({
             )}
           >
             <MessageCircle className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
-            Pedir no Zap
+            WhatsApp
           </button>
         </div>
       </div>
@@ -456,5 +639,26 @@ export function ProductFeedPostSkeleton() {
         <div className="h-13 rounded-full bg-media" />
       </div>
     </div>
+  );
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      stroke="currentColor"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
   );
 }

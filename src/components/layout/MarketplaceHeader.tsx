@@ -85,45 +85,6 @@ function useScrolled(enter = 80, exit = 24) {
   return scrolled;
 }
 
-/**
- * Esconde a linha do logo (mobile) ao rolar para baixo e mostra ao rolar para cima.
- * Só troca de estado depois de `travel` px na mesma direção, para não piscar em
- * rolagens lentas ou no repique do iOS.
- */
-function useScrollDirectionHidden(min = 48, travel = 16) {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let anchor = window.scrollY;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const y = Math.max(0, window.scrollY);
-      if (y <= min) {
-        anchor = y;
-        setHidden(false);
-        return;
-      }
-      const delta = y - anchor;
-      if (delta > travel) {
-        anchor = y;
-        setHidden(true);
-      } else if (delta < -travel) {
-        anchor = y;
-        setHidden(false);
-      }
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [min, travel]);
-  return hidden;
-}
-
 /* ---------- Bairro ---------- */
 
 function NeighborhoodMenu({
@@ -301,20 +262,6 @@ export function MarketplaceHeader({
   const [internalQuery, setInternalQuery] = useState("");
   const router = useRouter();
   const scrolled = useScrolled(80);
-  const mobileHidden = useScrollDirectionHidden(48);
-  const logoRowRef = useRef<HTMLDivElement>(null);
-  const [logoRowOffset, setLogoRowOffset] = useState(52);
-
-  // Distância que o header sobe para esconder a linha do logo: altura da linha + gap (12px)
-  useEffect(() => {
-    const row = logoRowRef.current;
-    if (!row) return;
-    const measure = () => setLogoRowOffset(row.offsetHeight + 12);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(row);
-    return () => observer.disconnect();
-  }, []);
   const viewer = useViewer();
 
   const isMounted = useBagHydrated();
@@ -550,39 +497,22 @@ export function MarketplaceHeader({
       {/* Mobile */}
       {mobileVariant === "full" && (
         <header
-          // Esconde a linha do logo deslizando o header inteiro (transform), sem
-          // mudar a altura: mudar a altura empurra a página e faz o header tremer.
-          style={{
-            transform: mobileHidden ? `translateY(-${logoRowOffset}px)` : undefined,
-          }}
           className={cn(
-            "sticky top-0 z-40 w-full border-b border-seg bg-white/86 backdrop-blur-[16px] transition-[transform,box-shadow] duration-200 ease-out will-change-transform md:hidden motion-reduce:transition-none",
-            mobileHidden && "shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
+            "sticky top-0 z-40 w-full border-b border-seg bg-white/86 backdrop-blur-[16px] transition-shadow duration-200 md:hidden",
+            scrolled && "shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
           )}
         >
-          <div className="flex flex-col gap-3 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <div
-              ref={logoRowRef}
-              className={cn(
-                "flex items-center gap-2 transition-opacity duration-200",
-                mobileHidden && "pointer-events-none opacity-0"
-              )}
-              aria-hidden={mobileHidden || undefined}
-              inert={mobileHidden || undefined}
+          <div className="flex items-center gap-2 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <Link
+              href="/"
+              aria-label="Lapa Marketplace, página inicial"
+              className={cn("mr-auto flex flex-none items-center gap-2 rounded-lg", focusRing)}
             >
-              <Link
-                href="/"
-                aria-label="Lapa Marketplace, página inicial"
-                className={cn("mr-auto flex flex-none items-center gap-2 rounded-lg", focusRing)}
-              >
-                <LapaBag variant="aurora" size={28} />
-                <span className="font-display text-xl font-semibold tracking-[-0.025em] text-ink">Lapa</span>
-              </Link>
-              <NeighborhoodMenu value={neighborhood} options={neighborhoods} onChange={setNeighborhood} compact />
-              {favorites("size-10", "size-4.75")}
-            </div>
-
-            {searchForm("md")}
+              <LapaBag variant="aurora" size={28} />
+              <span className="font-display text-xl font-semibold tracking-[-0.025em] text-ink">Lapa</span>
+            </Link>
+            <NeighborhoodMenu value={neighborhood} options={neighborhoods} onChange={setNeighborhood} compact />
+            {favorites("size-10", "size-4.75")}
           </div>
         </header>
       )}
