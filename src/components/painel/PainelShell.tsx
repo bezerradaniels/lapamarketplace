@@ -135,7 +135,7 @@ export function PainelShell({ store, children }: PainelShellProps) {
   const viewStoreLink = (
     <Link
       href={`/${store.slug}`}
-      className="h-10.5 px-3.5 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white grid place-items-center font-display text-[13px] font-bold whitespace-nowrap transition duration-150 active:scale-[0.98]"
+      className="h-10.5 px-3.5 rounded-[14px] bg-brand hover:bg-brand-hover text-white grid place-items-center font-display text-[13px] font-bold whitespace-nowrap transition duration-150 active:scale-[0.98]"
     >
       Ver minha loja
     </Link>

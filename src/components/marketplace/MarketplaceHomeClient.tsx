@@ -7,8 +7,12 @@ import { useRouter } from "next/navigation";
 import {
   LayoutGrid,
   Loader2,
+  MapPin,
+  PanelLeftClose,
+  PanelLeftOpen,
   Rows3,
   SlidersHorizontal,
+  Tag,
 } from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import { Footer } from "@/components/layout/Footer";
@@ -24,6 +28,8 @@ import { ProductCardGrid } from "@/components/marketplace/ProductCardGrid";
 import { ProductFeedPost } from "@/components/marketplace/ProductFeedPost";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
+import { Select } from "@/components/ui/Select";
 import { getMarketplaceFeed } from "@/app/actions/feed";
 import { toggleSaveProduct } from "@/app/actions/social";
 import { Badge } from "@/components/ui/Badge";
@@ -36,10 +42,29 @@ import {
 import type {
   CategoryItem,
   GlobalCategory,
+  NeighborhoodItem,
   ProductItem,
   StoreSummary,
   StoreWithStories,
 } from "@/types/marketplace";
+
+const DEFAULT_HOME_NEIGHBORHOODS: NeighborhoodItem[] = [
+  { id: "centro", name: "Centro", slug: "centro", is_active: true },
+  { id: "sao-joao", name: "São João", slug: "sao-joao", is_active: true },
+  {
+    id: "parque-verde",
+    name: "Parque Verde",
+    slug: "parque-verde",
+    is_active: true,
+  },
+  {
+    id: "sao-gotardo",
+    name: "São Gotardo",
+    slug: "sao-gotardo",
+    is_active: true,
+  },
+  { id: "beira-rio", name: "Beira Rio", slug: "beira-rio", is_active: true },
+];
 
 const FEED_PAGE_SIZE = 6;
 
@@ -53,6 +78,7 @@ export interface MarketplaceHomeClientProps {
   hasMoreFeed: boolean;
   userId: string | null;
   savedProductIds: string[];
+  neighborhoods?: NeighborhoodItem[];
 }
 
 export function MarketplaceHomeClient({
@@ -64,6 +90,7 @@ export function MarketplaceHomeClient({
   hasMoreFeed: initialHasMore,
   userId,
   savedProductIds,
+  neighborhoods,
 }: MarketplaceHomeClientProps) {
   const router = useRouter();
 
@@ -72,6 +99,31 @@ export function MarketplaceHomeClient({
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+
+  // Sidebar Desktop de Filtros (Colapsável) e Filtros Rápidos
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const stored = localStorage.getItem("lapa_home_sidebar_open");
+      return stored !== null ? stored === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+  const [onlyOpenNow, setOnlyOpenNow] = useState(false);
+  const [onlyPromo, setOnlyPromo] = useState(false);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("lapa_home_sidebar_open", String(next));
+      } catch {
+        // Ignora erro
+      }
+      return next;
+    });
+  };
 
   // Contadores de Sacola e Favoritos no Header
   const [bagCount, setBagCount] = useState(2);
@@ -90,27 +142,50 @@ export function MarketplaceHomeClient({
 
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
 
-  // Mapeia categorias globais para as pílulas do topo
+  // Lista de bairros disponíveis
+  const availableNeighborhoods = React.useMemo(() => {
+    if (neighborhoods && neighborhoods.length > 0) {
+      return neighborhoods.filter((nb) => nb.is_active !== false);
+    }
+    return DEFAULT_HOME_NEIGHBORHOODS;
+  }, [neighborhoods]);
+
+  // Lista de categorias principais ordenadas
+  const mainCategoriesList = React.useMemo(() => {
+    return categories
+      .filter((c) => !c.parent_id && c.is_active)
+      .sort((a, b) => a.order_index - b.order_index);
+  }, [categories]);
+
+  // Contagem de filtros ativos
+  const activeFiltersCount =
+    (activeCategory !== "all" ? 1 : 0) +
+    (selectedNeighborhood !== "Toda Bom Jesus da Lapa" ? 1 : 0) +
+    (onlyOpenNow ? 1 : 0) +
+    (onlyPromo ? 1 : 0);
+
+  // Mapeia categorias globais para as pílulas do topo (mobile e fallback)
   const categoryPillsList: CategoryItem[] = React.useMemo(() => {
-    const mainCats = categories.filter((c) => !c.parent_id && c.is_active);
-    if (mainCats.length === 0) return DEFAULT_MARKETPLACE_CATEGORIES;
+    if (mainCategoriesList.length === 0) return DEFAULT_MARKETPLACE_CATEGORIES;
 
     return [
       { id: "cat-all", name: "Tudo", slug: "all" },
-      ...mainCats.map((c) => ({
+      ...mainCategoriesList.map((c) => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
       })),
     ];
-  }, [categories]);
+  }, [mainCategoriesList]);
 
-  // Recarrega a página 1 do feed quando mudar aba, categoria ou bairro
+  // Recarrega a página 1 do feed quando mudar aba, categoria, bairro ou toggles
   const reloadFirstFeedPage = useCallback(
     async (
       nextTab: "explorar" | "seguindo",
       nextCat: string,
-      nextNeighborhood: string
+      nextNeighborhood: string,
+      nextOnlyOpenNow?: boolean,
+      nextOnlyPromo?: boolean
     ) => {
       setIsLoadingFeed(true);
       try {
@@ -121,6 +196,8 @@ export function MarketplaceHomeClient({
           userId,
           categorySlug: nextCat,
           neighborhoodSlug: nextNeighborhood,
+          onlyOpenNow: nextOnlyOpenNow ?? onlyOpenNow,
+          onlyPromo: nextOnlyPromo ?? onlyPromo,
         });
         setFeedItems(res.items);
         setFeedPage(1);
@@ -129,7 +206,7 @@ export function MarketplaceHomeClient({
         setIsLoadingFeed(false);
       }
     },
-    [userId]
+    [userId, onlyOpenNow, onlyPromo]
   );
 
   // Carrega a próxima página ao rolar até o fim da lista (IntersectionObserver)
@@ -145,6 +222,8 @@ export function MarketplaceHomeClient({
         userId,
         categorySlug: activeCategory,
         neighborhoodSlug: selectedNeighborhood,
+        onlyOpenNow,
+        onlyPromo,
       });
       setFeedItems((prev) => {
         const existingIds = new Set(prev.map((i) => i.id));
@@ -164,6 +243,8 @@ export function MarketplaceHomeClient({
     userId,
     activeCategory,
     selectedNeighborhood,
+    onlyOpenNow,
+    onlyPromo,
   ]);
 
   useEffect(() => {
@@ -197,6 +278,42 @@ export function MarketplaceHomeClient({
   const handleSelectFeedTab = (tab: "explorar" | "seguindo") => {
     setFeedTab(tab);
     void reloadFirstFeedPage(tab, activeCategory, selectedNeighborhood);
+  };
+
+  const handleToggleOpenNow = (val: boolean) => {
+    setOnlyOpenNow(val);
+    void reloadFirstFeedPage(
+      feedTab,
+      activeCategory,
+      selectedNeighborhood,
+      val,
+      onlyPromo
+    );
+  };
+
+  const handleTogglePromo = (val: boolean) => {
+    setOnlyPromo(val);
+    void reloadFirstFeedPage(
+      feedTab,
+      activeCategory,
+      selectedNeighborhood,
+      onlyOpenNow,
+      val
+    );
+  };
+
+  const handleResetFilters = () => {
+    setActiveCategory("all");
+    setSelectedNeighborhood("Toda Bom Jesus da Lapa");
+    setOnlyOpenNow(false);
+    setOnlyPromo(false);
+    void reloadFirstFeedPage(
+      feedTab,
+      "all",
+      "Toda Bom Jesus da Lapa",
+      false,
+      false
+    );
   };
 
   const handleSearchSubmit = (q: string) => {
@@ -264,337 +381,564 @@ export function MarketplaceHomeClient({
       />
 
       <main className="flex-1 mx-auto w-full max-w-7xl md:px-6 lg:px-8 md:py-6 pb-48 md:pb-10">
-        {/* Stories + pílulas de categoria */}
-        <StoriesBar items={stories} className="px-5 md:px-0 pb-4" />
-
-        <div className="flex items-center gap-3 pb-4 md:pb-6">
-          <CategoryPills
-            categories={categoryPillsList}
-            activeSlug={activeCategory}
-            onSelect={handleSelectCategory}
-            className="flex-1 min-w-0 px-5 md:px-0"
-          />
-          <Link
-            href="/explorar"
-            className="hidden md:inline-flex items-center gap-2 h-10.5 px-4 rounded-[14px] bg-white ring-line hover:bg-slate-50 font-display text-sm font-bold text-slate-900 shrink-0 transition-colors duration-150"
-          >
-            <SlidersHorizontal className="w-4 h-4" strokeWidth={1.8} />
-            Filtros
-          </Link>
-        </div>
-
-        {/* Banner institucional (somente desktop — no mobile o feed é prioritário) */}
-        <PromoBanner
-          className="hidden md:block mb-10"
-          variant="emerald"
-          tag="O comércio da Lapa, num só lugar"
-          title="Compre das lojas que você já conhece em Bom Jesus da Lapa"
-          subtitle="Escolha no catálogo, tire dúvidas no WhatsApp e receba hoje mesmo em casa ou retire na loja."
-          ctaLabel="Explorar catálogo"
-          onCtaClick={() => router.push("/explorar")}
-          imageUrl="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80"
-        />
-
-        {/* Ofertas do dia no topo (somente desktop — no mobile entram intercaladas no feed) */}
-        {filteredOffers.length > 0 && (
-          <SectionContainer
-            title="Ofertas do dia"
-            actionLabel="Ver tudo"
-            href="/explorar?promocao=true"
-            className="hidden md:block pb-10"
-          >
-            <div className="grid grid-cols-4 gap-4">
-              {filteredOffers.slice(0, 4).map((product) => (
-                <ProductCardGrid
-                  key={product.id}
-                  product={product}
-                  isFavorite={savedSet.has(product.id)}
-                  onAddToBag={() => setBagCount((c) => c + 1)}
-                  onToggleFavorite={handleProductFavorite}
-                />
-              ))}
-            </div>
-          </SectionContainer>
-        )}
-
-        {/* Lojas em destaque (desktop) */}
-        {featuredStores.length > 0 && (
-          <SectionContainer
-            title="Lojas em destaque"
-            subtitle="Comércios de Bom Jesus da Lapa com atendimento direto no WhatsApp"
-            actionLabel="Ver todas"
-            href="/explorar"
-            className="hidden md:block pb-10"
-          >
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {featuredStores.map((store) => {
-                const isPremium = store.plan === "premium";
-                return (
-                  <div
-                    key={store.id}
-                    className="rounded-3xl bg-white p-4 flex flex-col justify-between gap-4"
-                  >
-                    <div className="space-y-3">
-                      <Link
-                        href={`/${store.slug}`}
-                        className="flex items-center gap-3 min-w-0"
-                      >
-                        <span
-                          className={cn(
-                            "w-13 h-13 rounded-full p-0.5 shrink-0",
-                            isPremium ? "bg-story-premium" : "bg-slate-200"
-                          )}
-                        >
-                          <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-sm font-extrabold text-slate-900">
-                            {store.avatar_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={store.avatar_url}
-                                alt={store.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              store.name.slice(0, 2).toUpperCase()
-                            )}
-                          </span>
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-[15px] font-bold text-slate-900 truncate">
-                              {store.name}
-                            </h3>
-                            {store.is_verified && <VerifiedSeal size={16} />}
-                          </div>
-                          <p className="text-xs text-slate-500 truncate">
-                            {store.neighborhood}
-                          </p>
-                        </div>
-                      </Link>
-
-                      {store.description && (
-                        <p className="text-[13px] text-slate-700 line-clamp-2 leading-normal">
-                          {store.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2">
-                      <StoreStatusBadge
-                        compact
-                        storeName={store.name}
-                        businessHours={store.business_hours}
-                        specialHours={store.special_hours}
-                        isOpenOverride={store.is_open_override}
-                      />
-                      <Link
-                        href={`/${store.slug}`}
-                        className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2.25 font-display text-xs font-bold text-slate-900 transition-colors duration-150 shrink-0"
-                      >
-                        Ver loja
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SectionContainer>
-        )}
-
-        {/* =================================================================
-            FEED INFINITO DO COMÉRCIO LOCAL (PRIORITÁRIO NO MOBILE + DESKTOP)
-           ================================================================= */}
-        <section aria-label="Feed do comércio local" className="space-y-4">
-          {/* Barra de Controle: Abas (Toda a Lapa | Seguindo) + Alternador (Feed | Grade) */}
-          <div className="px-5 md:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="hidden md:block">
-              <h2 className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em]">
-                Feed do comércio local
-              </h2>
-              <p className="text-sm text-slate-500">
-                Novidades intercaladas das lojas de Bom Jesus da Lapa
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              {/* Abas: Toda a Lapa | Seguindo */}
-              <div
-                role="tablist"
-                aria-label="Origem das publicações"
-                className="flex-1 sm:flex-initial grid grid-cols-2 p-1 rounded-2xl bg-slate-200/70 sm:min-w-64"
-              >
-                {(
-                  [
-                    ["explorar", "Toda a Lapa"],
-                    ["seguindo", "Seguindo"],
-                  ] as const
-                ).map(([tab, label]) => (
+        {/* Estrutura Desktop: Sidebar Lateral à Esquerda (Colapsável) + Feed */}
+        <div
+          className={cn(
+            "w-full items-start",
+            isSidebarOpen
+              ? "lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8"
+              : "block"
+          )}
+        >
+          {/* SIDEBAR DE FILTROS (DESKTOP) - Começa no topo da página */}
+          {isSidebarOpen && (
+            <aside
+              aria-label="Filtros do comércio"
+              className="hidden lg:block sticky top-24 rounded-3xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-6"
+            >
+              {/* Topo da Sidebar: Título, Contador, Limpar e Botão de Recolher */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal
+                    className="w-4.5 h-4.5 text-brand"
+                    strokeWidth={2}
+                  />
+                  <h2 className="font-display text-[17px] font-extrabold text-slate-900 tracking-[-0.01em]">
+                    Filtros
+                  </h2>
+                  {activeFiltersCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-brand-soft text-brand-ink font-display text-xs font-bold">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="text-xs text-slate-500 hover:text-slate-900 underline font-semibold px-1.5 py-1 cursor-pointer"
+                    >
+                      Limpar
+                    </button>
+                  )}
                   <button
-                    key={tab}
                     type="button"
-                    role="tab"
-                    aria-selected={feedTab === tab}
-                    onClick={() => handleSelectFeedTab(tab)}
+                    onClick={handleToggleSidebar}
+                    className="w-8 h-8 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                    title="Recolher filtros"
+                    aria-label="Recolher barra lateral de filtros"
+                  >
+                    <PanelLeftClose className="w-4.5 h-4.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Categorias */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <Tag className="w-3.5 h-3.5 text-brand" />
+                  <span>Categorias</span>
+                </div>
+                <div className="flex flex-col gap-1 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSelectCategory({
+                        id: "cat-all",
+                        name: "Tudo",
+                        slug: "all",
+                      })
+                    }
                     className={cn(
-                      "h-9.5 px-4 rounded-[13px] font-display text-[13px] font-bold transition duration-150 cursor-pointer",
-                      feedTab === tab
-                        ? "bg-white text-slate-900 shadow-seg"
-                        : "text-slate-600 hover:text-slate-900"
+                      "flex items-center justify-between px-3.5 py-2.25 rounded-2xl text-[13px] font-bold transition-colors duration-150 cursor-pointer text-left",
+                      activeCategory === "all"
+                        ? "bg-brand text-white shadow-xs"
+                        : "text-slate-700 hover:bg-slate-100"
                     )}
                   >
-                    {label}
+                    <span>Todas as categorias</span>
+                    {activeCategory === "all" && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
                   </button>
-                ))}
-              </div>
-
-              {/* Alternador de Visualização: Feed Social vs Grade */}
-              <div
-                role="group"
-                aria-label="Modo de visualização"
-                className="inline-flex p-1 rounded-2xl bg-slate-200/70 shrink-0"
-              >
-                <button
-                  type="button"
-                  onClick={() => setViewMode("feed")}
-                  aria-pressed={viewMode === "feed"}
-                  title="Visualização em Feed"
-                  className={cn(
-                    "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
-                    viewMode === "feed"
-                      ? "bg-white text-slate-900 shadow-seg"
-                      : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  <Rows3 className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                  <span>Feed</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("grid")}
-                  aria-pressed={viewMode === "grid"}
-                  title="Visualização em Grade"
-                  className={cn(
-                    "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
-                    viewMode === "grid"
-                      ? "bg-white text-slate-900 shadow-seg"
-                      : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  <LayoutGrid className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                  <span>Grade</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Lista / Grade de Publicações */}
-          {feedItems.length === 0 && !isLoadingFeed ? (
-            <div className="mx-5 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
-              <h3 className="text-[17px] font-extrabold text-slate-900 text-balance">
-                {feedTab === "seguindo"
-                  ? "Nada novo das lojas que você segue"
-                  : "Nenhum produto neste filtro"}
-              </h3>
-              <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
-                {feedTab === "seguindo"
-                  ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
-                  : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
-              </p>
-              {feedTab === "seguindo" ? (
-                <Button
-                  variant="primary"
-                  onClick={() => handleSelectFeedTab("explorar")}
-                >
-                  Ver toda a Lapa
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setActiveCategory("all");
-                    setSelectedNeighborhood("Toda Bom Jesus da Lapa");
-                    void reloadFirstFeedPage(
-                      feedTab,
-                      "all",
-                      "Toda Bom Jesus da Lapa"
+                  {mainCategoriesList.map((cat) => {
+                    const active = activeCategory === cat.slug;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() =>
+                          handleSelectCategory({
+                            id: cat.id,
+                            name: cat.name,
+                            slug: cat.slug,
+                          })
+                        }
+                        className={cn(
+                          "flex items-center justify-between px-3.5 py-2 rounded-2xl text-[13px] font-bold transition-colors duration-150 cursor-pointer text-left",
+                          active
+                            ? "bg-brand text-white shadow-xs"
+                            : "text-slate-700 hover:bg-slate-100"
+                        )}
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        {active && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0 ml-1.5" />
+                        )}
+                      </button>
                     );
-                  }}
-                >
-                  Limpar filtros
-                </Button>
-              )}
-            </div>
-          ) : viewMode === "feed" ? (
-            <div className="px-4 sm:px-5 md:px-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-              {feedItems.map((product, index) => (
-                <React.Fragment key={product.id}>
-                  <ProductFeedPost
-                    product={product}
-                    isFavorite={savedSet.has(product.id)}
-                    onAddToBag={() => setBagCount((c) => c + 1)}
-                    onToggleFavorite={handleProductFavorite}
-                  />
+                  })}
+                </div>
+              </div>
 
-                  {/* Ofertas do dia in-feed no mobile: entra após o 2º post sem quebrar o grid desktop */}
-                  {index === 1 && filteredOffers.length > 0 && (
-                    <div className="md:hidden -mx-4 sm:-mx-5 py-1">
-                      <div className="flex items-baseline justify-between px-5 pb-2.5">
-                        <h3 className="font-display text-[17px] font-extrabold text-slate-900">
-                          Ofertas do dia
-                        </h3>
-                        <Link
-                          href="/explorar?promocao=true"
-                          className="text-xs font-bold text-slate-600 hover:text-slate-900"
-                        >
-                          Ver tudo
-                        </Link>
-                      </div>
-                      <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-                        {filteredOffers.map((offer) => (
-                          <OfferCard key={offer.id} product={offer} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          ) : (
-            <div className="px-5 md:px-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-              {feedItems.map((product) => (
-                <ProductCardGrid
-                  key={product.id}
-                  product={product}
-                  isFavorite={savedSet.has(product.id)}
-                  onAddToBag={() => setBagCount((c) => c + 1)}
-                  onToggleFavorite={handleProductFavorite}
+              {/* Bairro da Loja */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <MapPin className="w-3.5 h-3.5 text-brand" />
+                  <span>Bairro da Loja</span>
+                </div>
+                <Select
+                  aria-label="Filtrar por bairro de Bom Jesus da Lapa"
+                  inputSize="md"
+                  value={selectedNeighborhood}
+                  onChange={(e) => handleSelectNeighborhood(e.target.value)}
+                  options={[
+                    {
+                      value: "Toda Bom Jesus da Lapa",
+                      label: "Toda Bom Jesus da Lapa",
+                    },
+                    ...availableNeighborhoods.map((nb) => ({
+                      value: nb.name,
+                      label: nb.name,
+                    })),
+                  ]}
                 />
-              ))}
-            </div>
+              </div>
+
+              {/* Toggles Rápidos (Switches) */}
+              <div className="space-y-3.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold text-slate-900">
+                      Lojas abertas agora
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Em atendimento no momento
+                    </span>
+                  </div>
+                  <Switch
+                    checked={onlyOpenNow}
+                    onCheckedChange={handleToggleOpenNow}
+                    aria-label="Filtrar apenas lojas abertas agora"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold text-slate-900">
+                      Apenas em promoção
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Preços especiais ativos
+                    </span>
+                  </div>
+                  <Switch
+                    checked={onlyPromo}
+                    onCheckedChange={handleTogglePromo}
+                    aria-label="Filtrar apenas produtos em promoção"
+                  />
+                </div>
+              </div>
+            </aside>
           )}
 
-          {/* Sentinela única do IntersectionObserver para paginação infinita (Mobile + Desktop) */}
-          <div
-            ref={loadMoreTriggerRef}
-            className="py-5 px-5 flex flex-col items-center justify-center gap-2"
-          >
-            {isLoadingFeed ? (
-              <div className="inline-flex items-center gap-2 text-[13px] text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Carregando mais publicações…</span>
-              </div>
-            ) : !hasMoreFeed && feedItems.length > 0 ? (
-              <p className="text-[13px] text-slate-500 text-center">
-                Você viu todas as publicações recentes.{" "}
-                <Link
-                  href="/explorar"
-                  className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
+          {/* COLUNA PRINCIPAL DE CONTEÚDO */}
+          <div className="min-w-0 space-y-6 md:space-y-8">
+            {/* Stories: posicionado na coluna de conteúdo (alinhado com o banner e o feed) */}
+            <StoriesBar items={stories} className="px-5 md:px-0 pb-1" />
+
+            {/* Pílulas de categoria horizontais (sempre no mobile, e no desktop apenas se a sidebar estiver colapsada) */}
+            <div
+              className={cn(
+                "items-center gap-2.5 pb-2",
+                isSidebarOpen ? "flex lg:hidden" : "flex"
+              )}
+            >
+              {/* Botão de Filtros à ESQUERDA (antes de 'Tudo'), visível no desktop quando a sidebar estiver colapsada */}
+              {!isSidebarOpen && (
+                <button
+                  type="button"
+                  onClick={handleToggleSidebar}
+                  className="hidden lg:inline-flex items-center gap-2 h-10.5 px-4 rounded-full bg-white border border-slate-200 hover:bg-slate-50 font-display text-sm font-bold text-slate-900 shrink-0 transition-colors duration-150 cursor-pointer shadow-xs"
                 >
-                  Explorar catálogo com filtros
-                </Link>
-              </p>
-            ) : null}
+                  <PanelLeftOpen className="w-4 h-4 text-brand" strokeWidth={2} />
+                  <span>Filtros</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="w-5 h-5 rounded-full bg-brand text-white font-display text-[11px] font-bold grid place-items-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              <CategoryPills
+                categories={categoryPillsList}
+                activeSlug={activeCategory}
+                onSelect={handleSelectCategory}
+                className="flex-1 min-w-0 px-5 md:px-0"
+              />
+            </div>
+            {/* Banner institucional (somente desktop — no mobile o feed é prioritário) */}
+            <PromoBanner
+              className="hidden md:block"
+              variant="emerald"
+              tag="O comércio da Lapa, num só lugar"
+              title="Compre das lojas que você já conhece em Bom Jesus da Lapa"
+              subtitle="Escolha no catálogo, tire dúvidas no WhatsApp e receba hoje mesmo em casa ou retire na loja."
+              ctaLabel="Explorar catálogo"
+              onCtaClick={() => router.push("/explorar")}
+              imageUrl="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80"
+            />
+
+            {/* Ofertas do dia no topo (somente desktop — no mobile entram intercaladas no feed) */}
+            {filteredOffers.length > 0 && (
+              <SectionContainer
+                title="Ofertas do dia"
+                actionLabel="Ver tudo"
+                href="/explorar?promocao=true"
+                className="hidden md:block pb-2"
+              >
+                <div
+                  className={cn(
+                    "grid gap-4",
+                    isSidebarOpen
+                      ? "grid-cols-2 xl:grid-cols-4"
+                      : "grid-cols-2 lg:grid-cols-4"
+                  )}
+                >
+                  {filteredOffers.slice(0, 4).map((product) => (
+                    <ProductCardGrid
+                      key={product.id}
+                      product={product}
+                      isFavorite={savedSet.has(product.id)}
+                      onAddToBag={() => setBagCount((c) => c + 1)}
+                      onToggleFavorite={handleProductFavorite}
+                    />
+                  ))}
+                </div>
+              </SectionContainer>
+            )}
+
+            {/* Lojas em destaque (desktop) */}
+            {featuredStores.length > 0 && (
+              <SectionContainer
+                title="Lojas em destaque"
+                subtitle="Comércios de Bom Jesus da Lapa com atendimento direto no WhatsApp"
+                actionLabel="Ver todas"
+                href="/explorar"
+                className="hidden md:block pb-2"
+              >
+                <div
+                  className={cn(
+                    "grid gap-4",
+                    isSidebarOpen
+                      ? "grid-cols-2 xl:grid-cols-4"
+                      : "grid-cols-2 lg:grid-cols-4"
+                  )}
+                >
+                  {featuredStores.map((store) => {
+                    const isPremium = store.plan === "premium";
+                    return (
+                      <div
+                        key={store.id}
+                        className="rounded-3xl bg-white p-4 flex flex-col justify-between gap-4"
+                      >
+                        <div className="space-y-3">
+                          <Link
+                            href={`/${store.slug}`}
+                            className="flex items-center gap-3 min-w-0"
+                          >
+                            <span
+                              className={cn(
+                                "w-13 h-13 rounded-full p-0.5 shrink-0",
+                                isPremium ? "bg-story-premium" : "bg-slate-200"
+                              )}
+                            >
+                              <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-sm font-extrabold text-slate-900">
+                                {store.avatar_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={store.avatar_url}
+                                    alt={store.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  store.name.slice(0, 2).toUpperCase()
+                                )}
+                              </span>
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h3 className="text-[15px] font-bold text-slate-900 truncate">
+                                  {store.name}
+                                </h3>
+                                {store.is_verified && <VerifiedSeal size={16} />}
+                              </div>
+                              <p className="text-xs text-slate-500 truncate">
+                                {store.neighborhood}
+                              </p>
+                            </div>
+                          </Link>
+
+                          {store.description && (
+                            <p className="text-[13px] text-slate-700 line-clamp-2 leading-normal">
+                              {store.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <StoreStatusBadge
+                            compact
+                            storeName={store.name}
+                            businessHours={store.business_hours}
+                            specialHours={store.special_hours}
+                            isOpenOverride={store.is_open_override}
+                          />
+                          <Link
+                            href={`/${store.slug}`}
+                            className="rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-2.25 font-display text-xs font-bold text-slate-900 transition-colors duration-150 shrink-0"
+                          >
+                            Ver loja
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </SectionContainer>
+            )}
+
+            {/* =================================================================
+                FEED INFINITO DO COMÉRCIO LOCAL (PRIORITÁRIO NO MOBILE + DESKTOP)
+               ================================================================= */}
+            <section aria-label="Feed do comércio local" className="space-y-4">
+              {/* Barra de Controle: Abas (Toda a Lapa | Seguindo) + Alternador (Feed | Grade) */}
+              <div className="px-5 md:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {!isSidebarOpen && (
+                    <button
+                      type="button"
+                      onClick={handleToggleSidebar}
+                      className="hidden lg:inline-flex items-center gap-2 h-9.5 px-3.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                      title="Abrir barra lateral de filtros"
+                    >
+                      <PanelLeftOpen className="w-4 h-4 text-brand" strokeWidth={2} />
+                      <span>Filtros</span>
+                      {activeFiltersCount > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-brand text-white font-display text-[11px] font-bold grid place-items-center">
+                          {activeFiltersCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                  <div className="hidden md:block">
+                    <h2 className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em]">
+                      Feed do comércio local
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      Novidades intercaladas das lojas de Bom Jesus da Lapa
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {/* Abas: Toda a Lapa | Seguindo */}
+                  <div
+                    role="tablist"
+                    aria-label="Origem das publicações"
+                    className="flex-1 sm:flex-initial grid grid-cols-2 p-1 rounded-2xl bg-slate-200/70 sm:min-w-64"
+                  >
+                    {(
+                      [
+                        ["explorar", "Toda a Lapa"],
+                        ["seguindo", "Seguindo"],
+                      ] as const
+                    ).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        role="tab"
+                        aria-selected={feedTab === tab}
+                        onClick={() => handleSelectFeedTab(tab)}
+                        className={cn(
+                          "h-9.5 px-4 rounded-[13px] font-display text-[13px] font-bold transition duration-150 cursor-pointer",
+                          feedTab === tab
+                            ? "bg-white text-slate-900 shadow-seg"
+                            : "text-slate-600 hover:text-slate-900"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Alternador de Visualização: Feed Social vs Grade */}
+                  <div
+                    role="group"
+                    aria-label="Modo de visualização"
+                    className="inline-flex p-1 rounded-2xl bg-slate-200/70 shrink-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("feed")}
+                      aria-pressed={viewMode === "feed"}
+                      title="Visualização em Feed"
+                      className={cn(
+                        "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
+                        viewMode === "feed"
+                          ? "bg-white text-slate-900 shadow-seg"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <Rows3 className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                      <span>Feed</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("grid")}
+                      aria-pressed={viewMode === "grid"}
+                      title="Visualização em Grade"
+                      className={cn(
+                        "h-9.5 px-3 rounded-[13px] inline-flex items-center gap-1.5 font-display text-xs font-bold transition duration-150 cursor-pointer",
+                        viewMode === "grid"
+                          ? "bg-white text-slate-900 shadow-seg"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <LayoutGrid className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                      <span>Grade</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista / Grade de Publicações */}
+              {feedItems.length === 0 && !isLoadingFeed ? (
+                <div className="mx-5 md:mx-0 rounded-[28px] bg-white p-8 text-center space-y-3">
+                  <h3 className="text-[17px] font-extrabold text-slate-900 text-balance">
+                    {feedTab === "seguindo"
+                      ? "Nada novo das lojas que você segue"
+                      : "Nenhum produto neste filtro"}
+                  </h3>
+                  <p className="text-[13px] text-slate-500 max-w-xs mx-auto leading-normal">
+                    {feedTab === "seguindo"
+                      ? "Siga suas lojas favoritas de Bom Jesus da Lapa para acompanhar os lançamentos por aqui."
+                      : "Escolha outra categoria ou busque em toda Bom Jesus da Lapa."}
+                  </p>
+                  {feedTab === "seguindo" ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => handleSelectFeedTab("explorar")}
+                    >
+                      Ver toda a Lapa
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={handleResetFilters}
+                    >
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              ) : viewMode === "feed" ? (
+                <div
+                  className={cn(
+                    "px-4 sm:px-5 md:px-0 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5",
+                    isSidebarOpen ? "xl:grid-cols-3" : "lg:grid-cols-3"
+                  )}
+                >
+                  {feedItems.map((product, index) => (
+                    <React.Fragment key={product.id}>
+                      <ProductFeedPost
+                        product={product}
+                        isFavorite={savedSet.has(product.id)}
+                        onAddToBag={() => setBagCount((c) => c + 1)}
+                        onToggleFavorite={handleProductFavorite}
+                      />
+
+                      {/* Ofertas do dia in-feed no mobile: entra após o 2º post sem quebrar o grid desktop */}
+                      {index === 1 && filteredOffers.length > 0 && (
+                        <div className="md:hidden -mx-4 sm:-mx-5 py-1">
+                          <div className="flex items-baseline justify-between px-5 pb-2.5">
+                            <h3 className="font-display text-[17px] font-extrabold text-slate-900">
+                              Ofertas do dia
+                            </h3>
+                            <Link
+                              href="/explorar?promocao=true"
+                              className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                            >
+                              Ver tudo
+                            </Link>
+                          </div>
+                          <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
+                            {filteredOffers.map((offer) => (
+                              <OfferCard key={offer.id} product={offer} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "px-5 md:px-0 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4",
+                    isSidebarOpen
+                      ? "xl:grid-cols-4"
+                      : "lg:grid-cols-4 xl:grid-cols-5"
+                  )}
+                >
+                  {feedItems.map((product) => (
+                    <ProductCardGrid
+                      key={product.id}
+                      product={product}
+                      isFavorite={savedSet.has(product.id)}
+                      onAddToBag={() => setBagCount((c) => c + 1)}
+                      onToggleFavorite={handleProductFavorite}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Sentinela única do IntersectionObserver para paginação infinita (Mobile + Desktop) */}
+              <div
+                ref={loadMoreTriggerRef}
+                className="py-5 px-5 flex flex-col items-center justify-center gap-2"
+              >
+                {isLoadingFeed ? (
+                  <div className="inline-flex items-center gap-2 text-[13px] text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Carregando mais publicações…</span>
+                  </div>
+                ) : !hasMoreFeed && feedItems.length > 0 ? (
+                  <p className="text-[13px] text-slate-500 text-center">
+                    Você viu todas as publicações recentes.{" "}
+                    <Link
+                      href="/explorar"
+                      className="font-semibold text-slate-900 underline decoration-brand decoration-2 underline-offset-4"
+                    >
+                      Explorar catálogo com filtros
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </main>
 
       <Footer />

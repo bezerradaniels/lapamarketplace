@@ -768,6 +768,8 @@ export interface GetMarketplaceFeedInput {
   userId?: string | null;
   categorySlug?: string | null;
   neighborhoodSlug?: string | null;
+  onlyOpenNow?: boolean;
+  onlyPromo?: boolean;
 }
 
 export interface GetMarketplaceFeedOutput {
@@ -819,6 +821,28 @@ export async function getMarketplaceFeed(
         p.store.neighborhood_slug === nbClean ||
         p.store.neighborhood_id === nbClean
     );
+  }
+
+  // Filtro por Promoções (produtos com promotional_price menor que o preço original)
+  if (input.onlyPromo) {
+    list = list.filter(
+      (p) =>
+        p.promotional_price != null &&
+        p.promotional_price > 0 &&
+        p.promotional_price < p.price
+    );
+  }
+
+  // Filtro por Lojas Abertas Agora
+  if (input.onlyOpenNow) {
+    list = list.filter((p) => {
+      const status = getStoreOpenStatus({
+        businessHours: p.store.business_hours,
+        specialHours: p.store.special_hours,
+        isOpenOverride: p.store.is_open_override,
+      });
+      return status.isOpen;
+    });
   }
 
   // Filtro da aba 'seguindo' vs intercalação da aba 'explorar'

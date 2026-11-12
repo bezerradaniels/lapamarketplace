@@ -59,7 +59,7 @@ export function Footer({ className }: FooterProps) {
 
           <Link
             href="/lojista/cadastro"
-            className="shrink-0 inline-flex items-center h-11.5 px-4.5 rounded-[15px] bg-slate-900 hover:bg-slate-800 text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
+            className="shrink-0 inline-flex items-center h-11.5 px-4.5 rounded-[15px] bg-brand hover:bg-brand-hover text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
           >
             Quero abrir minha loja
           </Link>

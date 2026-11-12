@@ -587,7 +587,7 @@ export function ExploreMarketplaceClient({
                     className={cn(
                       "min-w-11.5 h-11 px-3 rounded-[14px] grid place-items-center font-display text-sm font-bold transition-colors duration-150 cursor-pointer",
                       active
-                        ? "bg-slate-900 text-white"
+                        ? "bg-brand text-white"
                         : "bg-white text-slate-900 ring-line hover:bg-slate-50"
                     )}
                   >
@@ -768,10 +768,10 @@ export function ExploreMarketplaceClient({
             e.preventDefault();
             syncUrlParams();
           }}
-          className="relative flex-1 flex items-center md:hidden"
+          className="relative flex-1 flex items-center md:hidden lapa-aurora-glow rounded-full"
         >
           <Search
-            className="w-4.5 h-4.5 text-slate-900 absolute left-4 pointer-events-none"
+            className="w-4.5 h-4.5 text-slate-500 absolute left-4.5 pointer-events-none"
             strokeWidth={1.8}
             aria-hidden="true"
           />
@@ -781,7 +781,7 @@ export function ExploreMarketplaceClient({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar em lojas da Lapa"
             aria-label="Pesquisar produtos ou lojas"
-            className="w-full h-12 rounded-2xl bg-slate-100 pl-11 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 transition-[background-color,box-shadow] duration-150"
+            className="w-full h-12 rounded-full bg-white border border-slate-200 pl-11.5 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-brand focus:outline-none transition-colors duration-150 [&::-webkit-search-cancel-button]:hidden"
           />
         </form>
         <span className="hidden md:block flex-1" />
@@ -793,11 +793,11 @@ export function ExploreMarketplaceClient({
               ? `Abrir filtros (${activeFiltersCount} ativos)`
               : "Abrir filtros"
           }
-          className="relative w-12 h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 grid place-items-center text-white transition duration-150 active:scale-[0.98] cursor-pointer shrink-0"
+          className="relative w-12 h-12 rounded-2xl bg-brand hover:bg-brand-hover grid place-items-center text-white transition duration-150 active:scale-[0.98] cursor-pointer shrink-0"
         >
           <SlidersHorizontal className="w-5 h-5" strokeWidth={1.8} />
           {activeFiltersCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand text-slate-900 font-display text-[11px] font-bold grid place-items-center ring-2 ring-slate-50">
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand text-white font-display text-[11px] font-bold grid place-items-center ring-2 ring-slate-50">
               {activeFiltersCount}
             </span>
           )}
@@ -835,7 +835,7 @@ export function ExploreMarketplaceClient({
                     type="button"
                     onClick={chip.clear}
                     aria-label={`Remover filtro ${chip.label}`}
-                    className="flex-none inline-flex items-center gap-1.5 px-3.5 py-2.25 rounded-full bg-brand text-slate-900 text-[13px] font-semibold leading-tight cursor-pointer hover:bg-brand-strong transition-colors duration-150"
+                    className="flex-none inline-flex items-center gap-1.5 px-3.5 py-2.25 rounded-full bg-brand text-white text-[13px] font-semibold leading-tight cursor-pointer hover:bg-brand-hover transition-colors duration-150"
                   >
                     {chip.label}
                     <X className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />

@@ -36,7 +36,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       options,
       placeholder,
       leftIcon,
-      pill = false,
+      pill = true,
       inputSize = "lg",
       id,
       children,
@@ -49,6 +49,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const errorId = `${selectId}-error`;
     const helperId = `${selectId}-helper`;
 
+    const radiusClass = pill ? "rounded-full" : "rounded-2xl";
+
     return (
       <div className={cn("flex flex-col gap-1.5 w-full", containerClassName)}>
         {label && (
@@ -60,9 +62,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           </label>
         )}
 
-        <div className="relative flex items-center">
+        <div className={cn("relative flex items-center lapa-aurora-glow", radiusClass)}>
           {leftIcon && (
-            <span className="absolute left-4 text-slate-500 pointer-events-none inline-flex items-center">
+            <span className="absolute left-5 text-slate-500 pointer-events-none inline-flex items-center">
               {leftIcon}
             </span>
           )}
@@ -76,13 +78,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             }
             className={cn(
               fieldBaseClasses,
-              "appearance-none cursor-pointer pl-4 pr-11",
-              inputSize === "lg"
-                ? "h-13 rounded-2xl text-[15px]"
-                : "h-11.5 rounded-[15px] text-sm",
-              pill && "rounded-full",
-              Boolean(leftIcon) && "pl-11",
-              Boolean(error) && "bg-white ring-2 ring-offer focus:ring-offer",
+              "appearance-none cursor-pointer pl-5.5 pr-12",
+              radiusClass,
+              inputSize === "lg" ? "h-13 text-[15px]" : "h-11.5 text-sm",
+              Boolean(leftIcon) && "pl-13",
+              Boolean(error) && "border-offer focus:border-offer",
               className
             )}
             {...props}
@@ -105,7 +105,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               : children}
           </select>
 
-          <span className="absolute right-4 text-slate-500 pointer-events-none inline-flex items-center">
+          <span className="absolute right-5 text-slate-500 pointer-events-none inline-flex items-center">
             <ChevronDown className="w-4 h-4" aria-hidden="true" />
           </span>
         </div>

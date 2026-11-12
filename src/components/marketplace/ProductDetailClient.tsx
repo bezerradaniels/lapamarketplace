@@ -196,7 +196,7 @@ export function ProductDetailClient({
 
   const isPremium = store.plan === "premium" || store.plan === "pro";
   const overlayButtonClasses =
-    "w-10.5 h-10.5 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
+    "w-10.5 h-10.5 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light";
 
   const buyButtons = (
     <>
@@ -413,9 +413,9 @@ export function ProductDetailClient({
                         aria-checked={active}
                         onClick={() => setSelectedSize(size)}
                         className={cn(
-                          "min-w-12 h-12 px-3 rounded-[14px] grid place-items-center font-display text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
+                          "min-w-12 h-12 px-3 rounded-[14px] grid place-items-center font-display text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
                           active
-                            ? "bg-slate-900 text-white"
+                            ? "bg-brand text-white"
                             : "bg-white text-slate-900 ring-line hover:bg-slate-50"
                         )}
                       >

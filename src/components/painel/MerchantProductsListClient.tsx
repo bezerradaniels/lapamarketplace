@@ -127,7 +127,7 @@ export function MerchantProductsListClient({
             placeholder="Buscar produto"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 rounded-[15px] bg-slate-100 pl-10.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 transition-[background-color,box-shadow] duration-150"
+            className="w-full h-11 rounded-[15px] bg-slate-100 pl-10.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-brand-light transition-[background-color,box-shadow] duration-150"
           />
         </div>
         <PillGroup

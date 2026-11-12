@@ -295,7 +295,7 @@ export function MasterTaxonomyClient({
   const cardClasses = "p-4 rounded-3xl bg-white flex flex-col gap-1.5 min-w-0";
   const cardHeading = "text-base font-extrabold text-slate-900";
   const plusButton =
-    "w-8 h-8 rounded-[10px] bg-slate-900 hover:bg-slate-800 text-white grid place-items-center cursor-pointer transition duration-150 active:scale-95";
+    "w-8 h-8 rounded-[10px] bg-brand hover:bg-brand-hover text-white grid place-items-center cursor-pointer transition duration-150 active:scale-95";
 
   const flagRows = [
     { label: "Gênero", sub: "has_gender", on: hasGender, set: setHasGender },
@@ -334,7 +334,7 @@ export function MasterTaxonomyClient({
                 key={cat.id}
                 className={cn(
                   "flex items-center gap-1.5 p-2 rounded-2xl transition-colors duration-150",
-                  selected ? "bg-brand-soft shadow-[inset_0_0_0_1.5px_#FDBA74]" : "hover:bg-slate-50"
+                  selected ? "bg-brand-soft shadow-[inset_0_0_0_1.5px_#264E9C]" : "hover:bg-slate-50"
                 )}
               >
                 <span className="flex flex-col">
@@ -427,7 +427,7 @@ export function MasterTaxonomyClient({
                         onBlur={addSize}
                         placeholder="+ tamanho"
                         aria-label="Adicionar tamanho"
-                        className="w-24 px-2.5 py-1.75 rounded-[11px] ring-line text-[13px] text-slate-900 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-slate-900"
+                        className="w-24 px-2.5 py-1.75 rounded-[11px] ring-line text-[13px] text-slate-900 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-brand-light"
                       />
                     </div>
                   </div>
@@ -440,7 +440,7 @@ export function MasterTaxonomyClient({
                 <span className={fieldLabelClasses}>Subcategorias</span>
                 <div className="flex flex-wrap gap-1.5">
                   {editorSubcategories.map((sub) => (
-                    <button key={sub.id} type="button" onClick={() => handleStartEditCategory(sub)} className="px-3 py-1.75 rounded-full bg-brand-soft text-[13px] font-semibold text-slate-900 cursor-pointer hover:bg-brand transition-colors duration-150">
+                    <button key={sub.id} type="button" onClick={() => handleStartEditCategory(sub)} className="px-3 py-1.75 rounded-full bg-brand-soft text-[13px] font-semibold text-brand cursor-pointer hover:bg-brand hover:text-white transition-colors duration-150">
                       {sub.name}
                     </button>
                   ))}
@@ -470,7 +470,7 @@ export function MasterTaxonomyClient({
               placeholder={editingNbId ? "Renomear bairro" : "Novo bairro"}
               value={nbName}
               onChange={(e) => setNbName(e.target.value)}
-              className="flex-1 min-w-0 h-10 rounded-xl bg-slate-100 px-3 text-sm outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900"
+              className="flex-1 min-w-0 h-10 rounded-xl bg-white border border-slate-200 px-3 text-sm outline-none placeholder:text-slate-500 focus:border-brand focus:ring-2 focus:ring-brand-light/25"
             />
             <button type="submit" aria-label={editingNbId ? "Salvar bairro" : "Adicionar bairro"} className={plusButton}>
               {editingNbId ? <Check className="w-4 h-4" strokeWidth={2.4} /> : <Plus className="w-4 h-4" strokeWidth={2.4} />}

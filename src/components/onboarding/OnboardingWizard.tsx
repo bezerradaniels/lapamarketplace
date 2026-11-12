@@ -475,7 +475,7 @@ export function OnboardingWizard({
   };
 
   const timeInputClasses =
-    "h-9 rounded-[10px] bg-slate-100 px-2 text-[13px] text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900";
+    "h-9 rounded-[10px] bg-slate-100 px-2 text-[13px] text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-brand-light";
 
   return (
     <form
@@ -535,7 +535,7 @@ export function OnboardingWizard({
       {step === 1 && (
         <>
           <div className="flex items-center gap-3.5">
-            <span className="relative w-19 h-19 rounded-full bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#FDBA74] overflow-hidden grid place-items-center shrink-0">
+            <span className="relative w-19 h-19 rounded-full bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#264E9C] overflow-hidden grid place-items-center shrink-0">
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -544,7 +544,7 @@ export function OnboardingWizard({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <LapaSymbol size={32} ink="#94A3B8" check="#94A3B8" />
+                <LapaSymbol size={32} variant="mono" className="opacity-30" />
               )}
               {isUploadingLogo && (
                 <span className="absolute inset-0 bg-slate-900/50 grid place-items-center text-white">
@@ -589,12 +589,12 @@ export function OnboardingWizard({
             </label>
             <div
               className={cn(
-                "h-13 rounded-2xl flex items-center px-4 text-[15px] overflow-hidden transition-[background-color,box-shadow] duration-150",
+                "h-13 rounded-full flex items-center px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150",
                 slugIsValid
-                  ? "bg-white ring-2 ring-whatsapp"
+                  ? "bg-white border border-whatsapp"
                   : slugHasError
-                  ? "bg-white ring-2 ring-offer"
-                  : "bg-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900"
+                  ? "bg-white border border-offer"
+                  : "bg-white border border-slate-200 focus-within:border-brand"
               )}
             >
               <span className="text-slate-500 shrink-0">
@@ -657,18 +657,20 @@ export function OnboardingWizard({
             <label htmlFor="store-bio" className={fieldLabelClasses}>
               Bio da loja
             </label>
-            <textarea
-              id="store-bio"
-              rows={3}
-              maxLength={240}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Moda feminina com peças leves para o dia a dia. Entregamos em toda a Lapa."
-              className={cn(
-                fieldBaseClasses,
-                "min-h-22 rounded-2xl px-4 py-3.5 text-sm leading-[1.45] resize-none"
-              )}
-            />
+            <div className="relative lapa-aurora-glow rounded-2xl">
+              <textarea
+                id="store-bio"
+                rows={3}
+                maxLength={240}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Moda feminina com peças leves para o dia a dia. Entregamos em toda a Lapa."
+                className={cn(
+                  fieldBaseClasses,
+                  "min-h-22 rounded-2xl px-4 py-3.5 text-sm leading-[1.45] resize-none"
+                )}
+              />
+            </div>
           </div>
         </>
       )}
@@ -680,7 +682,7 @@ export function OnboardingWizard({
             <label htmlFor="store-whatsapp" className={fieldLabelClasses}>
               WhatsApp de atendimento
             </label>
-            <div className="h-13 rounded-2xl bg-slate-100 flex items-center gap-2.5 px-4 text-[15px] transition-[background-color,box-shadow] duration-150 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900">
+            <div className="h-13 rounded-full bg-white border border-slate-200 flex items-center gap-2.5 px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150 focus-within:border-brand">
               <span className="px-2 py-1 rounded-lg bg-white text-[13px] font-semibold text-slate-900 shrink-0">
                 +55
               </span>
@@ -726,18 +728,20 @@ export function OnboardingWizard({
             <label htmlFor="store-address" className={fieldLabelClasses}>
               Endereço ou ponto de referência
             </label>
-            <textarea
-              id="store-address"
-              rows={2}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              autoComplete="street-address"
-              placeholder="Av. Manoel Novais, 120 — ao lado da Caixa"
-              className={cn(
-                fieldBaseClasses,
-                "min-h-13 rounded-2xl px-4 py-3.75 text-[15px] leading-[1.4] resize-none"
-              )}
-            />
+            <div className="relative lapa-aurora-glow rounded-2xl">
+              <textarea
+                id="store-address"
+                rows={2}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                autoComplete="street-address"
+                placeholder="Av. Manoel Novais, 120 — ao lado da Caixa"
+                className={cn(
+                  fieldBaseClasses,
+                  "min-h-13 rounded-2xl px-4 py-3.75 text-[15px] leading-[1.4] resize-none"
+                )}
+              />
+            </div>
           </div>
         </>
       )}

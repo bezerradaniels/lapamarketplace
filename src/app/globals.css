@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Lapa Marketplace — tokens do Manual de Identidade Visual.
- * Pêssego #FDBA74 + slate #0F172A, superfícies suaves e cantos bem arredondados.
+ * Lapa Marketplace — tokens da Identidade v3 (Azul Lapa + sacola sólida).
+ * Azul Lapa #264E9C + slate #0F172A, aurora azul, cantos bem arredondados.
  */
 :root {
   --background: #f8fafc;
@@ -16,22 +16,34 @@
   --font-sans: var(--font-inter-tight), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-figtree), system-ui, -apple-system, sans-serif;
 
-  /* Marca */
+  /* Marca (Azul Lapa) */
   --color-ink: #0f172a;
-  --color-brand: #fdba74;
-  --color-brand-strong: #fb923c;
-  --color-brand-soft: #ffedd5;
-  --color-brand-tint: #fff7ed;
-  --color-brand-ink: #9a3412;
-  --color-whatsapp: #059669;
-  --color-whatsapp-strong: #047857;
-  --color-offer: #f43f5e;
+  --color-muted: #64748b;
+  --color-media: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-brand: #264e9c;
+  --color-brand-hover: #1e3e7d;
+  --color-brand-deep: #1e3a8a;
+  --color-brand-light: #3b82f6;
+  --color-brand-soft: #eff6ff;
+  /* Aliases legados da v1 (mantidos para não quebrar telas) */
+  --color-brand-strong: #1e3e7d;
+  --color-brand-tint: #f5f9ff;
+  --color-brand-ink: #1e3a8a;
+
+  /* Estados (só na UI, nunca no logo) */
+  --color-whatsapp: #10b981;
+  --color-whatsapp-strong: #059669;
+  --color-offer: #ef4444;
+  --color-premium: #f59e0b;
 
   /* Sombras do sistema (sem bordas pesadas) */
   --shadow-nav: 0 -10px 30px -20px rgb(15 23 42 / 0.25);
   --shadow-bag: 0 16px 30px -12px rgb(15 23 42 / 0.5);
   --shadow-seg: 0 1px 3px rgb(15 23 42 / 0.08);
   --shadow-float: 0 30px 60px -30px rgb(15 23 42 / 0.35);
+  --shadow-card: 0 8px 30px rgb(15 23 42 / 0.04);
+  --shadow-card-brand: 0 8px 30px -4px rgb(38 78 156 / 0.25);
 
   --animate-slide-up: slide-up 200ms ease-out both;
 
@@ -52,9 +64,88 @@
   box-shadow: inset 0 0 0 1.5px #e2e8f0;
 }
 
-/* Anel de story Premium */
+/* Anel de story Premium (24h) — aurora azul */
 @utility bg-story-premium {
-  background: conic-gradient(from 200deg, #fdba74, #fb923c, #ffedd5, #fdba74);
+  background: linear-gradient(180deg, #0b1736 0%, #264e9c 40%, #3b82f6 72%, #93c5fd 100%);
+}
+
+@utility ring-lapa-aurora {
+  background: linear-gradient(180deg, #0b1736 0%, #264e9c 40%, #3b82f6 72%, #93c5fd 100%);
+  padding: 3px;
+  border-radius: 9999px;
+}
+
+/* Fundo de campanha / banner deep: brilho azul que nasce de baixo */
+@utility bg-lapa-aurora {
+  background: radial-gradient(
+    120% 95% at 50% 112%,
+    #bfdbfe 0%,
+    #60a5fa 18%,
+    #3b82f6 36%,
+    #264e9c 58%,
+    #0b1736 80%,
+    #060b19 100%
+  );
+}
+
+/* Atmosfera do topo da home (sobre #F8FAFC) */
+@utility bg-lapa-atmosphere {
+  background:
+    radial-gradient(at 10% 10%, rgb(38 78 156 / 0.14) 0, transparent 45%),
+    radial-gradient(at 90% 10%, rgb(59 130 246 / 0.1) 0, transparent 45%),
+    radial-gradient(at 50% 95%, rgb(125 211 252 / 0.12) 0, transparent 50%),
+    #f8fafc;
+}
+
+/* Halo aurora para campos de formulário, busca e cards em foco */
+.lapa-aurora-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.lapa-aurora-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -1;
+  background: linear-gradient(90deg, #264e9c, #3b82f6, #7dd3fc);
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+  pointer-events: none;
+}
+
+.lapa-aurora-glow:hover::before {
+  opacity: 0.35;
+  filter: blur(16px);
+}
+
+.lapa-aurora-glow:focus-within::before {
+  opacity: 0.7;
+  filter: blur(18px);
+}
+
+.lapa-aurora-glow:has([aria-invalid="true"])::before {
+  display: none;
+}
+
+/* Foco padrão da v3 (apenas em links, botões e elementos interativos — campos de formulário usam borda única) */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
 }
 
 body {
@@ -121,7 +212,7 @@ dialog::backdrop {
   border-radius: 3px;
   background: linear-gradient(
     to right,
-    #0f172a var(--range-fill, 0%),
+    #264e9c var(--range-fill, 0%),
     #e2e8f0 var(--range-fill, 0%)
   );
 }
@@ -135,7 +226,7 @@ dialog::backdrop {
 .lapa-range::-moz-range-progress {
   height: 6px;
   border-radius: 3px;
-  background: #0f172a;
+  background: #264e9c;
 }
 
 .lapa-range::-webkit-slider-thumb {
@@ -146,13 +237,13 @@ dialog::backdrop {
   margin-top: -9px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 0 0 2px #0f172a;
+  box-shadow: 0 0 0 2px #264e9c;
 }
 
 .lapa-range::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  border: 2px solid #0f172a;
+  border: 2px solid #264e9c;
   border-radius: 50%;
   background: #ffffff;
 }
@@ -162,5 +253,32 @@ dialog::backdrop {
 }
 
 .lapa-range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 2px #0f172a, 0 0 0 5px #fdba74;
+  box-shadow: 0 0 0 2px #264e9c, 0 0 0 5px #bfdbfe;
+}
+
+/*
+ * Força fundo branco puro em campos autopreenchidos (autofill) pelo navegador,
+ * cobrindo o azul padrão do WebKit/Chrome/Edge/Safari.
+ */
+input:is(:autofill, :-webkit-autofill),
+textarea:is(:autofill, :-webkit-autofill),
+select:is(:autofill, :-webkit-autofill) {
+  -webkit-box-shadow: 0 0 0 100vmax #ffffff inset !important;
+  box-shadow: 0 0 0 100vmax #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  outline: none !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:is(:autofill, :-webkit-autofill):focus,
+textarea:is(:autofill, :-webkit-autofill):focus,
+select:is(:autofill, :-webkit-autofill):focus {
+  -webkit-box-shadow: 0 0 0 100vmax #ffffff inset !important;
+  box-shadow: 0 0 0 100vmax #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+  border-color: #264e9c !important;
+  outline: none !important;
 }

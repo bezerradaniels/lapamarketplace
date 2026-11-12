@@ -246,9 +246,9 @@ export function BagCheckoutClient({
   const totalItemsCount = items.reduce((acc, i) => acc + i.quantity, 0);
   const optionPillClasses = (active: boolean) =>
     cn(
-      "px-3.5 py-2.25 rounded-full text-[13px] font-semibold leading-tight transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1",
+      "px-3.5 py-2.25 rounded-full text-[13px] font-semibold leading-tight transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-1",
       active
-        ? "bg-slate-900 text-white"
+        ? "bg-brand text-white"
         : "bg-slate-100 text-slate-900 hover:bg-slate-200"
     );
 

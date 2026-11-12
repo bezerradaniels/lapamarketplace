@@ -16,6 +16,7 @@ export default async function HomePage() {
       hasMoreFeed={data.hasMoreFeed}
       userId={data.userId}
       savedProductIds={data.savedProductIds}
+      neighborhoods={data.neighborhoods}
     />
   );
 }

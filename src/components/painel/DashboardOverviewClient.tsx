@@ -332,7 +332,7 @@ export function DashboardOverviewClient({
         {/* Story Premium ou convite de upgrade */}
         <section className="p-5 rounded-3xl bg-brand-soft flex gap-4 items-center">
           <span className="flex-none w-16 h-16 rounded-full p-0.75 bg-story-premium">
-            <span className="w-full h-full rounded-full bg-white shadow-[inset_0_0_0_3px_#FFEDD5] grid place-items-center">
+            <span className="w-full h-full rounded-full bg-white shadow-[inset_0_0_0_3px_#BFDBFE] grid place-items-center">
               <LapaSymbol size={30} />
             </span>
           </span>
@@ -439,7 +439,7 @@ export function DashboardOverviewClient({
 
             <form onSubmit={handlePublishStory} className="flex flex-col gap-3.5">
               <div className="flex items-center gap-3.5">
-                <span className="relative w-16 h-24 rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#FDBA74] overflow-hidden grid place-items-center shrink-0 text-slate-400">
+                <span className="relative w-16 h-24 rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FFFFFF,0_0_0_2px_#264E9C] overflow-hidden grid place-items-center shrink-0 text-slate-400">
                   {storyMediaUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

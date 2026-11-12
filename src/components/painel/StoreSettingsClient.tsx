@@ -289,7 +289,7 @@ export function StoreSettingsClient({
   };
 
   const timeInputClasses =
-    "h-9 rounded-[10px] bg-slate-100 px-2 text-[13px] text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900";
+    "h-9 rounded-[10px] bg-white border border-slate-200 px-2 text-[13px] text-slate-900 outline-none focus:border-brand focus:ring-2 focus:ring-brand-light/25";
   const cardClasses = "p-5 rounded-3xl bg-white flex flex-col gap-3.5";
   const cardTitle = "text-[17px] font-extrabold text-slate-900";
 
@@ -389,7 +389,7 @@ export function StoreSettingsClient({
             <section className={cardClasses}>
               <h2 className={cardTitle}>Identidade</h2>
               <div className="flex items-center gap-3.5">
-                <span className="w-16 h-16 rounded-full bg-brand-soft overflow-hidden grid place-items-center shrink-0 shadow-[0_0_0_2px_#FDBA74]">
+                <span className="w-16 h-16 rounded-full bg-brand-soft overflow-hidden grid place-items-center shrink-0 shadow-[0_0_0_2px_#264E9C]">
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarUrl} alt="Logo da loja" className="w-full h-full object-cover" />
@@ -437,13 +437,15 @@ export function StoreSettingsClient({
               <Input inputSize="md" label="Nome da loja *" value={name} onChange={(e) => setName(e.target.value)} required />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="store-settings-bio" className={fieldLabelClasses}>Bio da loja</label>
-                <textarea
-                  id="store-settings-bio"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={cn(fieldBaseClasses, "rounded-[15px] px-3.5 py-3 text-sm resize-none")}
-                />
+                <div className="relative lapa-aurora-glow rounded-[15px]">
+                  <textarea
+                    id="store-settings-bio"
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className={cn(fieldBaseClasses, "rounded-[15px] px-3.5 py-3 text-sm resize-none")}
+                  />
+                </div>
               </div>
             </section>
 

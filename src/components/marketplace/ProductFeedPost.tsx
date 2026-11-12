@@ -346,7 +346,7 @@ export function ProductFeedPost({
               : `Adicionar ${product.title} aos favoritos`
           }
           aria-pressed={isFav}
-          className="absolute top-3 right-3 z-10 w-9.5 h-9.5 rounded-[13px] bg-white/95 hover:bg-white grid place-items-center shadow-seg transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          className="absolute top-3 right-3 z-10 w-9.5 h-9.5 rounded-[13px] bg-white/95 hover:bg-white grid place-items-center shadow-seg transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light"
         >
           <Heart
             className={cn(
@@ -433,7 +433,7 @@ export function ProductFeedPost({
                     className={cn(
                       "min-w-8.5 h-7.5 px-2.5 rounded-[10px] font-display text-xs font-bold transition-colors duration-150 cursor-pointer touch-manipulation",
                       isSelected
-                        ? "bg-slate-900 text-white"
+                        ? "bg-brand text-white"
                         : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                     )}
                   >

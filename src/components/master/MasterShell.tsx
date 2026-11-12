@@ -21,7 +21,7 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
       <span className="font-display text-[19px] font-extrabold tracking-[-0.03em] text-white">
         Lapa
       </span>
-      <span className="px-2 py-0.5 rounded-full bg-brand text-slate-900 text-[10px] font-bold">
+      <span className="px-2 py-0.5 rounded-full bg-brand text-white text-[10px] font-bold">
         Master
       </span>
     </Link>
@@ -69,7 +69,7 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
           </Link>
           <Link
             href="/"
-            className={cn(shortcutClasses, "bg-brand hover:bg-brand-strong text-slate-900")}
+            className={cn(shortcutClasses, "bg-brand hover:bg-brand-hover text-white")}
           >
             Ver o portal
           </Link>
@@ -82,7 +82,7 @@ export function MasterShell({ children }: { children: React.ReactNode }) {
           {brand}
           <Link
             href="/"
-            className={cn(shortcutClasses, "bg-brand hover:bg-brand-strong text-slate-900")}
+            className={cn(shortcutClasses, "bg-brand hover:bg-brand-hover text-white")}
           >
             Ver o portal
           </Link>

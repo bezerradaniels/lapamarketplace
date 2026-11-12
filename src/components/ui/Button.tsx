@@ -25,22 +25,22 @@ export interface ButtonProps
 }
 
 export const buttonVariantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-slate-900 text-white hover:bg-slate-800",
+  primary: "bg-brand text-white hover:bg-brand-hover active:bg-brand-hover",
   secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
   whatsapp: "bg-whatsapp text-white hover:bg-whatsapp-strong",
-  brand: "bg-brand text-slate-900 hover:bg-brand-strong",
-  outline: "bg-white text-slate-900 ring-line hover:bg-slate-50",
+  brand: "bg-brand text-white hover:bg-brand-hover",
+  outline: "bg-white text-brand shadow-[inset_0_0_0_1.5px_#264E9C] hover:bg-brand-soft",
   ghost: "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
 };
 
 export const buttonSizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-[11px]",
-  md: "h-11.5 px-5 text-sm gap-2 rounded-[15px]",
-  lg: "h-14 px-6 text-base gap-2.5 rounded-[18px]",
+  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-full",
+  md: "h-11.5 px-5 text-sm gap-2 rounded-full",
+  lg: "h-14 px-6 text-base gap-2.5 rounded-full",
 };
 
 export const buttonBaseClasses =
-  "relative inline-flex items-center justify-center font-display font-bold transition-[background-color,color,transform,box-shadow] duration-150 ease-out select-none cursor-pointer touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:opacity-55 disabled:pointer-events-none";
+  "relative inline-flex items-center justify-center font-display font-semibold transition-[background-color,color,transform,box-shadow] duration-150 ease-out select-none cursor-pointer touch-manipulation active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light disabled:opacity-55 disabled:pointer-events-none";
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (

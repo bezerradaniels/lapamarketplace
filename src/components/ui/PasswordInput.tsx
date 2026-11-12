@@ -16,13 +16,13 @@ export const PasswordInput = React.forwardRef<
     <Input
       ref={ref}
       type={visible ? "text" : "password"}
-      className={className ? `pr-20 ${className}` : "pr-20"}
+      className={className ? `pr-24 ${className}` : "pr-24"}
       rightIcon={
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-pressed={visible}
-          className="text-[13px] text-slate-500 hover:text-slate-900 cursor-pointer"
+          className="text-[13px] font-semibold text-slate-500 hover:text-slate-900 cursor-pointer select-none"
         >
           {visible ? "Ocultar" : "Mostrar"}
         </button>

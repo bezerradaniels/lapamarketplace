@@ -15,7 +15,7 @@ export interface SwitchProps
 }
 
 /**
- * Switch do sistema: ligado em verde #059669, knob animado em 150ms ease-out.
+ * Switch do sistema: ligado em verde #10B981, knob animado em 150ms ease-out.
  */
 export function Switch({
   checked,
@@ -34,7 +34,7 @@ export function Switch({
       onClick={() => onCheckedChange?.(!checked)}
       className={cn(
         "relative shrink-0 rounded-full p-0.75 transition-colors duration-150 ease-out cursor-pointer touch-manipulation",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
         "disabled:opacity-55 disabled:cursor-not-allowed",
         size === "md" ? "w-11.5 h-7" : "w-10.5 h-6.5",
         checked ? "bg-whatsapp" : "bg-slate-200",
@@ -107,13 +107,13 @@ export function Segmented<T extends string>({
             aria-selected={isActive}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "font-display font-bold transition duration-150 ease-out cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
+              "font-display font-bold transition duration-150 ease-out cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light",
               size === "md"
                 ? "h-10 px-3 rounded-[13px] text-[13px]"
                 : "h-7.5 px-2.5 rounded-[9px] text-xs",
               isActive
                 ? tone === "brand"
-                  ? "bg-brand text-slate-900"
+                  ? "bg-brand text-white"
                   : "bg-white text-slate-900 shadow-seg"
                 : "text-slate-500 hover:text-slate-900"
             )}
@@ -152,7 +152,6 @@ export function PillGroup<T extends string>({
   options,
   value,
   onToggle,
-  tone = "ink",
   surface = "white",
   ariaLabel,
   className,
@@ -175,11 +174,9 @@ export function PillGroup<T extends string>({
             onClick={() => onToggle(opt.value)}
             className={cn(
               "px-3.5 py-2.25 rounded-full text-[13px] font-semibold leading-tight transition-colors duration-150 ease-out cursor-pointer touch-manipulation",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed",
               active
-                ? tone === "brand"
-                  ? "bg-brand text-slate-900"
-                  : "bg-slate-900 text-white"
+                ? "bg-brand text-white"
                 : surface === "ring"
                 ? "bg-white text-slate-900 ring-line hover:bg-slate-50"
                 : surface === "white"

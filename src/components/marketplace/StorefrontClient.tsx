@@ -180,7 +180,7 @@ export function StorefrontClient({
     .join(" ou ");
 
   const iconButtonClasses =
-    "w-10 h-10 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
+    "w-10 h-10 rounded-[14px] bg-white grid place-items-center text-slate-900 cursor-pointer transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light";
   const eyebrowClasses =
     "text-xs font-semibold uppercase tracking-[0.08em] text-slate-500";
 

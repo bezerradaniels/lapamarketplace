@@ -19,7 +19,7 @@ export interface InputProps
 }
 
 export const fieldBaseClasses =
-  "w-full bg-slate-100 text-slate-900 outline-none transition-[background-color,box-shadow] duration-150 ease-out placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900 disabled:opacity-60 disabled:cursor-not-allowed";
+  "w-full bg-white text-slate-900 border border-slate-200 outline-none transition-[border-color] duration-150 ease-out placeholder:text-slate-400 focus:border-brand focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed";
 
 export const fieldLabelClasses = "text-[13px] font-semibold text-slate-900";
 
@@ -34,7 +34,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       valid = false,
       leftIcon,
       rightIcon,
-      pill = false,
+      pill = true,
       inputSize = "lg",
       id,
       ...props
@@ -46,6 +46,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const errorId = `${inputId}-error`;
     const helperId = `${inputId}-helper`;
 
+    const radiusClass = pill ? "rounded-full" : "rounded-2xl";
+
     return (
       <div className={cn("flex flex-col gap-1.5 w-full", containerClassName)}>
         {label && (
@@ -54,9 +56,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
 
-        <div className="relative flex items-center">
+        <div className={cn("relative flex items-center lapa-aurora-glow", radiusClass)}>
           {leftIcon && (
-            <span className="absolute left-4 text-slate-500 pointer-events-none inline-flex items-center">
+            <span className="absolute left-5 text-slate-500 pointer-events-none inline-flex items-center">
               {leftIcon}
             </span>
           )}
@@ -70,24 +72,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             }
             className={cn(
               fieldBaseClasses,
-              "px-4",
-              inputSize === "lg"
-                ? "h-13 rounded-2xl text-[15px]"
-                : "h-11.5 rounded-[15px] text-sm",
-              pill && "rounded-full",
-              Boolean(leftIcon) && "pl-11",
-              Boolean(rightIcon) && "pr-11",
-              valid &&
-                !error &&
-                "bg-white ring-2 ring-whatsapp focus:ring-whatsapp",
-              Boolean(error) && "bg-white ring-2 ring-offer focus:ring-offer",
+              "px-5.5",
+              radiusClass,
+              inputSize === "lg" ? "h-13 text-[15px]" : "h-11.5 text-sm",
+              Boolean(leftIcon) && "pl-13",
+              Boolean(rightIcon) && "pr-13",
+              valid && !error && "border-whatsapp focus:border-whatsapp",
+              Boolean(error) && "border-offer focus:border-offer",
               className
             )}
             {...props}
           />
 
           {rightIcon && (
-            <span className="absolute right-4 text-slate-500 inline-flex items-center">
+            <span className="absolute right-5 text-slate-500 inline-flex items-center">
               {rightIcon}
             </span>
           )}

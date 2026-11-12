@@ -115,7 +115,7 @@ export function ProductCardGrid({
               : `Adicionar ${product.title} aos favoritos`
           }
           aria-pressed={isFav}
-          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-[11px] bg-white grid place-items-center transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-[11px] bg-white grid place-items-center transition-transform duration-150 active:scale-90 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light"
         >
           <Heart
             className={cn(
@@ -164,8 +164,8 @@ export function ProductCardGrid({
             aria-label={`Adicionar ${product.title} à sacola`}
             className={cn(
               "w-7.5 h-7.5 rounded-[10px] grid place-items-center shrink-0 text-white transition duration-150 cursor-pointer touch-manipulation active:scale-90",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
-              justAdded ? "bg-whatsapp" : "bg-slate-900 hover:bg-slate-800"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
+              justAdded ? "bg-whatsapp" : "bg-brand hover:bg-brand-hover"
             )}
           >
             {justAdded ? (

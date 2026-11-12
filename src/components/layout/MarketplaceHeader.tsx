@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   ChevronDown,
   X,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBagHydrated, useBagStore } from "@/store/useBagStore";
@@ -49,7 +50,7 @@ export interface MarketplaceHeaderProps {
 }
 
 const iconButtonClasses =
-  "relative w-10.5 h-10.5 rounded-[14px] grid place-items-center text-slate-900 transition-colors duration-150 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900";
+  "relative w-10.5 h-10.5 rounded-[14px] grid place-items-center text-slate-900 transition-colors duration-150 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light";
 
 export function MarketplaceHeader({
   selectedNeighborhood: controlledNeighborhood,
@@ -62,7 +63,7 @@ export function MarketplaceHeader({
   onOpenBag,
   onOpenFavorites,
   mobileVariant = "full",
-  searchPlaceholder = "Buscar em lojas da Lapa",
+  searchPlaceholder = "O que você procura em Lapa hoje?",
   className,
 }: MarketplaceHeaderProps) {
   const [internalNeighborhood, setInternalNeighborhood] = useState(
@@ -181,12 +182,12 @@ export function MarketplaceHeader({
       onSubmit={handleFormSubmit}
       role="search"
       className={cn(
-        "relative flex items-center",
+        "relative flex items-center lapa-aurora-glow rounded-full",
         size === "desktop" ? "hidden md:flex flex-1 max-w-xl" : "w-full"
       )}
     >
       <Search
-        className="w-4.5 h-4.5 text-slate-500 absolute left-4 pointer-events-none"
+        className="w-4.5 h-4.5 text-slate-500 absolute left-4.5 pointer-events-none"
         strokeWidth={1.8}
         aria-hidden="true"
       />
@@ -197,31 +198,48 @@ export function MarketplaceHeader({
         placeholder={searchPlaceholder}
         aria-label="Pesquisar produtos ou lojas"
         className={cn(
-          "w-full rounded-2xl bg-slate-100 pl-11 pr-11 text-sm text-slate-900 outline-none transition-[background-color,box-shadow] duration-150",
-          "placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-900 [&::-webkit-search-cancel-button]:hidden",
+          "w-full rounded-full bg-white border border-slate-200 pl-11.5 pr-13 text-sm text-slate-900 outline-none transition-[border-color] duration-150",
+          "placeholder:text-slate-500 focus:border-brand focus:outline-none [&::-webkit-search-cancel-button]:hidden",
           size === "desktop" ? "h-11.5" : "h-12"
         )}
       />
-      {query && (
+      {query ? (
+        <div className="absolute right-1.5 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleClearQuery}
+            aria-label="Limpar pesquisa"
+            className="w-7 h-7 rounded-full hover:bg-slate-100 grid place-items-center text-slate-400 hover:text-slate-700 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+          </button>
+          <button
+            type="submit"
+            aria-label="Buscar"
+            className="w-8.5 h-8.5 rounded-full bg-brand hover:bg-brand-hover text-white grid place-items-center transition duration-150 active:scale-95 cursor-pointer shrink-0"
+          >
+            <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
+      ) : (
         <button
-          type="button"
-          onClick={handleClearQuery}
-          aria-label="Limpar pesquisa"
-          className="absolute right-3 w-7 h-7 rounded-lg hover:bg-slate-200 grid place-items-center text-slate-500 cursor-pointer"
+          type="submit"
+          aria-label="Buscar"
+          className="absolute right-1.5 w-8.5 h-8.5 rounded-full bg-brand hover:bg-brand-hover text-white grid place-items-center transition duration-150 active:scale-95 cursor-pointer shrink-0"
         >
-          <X className="w-4 h-4" strokeWidth={1.8} aria-hidden="true" />
+          <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
         </button>
       )}
     </form>
   );
 
   const bagClasses =
-    "relative inline-flex items-center gap-2 h-10.5 pl-3.5 pr-2.5 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer touch-manipulation";
+    "relative inline-flex items-center gap-2 h-10.5 pl-3.5 pr-2.5 rounded-[14px] bg-brand hover:bg-brand-hover text-white font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer touch-manipulation";
   const bagContent = (
     <>
       <ShoppingBag className="w-4.5 h-4.5" strokeWidth={1.8} aria-hidden="true" />
       <span>Sacola</span>
-      <span className="min-w-5 h-5 px-1.5 rounded-full bg-brand text-slate-900 text-[11px] font-bold inline-grid place-items-center">
+      <span className="min-w-5 h-5 px-1.5 rounded-full bg-offer text-white text-[11px] font-bold inline-grid place-items-center">
         {displayedBagCount}
       </span>
     </>
@@ -241,7 +259,7 @@ export function MarketplaceHeader({
             <Link
               href="/"
               aria-label="Lapa Marketplace — início"
-              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded-lg"
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light rounded-lg"
             >
               <LapaWordmark symbolSize={30} />
             </Link>

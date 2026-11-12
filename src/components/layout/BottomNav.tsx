@@ -92,7 +92,7 @@ export function BottomNav() {
             />
             <span>{item.label}</span>
             {showBadge && (
-              <span className="absolute -top-1 left-1/2 ml-1.25 min-w-4.5 h-4.5 px-1.25 rounded-full bg-brand text-slate-900 text-[10px] font-bold grid place-items-center">
+              <span className="absolute -top-1 left-1/2 ml-1.25 min-w-4.5 h-4.5 px-1.25 rounded-full bg-offer text-white text-[10px] font-bold grid place-items-center">
                 {bagCount > 99 ? "99+" : bagCount}
               </span>
             )}

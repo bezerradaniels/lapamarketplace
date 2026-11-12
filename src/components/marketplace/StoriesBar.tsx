@@ -117,7 +117,7 @@ export function StoriesBar({ items, className }: StoriesBarProps) {
                 {/* Anel colorido gradiente para lojas Premium com stories ativos */}
                 <div
                   className={cn(
-                    "w-16 h-16 p-[2.5px] rounded-full transition-transform duration-150 group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-slate-900 group-focus-visible:ring-offset-2",
+                    "w-16 h-16 p-[2.5px] rounded-full transition-transform duration-150 group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-brand-light group-focus-visible:ring-offset-2",
                     isSeen
                       ? "bg-slate-200"
                       : isPremium

@@ -85,7 +85,7 @@ export function FloatingBagBar() {
 
         <Link
           href="/sacola"
-          className="shrink-0 inline-flex items-center rounded-[15px] bg-brand hover:bg-brand-strong text-slate-900 px-4 py-3 font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
+          className="shrink-0 inline-flex items-center rounded-[15px] bg-brand hover:bg-brand-hover text-white px-4 py-3 font-display text-sm font-bold transition duration-150 active:scale-[0.98]"
         >
           Ver sacola
         </Link>

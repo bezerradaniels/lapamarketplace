@@ -348,7 +348,7 @@ export function ProductFormClient({
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr] gap-2.5">
-              <div className="col-span-2 sm:col-span-1 relative aspect-square rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#FDBA74] overflow-hidden grid place-items-center">
+              <div className="col-span-2 sm:col-span-1 relative aspect-square rounded-[18px] bg-slate-100 shadow-[inset_0_0_0_2px_#264E9C] overflow-hidden grid place-items-center">
                 {mainImageUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -416,7 +416,7 @@ export function ProductFormClient({
             />
 
             {/* Filtros condicionais (filter_config) */}
-            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-brand-tint shadow-[inset_0_0_0_1.5px_#FFEDD5] flex flex-col gap-3.5">
+            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-brand-tint shadow-[inset_0_0_0_1.5px_#BFDBFE] flex flex-col gap-3.5">
               {filterConfig.has_gender && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold text-brand-ink">Gênero · filtro da categoria</span>
@@ -443,7 +443,7 @@ export function ProductFormClient({
                           onClick={() => toggleSizeOption(sz)}
                           className={cn(
                             "min-w-9.5 h-8.5 px-2.5 rounded-[11px] grid place-items-center font-display text-[13px] font-bold cursor-pointer transition-colors duration-150",
-                            on ? "bg-slate-900 text-white" : "bg-white text-slate-900 ring-line hover:bg-slate-50"
+                            on ? "bg-brand text-white" : "bg-white text-slate-900 ring-line hover:bg-slate-50"
                           )}
                         >
                           {sz}
@@ -485,14 +485,16 @@ export function ProductFormClient({
               <label htmlFor="product-desc" className={fieldLabelClasses}>
                 Descrição <span className="font-medium text-slate-500">· tecido, medidas, garantia</span>
               </label>
-              <textarea
-                id="product-desc"
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Detalhes da peça para ajudar o cliente a decidir rápido"
-                className={cn(fieldBaseClasses, "rounded-[15px] px-3.5 py-3 text-sm resize-none")}
-              />
+              <div className="relative lapa-aurora-glow rounded-[15px]">
+                <textarea
+                  id="product-desc"
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Detalhes da peça para ajudar o cliente a decidir rápido"
+                  className={cn(fieldBaseClasses, "rounded-[15px] px-3.5 py-3 text-sm resize-none")}
+                />
+              </div>
             </div>
 
             <Input

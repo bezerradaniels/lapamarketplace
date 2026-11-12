@@ -33,7 +33,7 @@ export function PromoBanner({
   className,
 }: PromoBannerProps) {
   const variantStyles = {
-    dark: "bg-slate-900 text-white",
+    dark: "bg-lapa-aurora text-white",
     light: "bg-white text-slate-900",
     emerald: "bg-brand-soft text-slate-900",
   }[variant];
@@ -43,7 +43,7 @@ export function PromoBanner({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[28px] p-5 sm:p-8",
+        "relative overflow-hidden rounded-3xl p-5 sm:p-8",
         variantStyles,
         className
       )}
@@ -53,15 +53,15 @@ export function PromoBanner({
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em]",
+                "inline-flex items-center gap-1.5 font-display text-[13px] font-semibold",
                 variant === "dark"
-                  ? "text-brand"
+                  ? "text-blue-200"
                   : variant === "emerald"
-                  ? "text-brand-ink"
+                  ? "text-brand"
                   : "text-slate-500"
               )}
             >
-              <LapaSymbol size={18} ink={variant === "dark" ? "#FFFFFF" : "#0F172A"} />
+              <LapaSymbol size={18} variant={variant === "dark" ? "white" : "solid"} />
               {tag}
             </span>
 
@@ -70,7 +70,7 @@ export function PromoBanner({
             )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.1] text-balance">
+          <h2 className="text-xl sm:text-2xl md:text-[30px] font-semibold tracking-[-0.03em] leading-[1.1] text-balance">
             {title}
           </h2>
 
@@ -78,7 +78,7 @@ export function PromoBanner({
             <p
               className={cn(
                 "text-sm sm:text-base leading-relaxed",
-                isLight ? "text-slate-700" : "text-slate-300"
+                isLight ? "text-slate-600" : "text-blue-100"
               )}
             >
               {subtitle}
@@ -90,10 +90,10 @@ export function PromoBanner({
               <Link
                 href={ctaHref}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-[15px] h-11.5 px-4.5 font-display text-sm font-bold transition duration-150 active:scale-[0.98]",
+                  "inline-flex items-center gap-2 rounded-full h-11.5 px-6 font-display text-[15px] font-semibold transition duration-150 active:scale-[0.98]",
                   isLight
-                    ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "bg-brand text-slate-900 hover:bg-brand-strong"
+                    ? "bg-brand text-white hover:bg-brand-hover"
+                    : "bg-white text-brand hover:bg-brand-soft"
                 )}
               >
                 <span>{ctaLabel}</span>
@@ -104,10 +104,10 @@ export function PromoBanner({
                 type="button"
                 onClick={onCtaClick}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-[15px] h-11.5 px-4.5 font-display text-sm font-bold transition duration-150 active:scale-[0.98] cursor-pointer",
+                  "inline-flex items-center gap-2 rounded-full h-11.5 px-6 font-display text-[15px] font-semibold transition duration-150 active:scale-[0.98] cursor-pointer",
                   isLight
-                    ? "bg-slate-900 text-white hover:bg-slate-800"
-                    : "bg-brand text-slate-900 hover:bg-brand-strong"
+                    ? "bg-brand text-white hover:bg-brand-hover"
+                    : "bg-white text-brand hover:bg-brand-soft"
                 )}
               >
                 <span>{ctaLabel}</span>
@@ -118,7 +118,7 @@ export function PromoBanner({
         </div>
 
         {imageUrl && (
-          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-16/10 md:aspect-4/3 rounded-[18px] bg-slate-100 overflow-hidden relative">
+          <div className="shrink-0 w-full md:w-56 lg:w-64 aspect-16/10 md:aspect-4/3 rounded-2xl bg-slate-100 overflow-hidden relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}

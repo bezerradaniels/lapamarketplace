@@ -104,7 +104,7 @@ export function StoreStatusBadge({
         title={`${status.label} • ${status.detailText} (Clique para ver horários)`}
         className={cn(
           "inline-flex items-center max-w-full rounded-full font-semibold transition-colors duration-150 cursor-pointer select-none touch-manipulation",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light",
           compact
             ? "px-2.5 py-1 text-[11px] gap-1.5"
             : "px-2.5 py-1 text-[11px] sm:text-xs gap-1.5",
