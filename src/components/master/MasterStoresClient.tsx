@@ -84,28 +84,34 @@ export function MasterStoresClient({
   const premiumCount = stores.filter((s) => s.plan_tier === "premium").length;
   const verifiedCount = stores.filter((s) => s.is_verified).length;
   const rowGrid =
-    "lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_170px_100pxauto] lg:gap-3 lg:items-center";
+    "lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_180px_100px_auto] lg:gap-4 lg:items-center";
 
   return (
-    <div className="flex flex-col gap-4.5">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.03em] text-slate-900">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full bg-brand-soft text-brand-ink font-display text-[11px] font-bold">
+              Base de Lojas
+            </span>
+            <span className="text-xs text-slate-400">Bom Jesus da Lapa</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Lojas de Bom Jesus da Lapa
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-xs text-slate-500">
             {stores.length} lojas · {premiumCount} premium · {verifiedCount} verificadas
           </p>
         </div>
         <div className="relative flex items-center lg:w-80">
-          <Search className="w-4.25 h-4.25 text-slate-500 absolute left-3.5 pointer-events-none" strokeWidth={1.8} aria-hidden="true" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" strokeWidth={1.8} aria-hidden="true" />
           <input
             type="search"
             aria-label="Buscar loja ou bairro"
-            placeholder="Buscar loja ou bairro"
+            placeholder="Buscar loja ou bairro..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 rounded-[15px] bg-slate-100 pl-10.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-brand-light transition-[background-color,box-shadow] duration-150"
+            className="w-full h-9 rounded-xl bg-white border border-slate-200/80 pl-9 pr-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-brand transition-all"
           />
         </div>
       </div>
@@ -113,7 +119,7 @@ export function MasterStoresClient({
       <PillGroup
         ariaLabel="Filtrar por plano"
         tone="brand"
-        className="[&>button]:py-2.5"
+        className="[&>button]:py-2 [&>button]:text-xs"
         value={planFilter}
         onToggle={(v) => setPlanFilter(v)}
         options={[
@@ -125,23 +131,23 @@ export function MasterStoresClient({
 
       <div aria-live="polite" className="empty:hidden">
         {toast && (
-          <div className="rounded-[18px] bg-slate-900 text-white px-4 py-3 text-[13px] font-semibold animate-slide-up">
+          <div className="rounded-xl bg-slate-900 text-white px-3.5 py-2.5 text-xs font-semibold animate-slide-up">
             {toast}
           </div>
         )}
       </div>
 
-      <div role="table" aria-label="Lojas" className="bg-white rounded-3xl px-4 lg:px-5 py-2 flex flex-col">
-        <div role="row" className={cn("hidden py-3 text-xs text-slate-500", rowGrid)}>
+      <div role="table" aria-label="Lojas" className="bg-white rounded-2xl p-3 lg:p-4 flex flex-col border border-slate-200/80">
+        <div role="row" className={cn("hidden lg:grid py-2.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100", rowGrid)}>
           <span role="columnheader">Loja</span>
-          <span role="columnheader">Bairro</span>
+          <span role="columnheader">Bairro & Contato</span>
           <span role="columnheader">Plano</span>
           <span role="columnheader">Verificada</span>
-          <span role="columnheader">Vitrine</span>
+          <span role="columnheader" className="text-right">Vitrine</span>
         </div>
 
         {filteredStores.length === 0 && (
-          <p className="py-8 text-center text-sm text-slate-500">Nenhuma loja encontrada.</p>
+          <p className="py-8 text-center text-xs text-slate-500">Nenhuma loja encontrada.</p>
         )}
 
         {filteredStores.map((store, idx) => {
@@ -151,13 +157,13 @@ export function MasterStoresClient({
               role="row"
               key={store.id}
               className={cn(
-                "flex flex-wrap items-center gap-x-4 gap-y-2.5 py-3 text-sm",
+                "flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5 px-3 text-xs hover:bg-slate-50/80 rounded-xl transition-colors",
                 rowGrid,
                 idx > 0 && "border-t border-slate-100"
               )}
             >
-              <span role="cell" className="flex items-center gap-3 min-w-0 basis-full lg:basis-auto">
-                <span className="flex-none w-10 h-10 rounded-full bg-brand-soft overflow-hidden grid place-items-center font-display text-xs font-extrabold text-slate-900">
+              <span role="cell" className="flex items-center gap-2.5 min-w-0 basis-full lg:basis-auto">
+                <span className="flex-none w-8.5 h-8.5 rounded-full bg-brand-soft overflow-hidden grid place-items-center font-display text-[11px] font-extrabold text-slate-900">
                   {store.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={store.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -166,16 +172,16 @@ export function MasterStoresClient({
                   )}
                 </span>
                 <span className="flex flex-col min-w-0">
-                  <span className="font-semibold text-slate-900 truncate">{store.name}</span>
-                  <span className="text-xs text-slate-500 truncate">
+                  <span className="font-bold text-slate-900 text-xs truncate">{store.name}</span>
+                  <span className="text-[11px] text-slate-500 truncate">
                     lapamarketplace.com.br/{store.slug}
                   </span>
                 </span>
               </span>
 
-              <span role="cell" className="text-slate-500 flex flex-col">
-                {store.neighborhood_name}
-                <span className="text-xs">{formatWhatsAppMask(store.whatsapp)}</span>
+              <span role="cell" className="text-slate-600 flex flex-col text-xs">
+                <span>{store.neighborhood_name}</span>
+                <span className="text-[11px] text-slate-400">{formatWhatsAppMask(store.whatsapp)}</span>
               </span>
 
               <span role="cell">
@@ -191,7 +197,7 @@ export function MasterStoresClient({
                     { value: "free", label: "Gratuito" },
                     { value: "premium", label: "Premium" },
                   ]}
-                  className="inline-grid"
+                  className="inline-grid text-xs"
                 />
               </span>
 
@@ -207,7 +213,7 @@ export function MasterStoresClient({
               <span role="cell" className="lg:text-right">
                 <Link
                   href={`/${store.slug}`}
-                  className="inline-flex px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
+                  className="inline-flex px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-display text-xs font-bold text-slate-900 transition-colors duration-150"
                 >
                   Ver loja
                 </Link>

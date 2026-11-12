@@ -197,6 +197,20 @@ export interface NeighborhoodItem {
   is_active?: boolean;
 }
 
+export interface MasterUserItem {
+  id: string;
+  full_name: string;
+  email: string;
+  whatsapp: string | null;
+  role: "customer" | "merchant" | "admin";
+  avatar_url?: string | null;
+  store_id?: string | null;
+  store_name?: string | null;
+  store_slug?: string | null;
+  neighborhood_name?: string | null;
+  created_at: string;
+}
+
 export interface CustomerProfile {
   id: string;
   full_name: string | null;
@@ -207,5 +221,75 @@ export interface CustomerProfile {
   avatar_url?: string | null;
   role?: AccountType | null;
 }
+
+export interface MasterCohortWeek {
+  weekLabel: string;
+  daysAgoLabel: string;
+  signups: number;
+  hasProductsPercent: number;
+  hasProductsCount: number;
+  catalogReadyPercent: number;
+  catalogReadyCount: number;
+  hasWhatsappOrdersPercent: number;
+  hasWhatsappOrdersCount: number;
+  paidPercent: number;
+  paidCount: number;
+}
+
+export interface MasterStoreLead {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url?: string | null;
+  neighborhood: string;
+  whatsapp: string;
+  productsCount: number;
+  viewsCount: number;
+  whatsappClicks: number;
+  plan_tier: "free" | "premium";
+  createdAtDaysAgo?: number;
+}
+
+export interface MasterDistributionItem {
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface MasterDashboardData {
+  weeklyTarget: {
+    periodLabel: string;
+    newReactivated: number;
+    newReactivatedGoal: number;
+    churn: number;
+    churnLimit: number;
+    netGrowth: number;
+    netGrowthGoal: number;
+    lastWeek: {
+      newReactivated: number;
+      churn: number;
+      netGrowth: number;
+    };
+  };
+  macroKpis: {
+    payingSubscribers: number;
+    onTrialNow: number;
+    activeVisitors15d: number;
+    totalStoresEver: number;
+  };
+  cohorts: MasterCohortWeek[];
+  upgradeOpportunities: MasterStoreLead[];
+  stalledOnboarding: MasterStoreLead[];
+  engagement: {
+    totalViews: number;
+    totalWhatsappClicks: number;
+    totalProducts: number;
+    conversionRate: number;
+  };
+  neighborhoodsDistribution: MasterDistributionItem[];
+  categoriesDistribution: MasterDistributionItem[];
+  isSupabaseReady: boolean;
+}
+
 
 

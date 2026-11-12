@@ -334,7 +334,7 @@ export function MasterTaxonomyClient({
                 key={cat.id}
                 className={cn(
                   "flex items-center gap-1.5 p-2 rounded-2xl transition-colors duration-150",
-                  selected ? "bg-white shadow-[inset_0_0_0_1.5px_#0F172A,0_10px_24px_-12px_rgba(244,114,182,0.6)]" : "hover:bg-slate-50"
+                  selected ? "bg-white border-2 border-slate-900" : "hover:bg-slate-50"
                 )}
               >
                 <span className="flex flex-col">

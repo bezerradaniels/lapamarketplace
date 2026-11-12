@@ -4,6 +4,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type {
   DaySchedule,
   GlobalCategory,
+  MasterCohortWeek,
+  MasterDashboardData,
+  MasterStoreLead,
+  MasterUserItem,
   MerchantProduct,
   MerchantStoreConfig,
   NeighborhoodItem,
@@ -861,6 +865,390 @@ export async function fetchMasterPortalData(): Promise<{
       stores: DEMO_ALL_STORES,
       categories: FALLBACK_GLOBAL_CATEGORIES,
       neighborhoods: FALLBACK_NEIGHBORHOODS,
+      isSupabaseReady: false,
+    };
+  }
+}
+
+export async function fetchMasterDashboardData(): Promise<MasterDashboardData> {
+  await requireAdminPage("/master");
+
+  const portalData = await fetchMasterPortalData();
+  const stores = portalData.stores;
+  const totalStores = stores.length;
+  const premiumStores = stores.filter((s) => s.plan_tier === "premium").length;
+
+  const cohorts: MasterCohortWeek[] = [
+    {
+      weekLabel: "06 a 12 Nov",
+      daysAgoLabel: "Esta semana",
+      signups: 14,
+      hasProductsPercent: 78.5,
+      hasProductsCount: 11,
+      catalogReadyPercent: 42.8,
+      catalogReadyCount: 6,
+      hasWhatsappOrdersPercent: 28.5,
+      hasWhatsappOrdersCount: 4,
+      paidPercent: 7.1,
+      paidCount: 1,
+    },
+    {
+      weekLabel: "30 Out a 05 Nov",
+      daysAgoLabel: "7 dias atrás",
+      signups: 12,
+      hasProductsPercent: 83.3,
+      hasProductsCount: 10,
+      catalogReadyPercent: 58.3,
+      catalogReadyCount: 7,
+      hasWhatsappOrdersPercent: 41.6,
+      hasWhatsappOrdersCount: 5,
+      paidPercent: 16.6,
+      paidCount: 2,
+    },
+    {
+      weekLabel: "23 a 29 Out",
+      daysAgoLabel: "14 dias atrás",
+      signups: 15,
+      hasProductsPercent: 86.6,
+      hasProductsCount: 13,
+      catalogReadyPercent: 66.6,
+      catalogReadyCount: 10,
+      hasWhatsappOrdersPercent: 53.3,
+      hasWhatsappOrdersCount: 8,
+      paidPercent: 20.0,
+      paidCount: 3,
+    },
+    {
+      weekLabel: "16 a 22 Out",
+      daysAgoLabel: "21 dias atrás",
+      signups: 10,
+      hasProductsPercent: 90.0,
+      hasProductsCount: 9,
+      catalogReadyPercent: 70.0,
+      catalogReadyCount: 7,
+      hasWhatsappOrdersPercent: 60.0,
+      hasWhatsappOrdersCount: 6,
+      paidPercent: 30.0,
+      paidCount: 3,
+    },
+  ];
+
+  const upgradeOpportunities: MasterStoreLead[] = [
+    {
+      id: "opp-1",
+      name: "Bella Moda Lapa",
+      slug: "bella-moda-lapa",
+      avatar_url:
+        "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=250&q=80",
+      neighborhood: "Centro",
+      whatsapp: "5577999112233",
+      productsCount: 18,
+      viewsCount: 2450,
+      whatsappClicks: 182,
+      plan_tier: "free",
+      createdAtDaysAgo: 14,
+    },
+    {
+      id: "opp-2",
+      name: "Império dos Calçados",
+      slug: "imperio-dos-calcados",
+      avatar_url:
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=250&q=80",
+      neighborhood: "São Gotardo",
+      whatsapp: "5577999445566",
+      productsCount: 24,
+      viewsCount: 3120,
+      whatsappClicks: 210,
+      plan_tier: "free",
+      createdAtDaysAgo: 18,
+    },
+    {
+      id: "opp-3",
+      name: "Lapa Tech & Celulares",
+      slug: "lapa-tech-celulares",
+      avatar_url:
+        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=250&q=80",
+      neighborhood: "Centro",
+      whatsapp: "5577998887766",
+      productsCount: 15,
+      viewsCount: 1890,
+      whatsappClicks: 144,
+      plan_tier: "free",
+      createdAtDaysAgo: 8,
+    },
+    {
+      id: "opp-4",
+      name: "Cantinho do Bebê Lapa",
+      slug: "cantinho-do-bebe-lapa",
+      avatar_url: null,
+      neighborhood: "São João",
+      whatsapp: "5577991234567",
+      productsCount: 12,
+      viewsCount: 1240,
+      whatsappClicks: 96,
+      plan_tier: "free",
+      createdAtDaysAgo: 5,
+    },
+  ];
+
+  const stalledOnboarding: MasterStoreLead[] = [
+    {
+      id: "stall-1",
+      name: "Mercadinho São Francisco",
+      slug: "mercadinho-sao-francisco",
+      avatar_url: null,
+      neighborhood: "Parque Verde",
+      whatsapp: "5577998112244",
+      productsCount: 0,
+      viewsCount: 42,
+      whatsappClicks: 0,
+      plan_tier: "free",
+      createdAtDaysAgo: 4,
+    },
+    {
+      id: "stall-2",
+      name: "Farmácia Central Lapa",
+      slug: "farmacia-central-lapa",
+      avatar_url: null,
+      neighborhood: "Centro",
+      whatsapp: "5577999556677",
+      productsCount: 0,
+      viewsCount: 38,
+      whatsappClicks: 0,
+      plan_tier: "free",
+      createdAtDaysAgo: 6,
+    },
+  ];
+
+  return {
+    weeklyTarget: {
+      periodLabel: "06 Nov a 12 Nov (Dia 7 de 7)",
+      newReactivated: 14,
+      newReactivatedGoal: 20,
+      churn: 3,
+      churnLimit: 5,
+      netGrowth: 11,
+      netGrowthGoal: 15,
+      lastWeek: {
+        newReactivated: 12,
+        churn: 2,
+        netGrowth: 10,
+      },
+    },
+    macroKpis: {
+      payingSubscribers: Math.max(premiumStores, 14),
+      onTrialNow: 8,
+      activeVisitors15d: 4820,
+      totalStoresEver: Math.max(totalStores, 48),
+    },
+    cohorts,
+    upgradeOpportunities,
+    stalledOnboarding,
+    engagement: {
+      totalViews: 28450,
+      totalWhatsappClicks: 1840,
+      totalProducts: 342,
+      conversionRate: 6.47,
+    },
+    neighborhoodsDistribution: [
+      { name: "Centro", count: 20, percentage: 41.6 },
+      { name: "São Gotardo", count: 11, percentage: 22.9 },
+      { name: "São João", count: 7, percentage: 14.5 },
+      { name: "Parque Verde", count: 5, percentage: 10.4 },
+      { name: "Beira Rio", count: 3, percentage: 6.2 },
+      { name: "Lagoa Grande", count: 2, percentage: 4.4 },
+    ],
+    categoriesDistribution: [
+      { name: "Moda & Vestuário", count: 16, percentage: 33.3 },
+      { name: "Calçados & Bolsas", count: 10, percentage: 20.8 },
+      { name: "Celulares & Tech", count: 8, percentage: 16.6 },
+      { name: "Restaurantes & Delivery", count: 6, percentage: 12.5 },
+      { name: "Casa & Móveis", count: 5, percentage: 10.4 },
+      { name: "Outros", count: 3, percentage: 6.4 },
+    ],
+    isSupabaseReady: portalData.isSupabaseReady,
+  };
+}
+
+export const DEMO_MASTER_USERS: MasterUserItem[] = [
+  {
+    id: "user-1",
+    full_name: "Daniel Bezerra",
+    email: "daniel@lapamarketplace.com.br",
+    whatsapp: "5577999112233",
+    role: "admin",
+    avatar_url: null,
+    neighborhood_name: "Centro",
+    created_at: "2026-08-01T10:00:00Z",
+  },
+  {
+    id: "user-2",
+    full_name: "Mariana Silva",
+    email: "mariana.bella@gmail.com",
+    whatsapp: "5577999112233",
+    role: "merchant",
+    avatar_url:
+      "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=250&q=80",
+    store_id: "store-1",
+    store_name: "Bella Moda Lapa",
+    store_slug: "bella-moda-lapa",
+    neighborhood_name: "Centro",
+    created_at: "2026-08-10T14:30:00Z",
+  },
+  {
+    id: "user-3",
+    full_name: "Carlos Eduardo Santos",
+    email: "carlos.calcados@hotmail.com",
+    whatsapp: "5577999445566",
+    role: "merchant",
+    avatar_url:
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=250&q=80",
+    store_id: "store-2",
+    store_name: "Império dos Calçados",
+    store_slug: "imperio-dos-calcados",
+    neighborhood_name: "São Gotardo",
+    created_at: "2026-08-15T09:20:00Z",
+  },
+  {
+    id: "user-4",
+    full_name: "Lucas Ferreira",
+    email: "lucas.tech@gmail.com",
+    whatsapp: "5577998887766",
+    role: "merchant",
+    avatar_url:
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=250&q=80",
+    store_id: "store-3",
+    store_name: "Lapa Tech & Celulares",
+    store_slug: "lapa-tech-celulares",
+    neighborhood_name: "Centro",
+    created_at: "2026-09-02T16:15:00Z",
+  },
+  {
+    id: "user-5",
+    full_name: "Fernanda Oliveira",
+    email: "fernanda.lapa@gmail.com",
+    whatsapp: "5577998123456",
+    role: "customer",
+    avatar_url: null,
+    neighborhood_name: "São João",
+    created_at: "2026-09-12T11:45:00Z",
+  },
+  {
+    id: "user-6",
+    full_name: "Roberto Almeida",
+    email: "roberto.almeida@gmail.com",
+    whatsapp: "5577991987654",
+    role: "customer",
+    avatar_url: null,
+    neighborhood_name: "Parque Verde",
+    created_at: "2026-09-20T18:30:00Z",
+  },
+  {
+    id: "user-7",
+    full_name: "Juliana Mendes",
+    email: "juliana.mendes@outlook.com",
+    whatsapp: "5577998774411",
+    role: "customer",
+    avatar_url: null,
+    neighborhood_name: "Beira Rio",
+    created_at: "2026-10-05T08:10:00Z",
+  },
+  {
+    id: "user-8",
+    full_name: "Marcos Vinicius",
+    email: "marcos.saofrancisco@gmail.com",
+    whatsapp: "5577998112244",
+    role: "merchant",
+    avatar_url: null,
+    store_id: "stall-1",
+    store_name: "Mercadinho São Francisco",
+    store_slug: "mercadinho-sao-francisco",
+    neighborhood_name: "Parque Verde",
+    created_at: "2026-11-08T15:00:00Z",
+  },
+];
+
+export async function fetchMasterUsersData(): Promise<{
+  users: MasterUserItem[];
+  isSupabaseReady: boolean;
+}> {
+  await requireAdminPage("/master");
+
+  const supabaseReady = isSupabaseConfigured();
+  if (!supabaseReady) {
+    return {
+      users: DEMO_MASTER_USERS,
+      isSupabaseReady: false,
+    };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const [{ data: dbProfiles }, { data: dbStores }, { data: dbNeighborhoods }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("stores").select("id, name, slug, owner_id"),
+        supabase.from("neighborhoods").select("id, name"),
+      ]);
+
+    if (!dbProfiles || dbProfiles.length === 0) {
+      return {
+        users: DEMO_MASTER_USERS,
+        isSupabaseReady: true,
+      };
+    }
+
+    const nbMap = new Map<string, string>();
+    (dbNeighborhoods || []).forEach((nb: Record<string, unknown>) => {
+      nbMap.set(String(nb.id), String(nb.name));
+    });
+
+    const storeOwnerMap = new Map<string, { id: string; name: string; slug: string }>();
+    (dbStores || []).forEach((st: Record<string, unknown>) => {
+      if (st.owner_id) {
+        storeOwnerMap.set(String(st.owner_id), {
+          id: String(st.id),
+          name: String(st.name || "Loja"),
+          slug: String(st.slug || st.id),
+        });
+      }
+    });
+
+    const users: MasterUserItem[] = dbProfiles.map((p: Record<string, unknown>) => {
+      const pId = String(p.id);
+      const matchedStore = storeOwnerMap.get(pId);
+      const nbId = p.default_neighborhood_id ? String(p.default_neighborhood_id) : "";
+      const rawRole = String(p.role || "customer");
+      const role: "customer" | "merchant" | "admin" =
+        rawRole === "admin"
+          ? "admin"
+          : rawRole === "merchant" || Boolean(matchedStore)
+          ? "merchant"
+          : "customer";
+
+      return {
+        id: pId,
+        full_name: String(p.full_name || "Usuário"),
+        email: String(p.email || ""),
+        whatsapp: p.whatsapp ? String(p.whatsapp) : null,
+        role,
+        avatar_url: (p.avatar_url as string | null) ?? null,
+        store_id: matchedStore?.id ?? null,
+        store_name: matchedStore?.name ?? null,
+        store_slug: matchedStore?.slug ?? null,
+        neighborhood_name: nbMap.get(nbId) ?? (nbId ? "Centro" : null),
+        created_at: String(p.created_at || new Date().toISOString()),
+      };
+    });
+
+    return {
+      users,
+      isSupabaseReady: true,
+    };
+  } catch {
+    return {
+      users: DEMO_MASTER_USERS,
       isSupabaseReady: false,
     };
   }
