@@ -58,30 +58,69 @@ export interface MarketplaceHeaderProps {
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light";
 
-function useScrolled(threshold = 80) {
+/**
+ * Estado compacto do header desktop com histerese: compacta acima de `enter` e só
+ * volta ao normal abaixo de `exit`. A diferença (maior que os 12px que o header
+ * encolhe) evita o liga/desliga em volta do limite.
+ */
+function useScrolled(enter = 80, exit = 24) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold);
-    onScroll();
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      setScrolled((prev) => (prev ? y > exit : y > enter));
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [enter, exit]);
   return scrolled;
 }
 
-function useScrollDirectionHidden(min = 48) {
+/**
+ * Esconde a linha do logo (mobile) ao rolar para baixo e mostra ao rolar para cima.
+ * Só troca de estado depois de `travel` px na mesma direção, para não piscar em
+ * rolagens lentas ou no repique do iOS.
+ */
+function useScrollDirectionHidden(min = 48, travel = 16) {
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
-    let last = window.scrollY;
+    let anchor = window.scrollY;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = Math.max(0, window.scrollY);
+      if (y <= min) {
+        anchor = y;
+        setHidden(false);
+        return;
+      }
+      const delta = y - anchor;
+      if (delta > travel) {
+        anchor = y;
+        setHidden(true);
+      } else if (delta < -travel) {
+        anchor = y;
+        setHidden(false);
+      }
+    };
     const onScroll = () => {
-      const y = window.scrollY;
-      if (Math.abs(y - last) < 6) return;
-      setHidden(y > last && y > min);
-      last = y;
+      if (!frame) frame = window.requestAnimationFrame(update);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [min]);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [min, travel]);
   return hidden;
 }
 
@@ -263,6 +302,19 @@ export function MarketplaceHeader({
   const router = useRouter();
   const scrolled = useScrolled(80);
   const mobileHidden = useScrollDirectionHidden(48);
+  const logoRowRef = useRef<HTMLDivElement>(null);
+  const [logoRowOffset, setLogoRowOffset] = useState(52);
+
+  // Distância que o header sobe para esconder a linha do logo: altura da linha + gap (12px)
+  useEffect(() => {
+    const row = logoRowRef.current;
+    if (!row) return;
+    const measure = () => setLogoRowOffset(row.offsetHeight + 12);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
   const viewer = useViewer();
 
   const isMounted = useBagHydrated();
@@ -497,19 +549,26 @@ export function MarketplaceHeader({
 
       {/* Mobile */}
       {mobileVariant === "full" && (
-        <header className="sticky top-0 z-40 w-full border-b border-seg bg-white/86 backdrop-blur-[16px] md:hidden">
-          <div
-            className={cn(
-              "flex flex-col gap-3 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] transition-shadow duration-200",
-              mobileHidden && "shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
-            )}
-          >
+        <header
+          // Esconde a linha do logo deslizando o header inteiro (transform), sem
+          // mudar a altura: mudar a altura empurra a página e faz o header tremer.
+          style={{
+            transform: mobileHidden ? `translateY(-${logoRowOffset}px)` : undefined,
+          }}
+          className={cn(
+            "sticky top-0 z-40 w-full border-b border-seg bg-white/86 backdrop-blur-[16px] transition-[transform,box-shadow] duration-200 ease-out will-change-transform md:hidden motion-reduce:transition-none",
+            mobileHidden && "shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
+          )}
+        >
+          <div className="flex flex-col gap-3 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div
+              ref={logoRowRef}
               className={cn(
-                "flex items-center gap-2 transition-all duration-200",
-                mobileHidden && "pointer-events-none -mb-3 h-0 -translate-y-2 overflow-hidden opacity-0"
+                "flex items-center gap-2 transition-opacity duration-200",
+                mobileHidden && "pointer-events-none opacity-0"
               )}
               aria-hidden={mobileHidden || undefined}
+              inert={mobileHidden || undefined}
             >
               <Link
                 href="/"
