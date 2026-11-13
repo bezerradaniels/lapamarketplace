@@ -419,7 +419,7 @@ export function ExploreMarketplaceClient({
     neighborhoods.find((nb) => (nb.slug || nb.id) === neighborhood)?.name ??
     neighborhood;
 
-  // Chips de filtros ativos (pêssego com ×)
+  // Chips de filtros ativos (céu com ×)
   const activeChips: Array<{ key: string; label: string; clear: () => void }> =
     [];
   if (categorySlug !== "all") {

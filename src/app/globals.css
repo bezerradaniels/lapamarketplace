@@ -18,7 +18,7 @@
   --font-display: var(--font-google-sans), system-ui, -apple-system, sans-serif;
   --font-figtree: var(--font-google-sans);
 
-  /* Marca (Aura: ação em preto, fundos suaves em pêssego, foco em céu) */
+  /* Marca (Aura: ação em preto, fundos suaves em céu, foco em céu). Sem pêssego. */
   --color-ink: #0f172a;
   --color-ink-hover: #1e293b;
   --color-muted: #64748b;
@@ -26,13 +26,13 @@
   --color-line: #e2e8f0;
   --color-brand: #0f172a;
   --color-brand-hover: #1e293b;
-  --color-brand-deep: #9a3412;
+  --color-brand-deep: #075985;
   --color-brand-light: #0284c7;
-  --color-brand-soft: #ffedd5;
+  --color-brand-soft: #e0f2fe;
   /* Aliases legados (mantidos para não quebrar telas) */
   --color-brand-strong: #1e293b;
-  --color-brand-tint: #fff7ed;
-  --color-brand-ink: #9a3412;
+  --color-brand-tint: #f0f9ff;
+  --color-brand-ink: #075985;
 
   /* Estados (só na UI, nunca no logo) */
   --color-whatsapp: #10b981;
@@ -59,8 +59,6 @@
   --color-pink-ink: #9d174d;
   --color-mint-soft: #d1fae5;
   --color-mint-ink: #065f46;
-  --color-peach-soft: #ffedd5;
-  --color-peach-ink: #9a3412;
   --color-amber-soft: #fef3c7;
   --color-amber-ink: #92400e;
   --color-error-soft: #fee2e2;
@@ -73,7 +71,7 @@
   --shadow-seg: 0 1px 3px rgb(15 23 42 / 0.1);
   --shadow-float: 0 30px 60px -30px rgb(15 23 42 / 0.35);
   --shadow-card: 0 8px 30px rgb(15 23 42 / 0.05);
-  --shadow-card-brand: 0 8px 30px -4px rgb(253 186 116 / 0.45);
+  --shadow-card-brand: 0 8px 30px -4px rgb(56 189 248 / 0.3);
   --shadow-menu: 0 20px 50px -12px rgb(15 23 42 / 0.18);
   --shadow-fav: 0 2px 8px rgb(15 23 42 / 0.08);
 
@@ -146,11 +144,7 @@
 
 /* Brisa solar: fundo de telas e blocos institucionais */
 @utility brisa-ceu {
-  background: linear-gradient(180deg, #f8fafc 0%, #f8fafc 55%, #e0f2fe 100%);
-}
-
-@utility brisa-pessego {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffedd5 100%);
+  background: linear-gradient(180deg, #f8fafc 35%, #e0f2fe);
 }
 
 /* Atmosfera do topo (Home, painéis) */
@@ -162,6 +156,18 @@
     #f8fafc;
 }
 
+/*
+ * Atmosfera em telas de altura única (login, cadastro): mesmas luzes do
+ * portal, dimensionadas pela altura da tela para não sumirem em páginas curtas.
+ */
+@utility atmosfera-tela {
+  background:
+    radial-gradient(60% 75vh at 0% 0%, rgb(244 114 182 / 0.16), transparent 70%),
+    radial-gradient(60% 75vh at 100% 0%, rgb(56 189 248 / 0.18), transparent 70%),
+    radial-gradient(80% 45vh at 50% 100%, rgb(52 211 153 / 0.12), transparent 70%),
+    #f8fafc;
+}
+
 @utility bg-lapa-atmosphere {
   background:
     radial-gradient(50% 30% at 0% 0%, rgb(244 114 182 / 0.12), transparent 60%),
@@ -170,12 +176,12 @@
     #f8fafc;
 }
 
-/* Moldura translúcida com brilho âmbar: prévias, destaques de produto */
+/* Moldura translúcida com brilho céu: prévias, destaques de produto */
 @utility moldura {
   background: rgb(255 255 255 / 0.7);
   border: 1px solid rgb(255 255 255 / 0.9);
   backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px -4px rgb(253 186 116 / 0.5);
+  box-shadow: 0 8px 30px -4px rgb(56 189 248 / 0.35);
 }
 
 /* Pílula ativa da barra inferior: rosa → céu */
@@ -208,13 +214,13 @@
   filter: blur(11px);
 }
 
-/* Hover de card em destaque: brilho âmbar */
+/* Hover de card em destaque: brilho céu */
 .card-glow {
   transition: box-shadow 0.3s ease;
 }
 
 .card-glow:hover {
-  box-shadow: 0 8px 30px -4px rgb(253 186 116 / 0.45);
+  box-shadow: 0 8px 30px -4px rgb(56 189 248 / 0.3);
 }
 
 /*

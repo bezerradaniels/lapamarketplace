@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { authorizeUserAction } from "@/lib/auth/guards";
 import { normalizeWhatsAppToDb, sanitizeStoreSlug } from "@/lib/utils";
+import {
+  friendlyDbError,
+  resolveStoreCategory,
+  toProductColumns,
+  toStoreColumns,
+} from "@/lib/db-columns";
 import type {
   DaySchedule,
   DeliveryFeeType,
@@ -43,6 +49,10 @@ export interface UpdateStoreSettingsPayload {
   store_id: string;
   // Aba 1: Dados Gerais & Endereço
   name?: string;
+  /** Categoria principal (`global_categories.id`) ou "other". */
+  category_id?: string | null;
+  /** Nome digitado quando a categoria é "Outra". */
+  category_other?: string | null;
   avatar_url?: string | null;
   banner_url?: string | null;
   description?: string | null;
@@ -218,10 +228,10 @@ export async function upsertProductAction(
     return { error: NOT_OWNER_ERROR };
   }
 
+  // Nomes de coluna reais (`name`, `global_category_id`, `available_sizes`)
   const record = {
     store_id: payload.store_id,
-    title,
-    slug: payload.id ? undefined : slug,
+    ...(payload.id ? {} : { slug }),
     description: payload.description?.trim() || null,
     price: Number(payload.price),
     promotional_price:
@@ -230,13 +240,16 @@ export async function upsertProductAction(
         : null,
     image_url: payload.image_url,
     gallery_urls: (payload.gallery_urls || []).slice(0, 3),
-    category_id: payload.category_id,
-    subcategory_id: payload.subcategory_id || null,
     gender: payload.gender || null,
-    sizes: payload.sizes || [],
     voltage: payload.voltage || null,
     condition: payload.condition || "new",
     is_active: payload.is_active ?? true,
+    ...toProductColumns({
+      title,
+      category_id: payload.category_id,
+      subcategory_id: payload.subcategory_id || null,
+      sizes: payload.sizes || [],
+    }),
   };
 
   if (payload.id) {
@@ -247,9 +260,12 @@ export async function upsertProductAction(
       .eq("store_id", payload.store_id);
 
     if (error) {
+      console.error("[painel] Falha ao editar produto:", error.message);
       return {
-        error:
-          error.message || "Não foi possível salvar as alterações do produto.",
+        error: friendlyDbError(
+          error.message,
+          "Não foi possível salvar as alterações do produto. Tente de novo em instantes."
+        ),
       };
     }
 
@@ -269,8 +285,12 @@ export async function upsertProductAction(
       .maybeSingle();
 
     if (error) {
+      console.error("[painel] Falha ao cadastrar produto:", error.message);
       return {
-        error: error.message || "Não foi possível cadastrar o produto.",
+        error: friendlyDbError(
+          error.message,
+          "Não foi possível cadastrar o produto. Tente de novo em instantes."
+        ),
       };
     }
 
@@ -324,7 +344,10 @@ export async function createStoreStoryAction(
   if (error) {
     return {
       error:
-        error.message || "Não foi possível publicar o Story no momento.",
+        friendlyDbError(
+          error.message,
+          "Não foi possível publicar o Story no momento."
+        ),
     };
   }
 
@@ -362,66 +385,88 @@ export async function updateStoreSettingsAction(
     return { error: NOT_OWNER_ERROR };
   }
 
-  const updateData: Record<string, unknown> = {};
-  if (payload.name !== undefined) updateData.name = payload.name.trim();
-  if (payload.avatar_url !== undefined) {
-    updateData.avatar_url = payload.avatar_url;
-    updateData.logo_url = payload.avatar_url;
-  }
-  if (payload.banner_url !== undefined) {
-    updateData.banner_url = payload.banner_url;
-  }
-  if (payload.description !== undefined) {
-    updateData.description = payload.description?.trim() || null;
-  }
-  if (payload.whatsapp !== undefined) {
-    updateData.whatsapp = normalizeWhatsAppToDb(payload.whatsapp);
-  }
-  if (payload.instagram !== undefined) {
-    updateData.instagram = payload.instagram?.trim() || null;
-  }
-  if (payload.neighborhood_id !== undefined) {
-    updateData.neighborhood_id = payload.neighborhood_id;
-  }
-  if (payload.address !== undefined) {
-    updateData.address = payload.address.trim();
-  }
-  if (payload.accepted_payments !== undefined) {
-    updateData.accepted_payments = payload.accepted_payments;
-  }
-  if (payload.installment_info !== undefined) {
-    updateData.installment_info = payload.installment_info?.trim() || null;
-  }
-  if (payload.has_delivery !== undefined) {
-    updateData.has_delivery = payload.has_delivery;
-  }
-  if (payload.has_pickup !== undefined) {
-    updateData.has_pickup = payload.has_pickup;
-  }
-  if (payload.delivery_fee_type !== undefined) {
-    updateData.delivery_fee_type = payload.delivery_fee_type;
-  }
-  if (payload.delivery_fee !== undefined) {
-    updateData.delivery_fee = Number(payload.delivery_fee || 0);
-  }
-  if (payload.business_hours !== undefined) {
-    updateData.business_hours = payload.business_hours;
-  }
-  if (payload.special_hours !== undefined) {
-    updateData.special_hours = payload.special_hours;
+  // `null` = loja ainda sem categoria escolhida: não mexe na categoria
+  const category = await resolveStoreCategory(
+    supabase,
+    payload.category_id,
+    payload.category_other
+  );
+  if (category && "error" in category) {
+    return { error: category.error };
   }
 
-  const { error } = await supabase
+  // Nomes de coluna reais via `toStoreColumns` (ver src/lib/db-columns.ts)
+  const updateData = toStoreColumns({
+    name: payload.name?.trim(),
+    logo_url: payload.avatar_url,
+    banner_url: payload.banner_url,
+    description:
+      payload.description !== undefined
+        ? payload.description?.trim() || null
+        : undefined,
+    whatsapp:
+      payload.whatsapp !== undefined
+        ? normalizeWhatsAppToDb(payload.whatsapp)
+        : undefined,
+    instagram:
+      payload.instagram !== undefined
+        ? payload.instagram?.trim() || null
+        : undefined,
+    neighborhood_id: payload.neighborhood_id,
+    address: payload.address !== undefined ? payload.address.trim() : undefined,
+    payment_methods: payload.accepted_payments,
+    installment_info:
+      payload.installment_info !== undefined
+        ? payload.installment_info?.trim() || null
+        : undefined,
+    // `delivery_options` guarda os dois juntos: completa o que não veio
+    has_delivery:
+      payload.has_delivery !== undefined || payload.has_pickup !== undefined
+        ? payload.has_delivery ?? true
+        : undefined,
+    has_pickup:
+      payload.has_delivery !== undefined || payload.has_pickup !== undefined
+        ? payload.has_pickup ?? true
+        : undefined,
+    delivery_fee_type: payload.delivery_fee_type,
+    delivery_fee:
+      payload.delivery_fee !== undefined
+        ? Number(payload.delivery_fee || 0)
+        : undefined,
+    business_hours: payload.business_hours,
+    special_hours: payload.special_hours,
+  });
+
+  // `.select("id")` devolve as linhas alteradas: sem política de UPDATE para o
+  // dono, o Supabase não dá erro, só altera 0 linhas (salvamento "fantasma").
+  const { data: updatedRows, error } = await supabase
     .from("stores")
-    .update(updateData)
+    .update({
+      ...updateData,
+      ...(category && "columns" in category ? category.columns : {}),
+    })
     .eq("id", payload.store_id)
-    .eq("owner_id", user.id);
+    .eq("owner_id", user.id)
+    .select("id");
 
   if (error) {
+    console.error("[painel] Falha ao salvar loja:", error.message);
+    return {
+      error: friendlyDbError(
+        error.message,
+        "Não foi possível salvar as configurações da loja agora. Tente de novo em instantes."
+      ),
+    };
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    console.error(
+      "[painel] Nenhuma linha alterada ao salvar a loja (falta política RLS de UPDATE para o dono?)",
+      payload.store_id
+    );
     return {
       error:
-        error.message ||
-        "Não foi possível salvar as configurações da loja no momento.",
+        "Não foi possível salvar: sua conta não tem permissão para alterar esta loja. Fale com o suporte.",
     };
   }
 

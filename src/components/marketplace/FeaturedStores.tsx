@@ -105,7 +105,7 @@ export function StoreCard({
           avatar
         )}
         {isNew && (
-          <span className="mb-0.5 inline-flex h-6 items-center rounded-full bg-peach-soft px-2.5 font-display text-xs font-bold text-ink">
+          <span className="mb-0.5 inline-flex h-6 items-center rounded-full bg-sky-soft px-2.5 font-display text-xs font-bold text-sky-ink">
             Nova na Lapa
           </span>
         )}

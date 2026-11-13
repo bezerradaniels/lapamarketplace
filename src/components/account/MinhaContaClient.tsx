@@ -3,7 +3,14 @@
 import { trackEvent, trackSaveProduct } from "@/lib/analytics";
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, LogOut } from "lucide-react";
+import {
+  Heart,
+  Loader2,
+  LogOut,
+  Settings,
+  ShoppingBag,
+  Store,
+} from "lucide-react";
 import { MarketplaceHeader } from "@/components/layout/MarketplaceHeader";
 import {
   Button,
@@ -12,7 +19,7 @@ import {
   buttonVariantClasses,
 } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Switch";
-import { LapaSymbol, VerifiedSeal } from "@/components/brand/LapaSymbol";
+import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { StoreStatusBadge } from "@/components/ui/StoreStatusBadge";
@@ -23,6 +30,25 @@ import {
   updateCustomerProfile,
 } from "@/app/actions/social";
 import { signOut } from "@/app/(auth)/actions";
+import { EmailConfirmReminder } from "@/components/account/EmailConfirmReminder";
+import { AccountBagSummary } from "@/components/account/AccountBagSummary";
+import {
+  AuraIconGradient,
+  AURA_ICON_STROKE,
+} from "@/components/ui/AuraIconGradient";
+import {
+  AccountStoreTab,
+  type OwnStoreSummary,
+} from "@/components/account/AccountStoreTab";
+
+const TAB_ICON_CLASS = "w-5 h-5";
+
+const ACCOUNT_TABS = [
+  { value: "stores", label: "Minha loja", Icon: Store },
+  { value: "purchases", label: "Compras", Icon: ShoppingBag },
+  { value: "favorites", label: "Favoritos", Icon: Heart },
+  { value: "delivery", label: "Configurações", Icon: Settings },
+] as const;
 import { cn } from "@/lib/utils";
 import type {
   CustomerProfile,
@@ -31,7 +57,7 @@ import type {
   StoreSummary,
 } from "@/types/marketplace";
 
-export type AccountTab = "favorites" | "stores" | "delivery";
+export type AccountTab = "stores" | "purchases" | "favorites" | "delivery";
 
 export interface MinhaContaClientProps {
   isAuthenticated: boolean;
@@ -41,7 +67,13 @@ export interface MinhaContaClientProps {
   initialFollowedStores: StoreSummary[];
   neighborhoods: NeighborhoodItem[];
   initialTab?: AccountTab;
+  /** Usuário logado que ainda não confirmou o e-mail. */
+  emailPendingConfirmation?: boolean;
+  /** Loja própria (lojista). `null` = ainda não tem loja. */
+  ownStore?: OwnStoreSummary | null;
 }
+
+type FavoritesView = "products" | "stores";
 
 export function MinhaContaClient({
   isAuthenticated,
@@ -51,8 +83,11 @@ export function MinhaContaClient({
   initialFollowedStores,
   neighborhoods,
   initialTab = "favorites",
+  emailPendingConfirmation = false,
+  ownStore = null,
 }: MinhaContaClientProps) {
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
+  const [favoritesView, setFavoritesView] = useState<FavoritesView>("products");
   const [savedProducts, setSavedProducts] =
     useState<ProductItem[]>(initialSavedProducts);
   const [followedStores, setFollowedStores] = useState<StoreSummary[]>(
@@ -168,7 +203,7 @@ export function MinhaContaClient({
       <main className="flex-1 mx-auto w-full max-w-5xl px-5 md:px-6 lg:px-8 pt-[max(1.5rem,env(safe-area-inset-top))] md:pt-8 pb-32 md:pb-12">
         {/* Perfil */}
         <div className="flex items-center gap-3.5 pb-5">
-          <span className="w-15 h-15 rounded-full bg-brand-soft grid place-items-center font-display text-[22px] font-extrabold text-slate-900 shrink-0">
+          <span className="w-15 h-15 rounded-full bg-sky-soft grid place-items-center font-display text-[22px] font-extrabold text-sky-ink shrink-0">
             {initials}
           </span>
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -208,6 +243,11 @@ export function MinhaContaClient({
           )}
         </div>
 
+        {/* Lembrete de confirmação de e-mail */}
+        {isAuthenticated && emailPendingConfirmation && (
+          <EmailConfirmReminder email={profile.email} className="mb-4.5" />
+        )}
+
         {/* Aviso de visitante */}
         {!isAuthenticated && (
           <div className="mb-4.5 rounded-[18px] bg-amber-100 px-4 py-3 text-[13px] text-amber-800">
@@ -220,48 +260,84 @@ export function MinhaContaClient({
           </div>
         )}
 
-        {/* Abas */}
+        {/* Abas (ícones; o ativo ganha traço aurora) */}
+        <AuraIconGradient />
         <Segmented
           ariaLabel="Seções da minha conta"
           className="mb-4.5 md:max-w-md"
+          flat
           value={activeTab}
           onChange={setActiveTab}
-          options={[
-            { value: "favorites", label: "Favoritos" },
-            { value: "stores", label: "Lojas" },
-            { value: "delivery", label: "Entrega" },
-          ]}
+          options={ACCOUNT_TABS.map(({ value, label, Icon }) => ({
+            value,
+            ariaLabel:
+              value === "stores"
+                ? ownStore
+                  ? "Minha loja"
+                  : "Criar minha loja"
+                : label,
+            label: (
+              <Icon
+                className={TAB_ICON_CLASS}
+                strokeWidth={1.9}
+                color={activeTab === value ? AURA_ICON_STROKE : "currentColor"}
+              />
+            ),
+          }))}
         />
 
-        {/* Favoritos */}
-        {activeTab === "favorites" && (
-          <section aria-label="Meus favoritos" className="pb-5">
-            {savedProducts.length === 0 ? (
-              emptyState(
-                "Você ainda não favoritou nada",
-                "Toque no coração dos produtos que gostar para guardá-los aqui.",
-                "Explorar produtos"
-              )
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                {savedProducts.map((product) => (
-                  <ProductCardGrid
-                    key={product.id}
-                    product={product}
-                    isFavorite={true}
-                    onToggleFavorite={() => handleToggleFavorite(product)}
-                    onAddToBag={() => setBagCount((c) => c + 1)}
-                  />
-                ))}
-              </div>
-            )}
+        {/* Compras (sacola atual) */}
+        {activeTab === "purchases" && (
+          <section aria-label="Compras" className="pb-5">
+            <AccountBagSummary />
           </section>
         )}
 
-        {/* Lojas que sigo */}
+        {/* Loja própria: criar ou gerenciar */}
         {activeTab === "stores" && (
-          <section aria-label="Lojas que sigo" className="pb-5">
-            {followedStores.length === 0 ? (
+          <section aria-label="Minha loja" className="pb-5">
+            <AccountStoreTab ownStore={ownStore} />
+          </section>
+        )}
+
+        {/* Favoritos: produtos e lojas que sigo */}
+        {activeTab === "favorites" && (
+          <section aria-label="Meus favoritos" className="pb-5">
+            <Segmented
+              size="sm"
+              ariaLabel="Tipo de favorito"
+              className="mb-4 max-w-56"
+              value={favoritesView}
+              onChange={setFavoritesView}
+              options={[
+                { value: "products", label: "Produtos" },
+                { value: "stores", label: "Lojas" },
+              ]}
+            />
+
+            {favoritesView === "products" &&
+              (savedProducts.length === 0 ? (
+                emptyState(
+                  "Você ainda não favoritou nada",
+                  "Toque no coração dos produtos que gostar para guardá-los aqui.",
+                  "Explorar produtos"
+                )
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  {savedProducts.map((product) => (
+                    <ProductCardGrid
+                      key={product.id}
+                      product={product}
+                      isFavorite={true}
+                      onToggleFavorite={() => handleToggleFavorite(product)}
+                      onAddToBag={() => setBagCount((c) => c + 1)}
+                    />
+                  ))}
+                </div>
+              ))}
+
+            {favoritesView === "stores" &&
+            (followedStores.length === 0 ? (
               emptyState(
                 "Você ainda não segue nenhuma loja",
                 "Siga suas lojas preferidas de Bom Jesus da Lapa para acompanhar novidades, stories e promoções.",
@@ -284,7 +360,7 @@ export function MinhaContaClient({
                           isPremium ? "bg-story-premium" : "bg-brand"
                         )}
                       >
-                        <span className="w-full h-full rounded-full bg-brand-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-sm font-extrabold text-slate-900">
+                        <span className="w-full h-full rounded-full bg-sky-soft ring-2 ring-white overflow-hidden grid place-items-center font-display text-sm font-extrabold text-sky-ink">
                           {store.avatar_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -342,7 +418,7 @@ export function MinhaContaClient({
                   );
                 })}
               </div>
-            )}
+            ))}
           </section>
         )}
 
@@ -433,24 +509,6 @@ export function MinhaContaClient({
           </section>
         )}
 
-        {/* CTA para lojistas */}
-        <div className="p-5 md:p-7 rounded-[28px] bg-brand-soft flex flex-col gap-3">
-          <LapaSymbol size={36} />
-          <span className="font-display text-xl md:text-2xl font-extrabold tracking-[-0.02em] leading-[1.15] text-slate-900 text-balance">
-            Tem uma loja em Lapa? Crie seu catálogo grátis.
-          </span>
-          <Link
-            href="/onboarding"
-            className={cn(
-              buttonBaseClasses,
-              buttonVariantClasses.primary,
-              buttonSizeClasses.md,
-              "self-start px-4.5"
-            )}
-          >
-            Quero abrir minha loja
-          </Link>
-        </div>
       </main>
 
     </div>

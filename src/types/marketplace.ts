@@ -9,6 +9,9 @@ export type PaymentMethod =
 
 export type DeliveryFeeType = "free" | "fixed" | "combine";
 
+/** Tipo de atendimento da loja: loja física (balcão) e/ou online. */
+export type ServiceMode = "physical" | "online";
+
 export type ProductCondition = "new" | "used" | "refurbished";
 
 export type StorePlan = "free" | "pro" | "premium";
@@ -177,6 +180,10 @@ export interface MerchantStoreConfig {
   neighborhood_id: string;
   neighborhood_name: string;
   address: string;
+  /** Categoria principal (global_categories sem pai). */
+  global_category_id?: string | null;
+  /** Categoria digitada quando a loja escolheu "Outra". */
+  category_other?: string | null;
   plan_tier: "free" | "premium";
   is_verified: boolean;
   accepted_payments: PaymentMethod[];

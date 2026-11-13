@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Notice } from "@/components/ui/Notice";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
+import { GOOGLE_AUTH_ENABLED } from "@/lib/auth-config";
 import { LapaWordmark } from "@/components/brand/LapaSymbol";
 import { loginWithEmail } from "@/app/(auth)/actions";
-
 function LoginFormContent() {
   const searchParams = useSearchParams();
   const initialError = searchParams.get("error") || "";
@@ -34,7 +34,7 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+    <div className="my-auto flex flex-col gap-5.5">
       <div className="flex flex-col gap-4.5">
         <Link
           href="/"
@@ -48,9 +48,10 @@ function LoginFormContent() {
             textClassName="text-[22px]"
           />
         </Link>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 text-center">
           <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
-            Bem-vindo de volta à Lapa
+            <span className="aura-text">Olá!</span>{" "}
+            <span className="whitespace-nowrap">Bem-vindo</span> de volta.
           </h1>
           <p className="text-[15px] text-slate-500 leading-[1.45]">
             Entre para favoritar peças, seguir lojas e agilizar seus pedidos.
@@ -65,18 +66,6 @@ function LoginFormContent() {
       )}
 
       {error && <Notice tone="error">{error}</Notice>}
-
-      <GoogleOAuthButton
-        nextPath={nextPath || undefined}
-        label="Continuar com o Google"
-        onError={(msg) => setError(msg)}
-      />
-
-      <div className="flex items-center gap-3 text-[13px] text-slate-500">
-        <span className="flex-1 h-px bg-slate-200" />
-        ou entre com seu e-mail
-        <span className="flex-1 h-px bg-slate-200" />
-      </div>
 
       <form
         id="login-form"
@@ -111,7 +100,6 @@ function LoginFormContent() {
         </div>
       </form>
 
-      <div className="flex-1 md:hidden" />
 
       <div className="flex flex-col gap-4 items-center">
         <Button
@@ -124,6 +112,22 @@ function LoginFormContent() {
         >
           Entrar
         </Button>
+        {GOOGLE_AUTH_ENABLED && (
+          <>
+            <div className="flex w-full items-center gap-3 text-[13px] text-slate-500">
+              <span className="flex-1 h-px bg-slate-200" />
+              ou
+              <span className="flex-1 h-px bg-slate-200" />
+            </div>
+            <div className="w-full">
+              <GoogleOAuthButton
+                nextPath={nextPath || undefined}
+                label="Continuar com o Google"
+                onError={(msg) => setError(msg)}
+              />
+            </div>
+          </>
+        )}
         <p className="text-sm text-slate-500">
           Ainda não tem conta?{" "}
           <Link

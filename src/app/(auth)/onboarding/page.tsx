@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { FALLBACK_GLOBAL_CATEGORIES } from "@/lib/panel-data";
 import type { NeighborhoodItem } from "@/types/marketplace";
 
 const FALLBACK_LAPA_NEIGHBORHOODS: NeighborhoodItem[] = [
@@ -31,9 +32,34 @@ export default async function OnboardingPage({
   let initialWhatsapp = "";
   let alreadyHasStore = false;
   let currentRole: string | null = null;
+  let draftOwnerId: string | undefined;
+  // Categoria da loja: categorias principais do portal (sem pai)
+  let storeCategories = isSupabaseConfigured()
+    ? []
+    : FALLBACK_GLOBAL_CATEGORIES.filter((c) => !c.parent_id && c.is_active).map(
+        (c) => ({ id: c.id, name: c.name })
+      );
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
+
+    try {
+      const { data: dbCategories } = await supabase
+        .from("global_categories")
+        .select("id, name")
+        .is("parent_id", null)
+        .eq("is_active", true)
+        .order("order_index", { ascending: true });
+
+      if (dbCategories) {
+        storeCategories = dbCategories.map((c) => ({
+          id: String(c.id),
+          name: String(c.name),
+        }));
+      }
+    } catch {
+      // Sem categorias: o campo some e não bloqueia o cadastro
+    }
 
     // 1. Carregar bairros dinamicamente de `public.neighborhoods`
     try {
@@ -59,6 +85,7 @@ export default async function OnboardingPage({
     } = await supabase.auth.getUser();
 
     if (user) {
+      draftOwnerId = user.id;
       try {
         const { data: existingStore } = await supabase
           .from("stores")
@@ -110,6 +137,8 @@ export default async function OnboardingPage({
       initialWhatsapp={initialWhatsapp}
       initialStep={initialStep}
       nextPath={resolvedParams.next}
+      draftOwnerId={draftOwnerId}
+      storeCategories={storeCategories}
     />
   );
 }

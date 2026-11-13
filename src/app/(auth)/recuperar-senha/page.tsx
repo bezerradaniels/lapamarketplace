@@ -33,7 +33,7 @@ export default function RecuperarSenhaPage() {
   };
 
   return (
-    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+    <div className="my-auto flex flex-col gap-5.5">
       <Link
         href="/login"
         aria-label="Voltar para entrar"
@@ -80,7 +80,6 @@ export default function RecuperarSenhaPage() {
         </Notice>
       )}
 
-      <div className="flex-1 md:hidden" />
 
       <p className="self-center text-sm text-slate-500">
         Lembrou?{" "}

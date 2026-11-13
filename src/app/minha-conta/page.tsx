@@ -5,6 +5,8 @@ import {
   MinhaContaClient,
   type AccountTab,
 } from "@/components/account/MinhaContaClient";
+import type { OwnStoreSummary } from "@/components/account/AccountStoreTab";
+import { readProductRow, readStoreRow } from "@/lib/db-columns";
 import type {
   CustomerProfile,
   NeighborhoodItem,
@@ -95,15 +97,17 @@ function mapStoreRecord(raw: Record<string, unknown>): StoreSummary {
       ? raw.neighborhood_name
       : "Centro";
 
+  const cols = readStoreRow(raw);
+
   return {
     id: String(raw.id || ""),
     name: String(raw.name || "Loja de Lapa"),
     slug: String(raw.slug || raw.id || "loja"),
-    avatar_url: (raw.avatar_url as string | null) ?? (raw.logo_url as string | null) ?? null,
+    avatar_url: cols.logoUrl,
     neighborhood: neighborhoodName,
-    whatsapp: (raw.whatsapp as string | undefined) || undefined,
+    whatsapp: cols.whatsapp || undefined,
     is_verified: Boolean(raw.is_verified),
-    plan: (raw.plan as StoreSummary["plan"]) || "free",
+    plan: cols.isPremium ? "premium" : "free",
     business_hours:
       (raw.business_hours as StoreSummary["business_hours"]) ?? null,
     special_hours: (raw.special_hours as StoreSummary["special_hours"]) ?? null,
@@ -122,13 +126,19 @@ export default async function MinhaContaPage({
   const initialTab: AccountTab =
     tabParam === "stores" || tabParam === "lojas"
       ? "stores"
-      : tabParam === "delivery" || tabParam === "endereco"
+      : tabParam === "purchases" || tabParam === "compras"
+      ? "purchases"
+      : tabParam === "delivery" ||
+        tabParam === "endereco" ||
+        tabParam === "configuracoes"
       ? "delivery"
       : "favorites";
 
   const supabaseReady = isSupabaseConfigured();
 
   let isAuthenticated = false;
+  let emailPendingConfirmation = false;
+  let ownStore: OwnStoreSummary | null = null;
   let profile: CustomerProfile = {
     id: "visitor",
     full_name: "",
@@ -169,6 +179,7 @@ export default async function MinhaContaPage({
 
     if (user) {
       isAuthenticated = true;
+      emailPendingConfirmation = Boolean(user.email) && !user.email_confirmed_at;
       savedProducts = [];
       followedStores = [];
 
@@ -195,12 +206,36 @@ export default async function MinhaContaPage({
         default_address: dbProfile?.default_address || "",
       };
 
+      // 3b. Loja própria (lojista): a aba "Loja" vira atalho para o painel
+      try {
+        const { data: dbStore } = await supabase
+          .from("stores")
+          .select("*")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+
+        if (dbStore?.slug) {
+          ownStore = {
+            name: String(dbStore.name || "Minha loja"),
+            slug: String(dbStore.slug),
+            avatarUrl:
+              (dbStore.avatar_url as string | null) ??
+              (dbStore.logo_url as string | null) ??
+              null,
+            isPremium:
+              dbStore.plan_tier === "premium" || dbStore.plan === "premium",
+          };
+        }
+      } catch {
+        ownStore = null;
+      }
+
       // 4. Buscar produtos favoritados em `public.saved_products`
       try {
         const { data: savedRows } = await supabase
           .from("saved_products")
           .select(
-            "product_id, product:products(id, title, slug, description, price, promotional_price, image_url, gallery_urls, sizes, condition, store:stores(id, name, slug, avatar_url, whatsapp, is_verified, plan, business_hours, special_hours, is_open_override, neighborhood:neighborhoods(name)))"
+            "product_id, product:products(id, name, slug, description, price, promotional_price, image_url, gallery_urls, available_sizes, condition, store:stores(id, name, slug, logo_url, whatsapp_number, is_verified, plan_tier, business_hours, special_hours, neighborhood:neighborhoods(name)))"
           )
           .eq("user_id", user.id);
 
@@ -219,7 +254,7 @@ export default async function MinhaContaPage({
 
               const item: ProductItem = {
                 id: String(rawProd.id || row.product_id),
-                title: String(rawProd.title || "Produto"),
+                title: readProductRow(rawProd).title,
                 slug: rawProd.slug ? String(rawProd.slug) : undefined,
                 description: (rawProd.description as string | null) ?? null,
                 price: Number(rawProd.price || 0),
@@ -233,7 +268,7 @@ export default async function MinhaContaPage({
                 ),
                 gallery_urls:
                   (rawProd.gallery_urls as string[] | null | undefined) ?? null,
-                sizes: (rawProd.sizes as string[] | null | undefined) ?? null,
+                sizes: readProductRow(rawProd).sizes,
                 condition:
                   (rawProd.condition as ProductItem["condition"]) || "new",
                 store: mapStoreRecord(rawStore),
@@ -251,7 +286,7 @@ export default async function MinhaContaPage({
         const { data: followedRows } = await supabase
           .from("followed_stores")
           .select(
-            "store_id, store:stores(id, name, slug, avatar_url, whatsapp, is_verified, plan, business_hours, special_hours, is_open_override, neighborhood:neighborhoods(name))"
+            "store_id, store:stores(id, name, slug, logo_url, whatsapp_number, is_verified, plan_tier, business_hours, special_hours, neighborhood:neighborhoods(name))"
           )
           .eq("user_id", user.id);
 
@@ -282,6 +317,8 @@ export default async function MinhaContaPage({
       initialFollowedStores={followedStores}
       neighborhoods={neighborhoods}
       initialTab={initialTab}
+      emailPendingConfirmation={emailPendingConfirmation}
+      ownStore={ownStore}
     />
   );
 }

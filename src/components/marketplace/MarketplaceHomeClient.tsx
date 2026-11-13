@@ -108,17 +108,33 @@ export function MarketplaceHomeClient({
   const [activeCategory, setActiveCategory] = useState("all");
 
   // Sidebar Desktop de Filtros (Colapsável) e Filtros Rápidos
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const stored = localStorage.getItem("lapa_home_sidebar_open");
-      return stored !== null ? stored === "true" : true;
-    } catch {
-      return true;
-    }
-  });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [onlyOpenNow, setOnlyOpenNow] = useState(false);
   const [onlyPromo, setOnlyPromo] = useState(false);
+
+  // Estado do Feed Infinito (Abas "Toda a Lapa" | "Seguindo" + Modo "Feed" | "Grade")
+  const [feedTab, setFeedTab] = useState<"explorar" | "seguindo">("explorar");
+  const [viewMode, setViewMode] = useState<"feed" | "grid">("feed");
+
+  // Sincroniza preferências salvas no localStorage após a montagem do componente no cliente
+  // (no callback, fora do corpo do efeito, para não renderizar em cascata)
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const storedSidebar = localStorage.getItem("lapa_home_sidebar_open");
+        if (storedSidebar !== null) {
+          setIsSidebarOpen(storedSidebar === "true");
+        }
+        const storedMode = localStorage.getItem("lapa_home_view_mode");
+        if (storedMode === "grid" || storedMode === "feed") {
+          setViewMode(storedMode);
+        }
+      } catch {
+        // Ignora erro
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen((prev) => {
@@ -178,17 +194,6 @@ export function MarketplaceHomeClient({
       });
     }
   };
-
-  // Estado do Feed Infinito (Abas "Toda a Lapa" | "Seguindo" + Modo "Feed" | "Grade")
-  const [feedTab, setFeedTab] = useState<"explorar" | "seguindo">("explorar");
-  const [viewMode, setViewMode] = useState<"feed" | "grid">(() => {
-    if (typeof window === "undefined") return "feed";
-    try {
-      return localStorage.getItem("lapa_home_view_mode") === "grid" ? "grid" : "feed";
-    } catch {
-      return "feed";
-    }
-  });
 
   // Visualização do feed persistida (feed | grade)
   const handleChangeViewMode = (mode: "feed" | "grid") => {

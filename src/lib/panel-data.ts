@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminPage, requireUserPage } from "@/lib/auth/guards";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { readProductRow, readStoreRow } from "@/lib/db-columns";
 import type {
   DaySchedule,
   GlobalCategory,
@@ -642,42 +643,33 @@ export async function fetchMerchantDashboardData(): Promise<{
           .select("*", { count: "exact", head: true })
           .eq("store_id", raw.id);
 
-        const rawPlan = String(raw.plan_tier || raw.plan || "free");
+        const cols = readStoreRow(raw);
 
         store = {
           id: String(raw.id),
           owner_id: String(raw.owner_id || user.id),
           name: String(raw.name || "Minha Loja"),
           slug: String(raw.slug || "minha-loja"),
-          avatar_url:
-            (raw.avatar_url as string | null) ??
-            (raw.logo_url as string | null) ??
-            null,
+          avatar_url: cols.logoUrl,
           banner_url: (raw.banner_url as string | null) ?? null,
-          description:
-            (raw.description as string | null) ??
-            (raw.bio as string | null) ??
-            null,
-          whatsapp: String(raw.whatsapp || ""),
-          instagram: (raw.instagram as string | null) ?? null,
+          description: cols.description,
+          whatsapp: cols.whatsapp,
+          instagram: cols.instagram,
           neighborhood_id: nbId,
           neighborhood_name: matchedNb?.name || "Centro",
-          address: String(raw.address || ""),
-          plan_tier: rawPlan === "premium" ? "premium" : "free",
+          address: cols.address || "",
+          global_category_id: cols.categoryId,
+          category_other: cols.categoryOther,
+          plan_tier: cols.isPremium ? "premium" : "free",
           is_verified: Boolean(raw.is_verified),
-          accepted_payments: Array.isArray(raw.accepted_payments)
-            ? (raw.accepted_payments as MerchantStoreConfig["accepted_payments"])
-            : Array.isArray(raw.payment_methods)
-            ? (raw.payment_methods as MerchantStoreConfig["accepted_payments"])
-            : ["pix", "credit_card", "cash"],
+          accepted_payments: cols.paymentMethods ?? ["pix", "credit_card", "cash"],
           installment_info: (raw.installment_info as string | null) ?? null,
-          has_delivery: raw.has_delivery !== false,
-          has_pickup: raw.has_pickup !== false,
+          has_delivery: cols.hasDelivery,
+          has_pickup: cols.hasPickup,
           delivery_fee_type:
             (raw.delivery_fee_type as MerchantStoreConfig["delivery_fee_type"]) ||
             "combine",
-          delivery_fee:
-            raw.delivery_fee != null ? Number(raw.delivery_fee) : 0,
+          delivery_fee: cols.deliveryFee,
           business_hours:
             (raw.business_hours as Record<number, DaySchedule>) ||
             DEFAULT_LAPA_BUSINESS_HOURS,
@@ -695,10 +687,13 @@ export async function fetchMerchantDashboardData(): Promise<{
           .order("created_at", { ascending: false });
 
         if (dbProducts) {
-          products = dbProducts.map((p: Record<string, unknown>) => ({
+          const catMap = new Map(categories.map((c) => [c.id, c]));
+          products = dbProducts.map((p: Record<string, unknown>) => {
+            const prod = readProductRow(p, catMap);
+            return {
             id: String(p.id),
             store_id: String(p.store_id || store.id),
-            title: String(p.title || p.name || "Produto"),
+            title: prod.title,
             slug: p.slug ? String(p.slug) : undefined,
             description: (p.description as string | null) ?? null,
             price: Number(p.price || 0),
@@ -711,17 +706,18 @@ export async function fetchMerchantDashboardData(): Promise<{
             gallery_urls: Array.isArray(p.gallery_urls)
               ? (p.gallery_urls as string[])
               : [],
-            category_id: String(p.category_id || "cat-moda"),
-            subcategory_id: p.subcategory_id ? String(p.subcategory_id) : null,
+            category_id: prod.categoryId || "cat-moda",
+            subcategory_id: prod.subcategoryId,
             gender: (p.gender as MerchantProduct["gender"]) ?? null,
-            sizes: Array.isArray(p.sizes) ? (p.sizes as string[]) : [],
+            sizes: prod.sizes,
             voltage: (p.voltage as MerchantProduct["voltage"]) ?? null,
             condition: (p.condition as MerchantProduct["condition"]) || "new",
             is_active: p.is_active !== false,
             views_count: Number(p.views_count || 0),
             clicks_whatsapp: Number(p.clicks_whatsapp || 0),
             created_at: p.created_at ? String(p.created_at) : undefined,
-          }));
+            };
+          });
         } else {
           products = [];
         }
@@ -812,37 +808,31 @@ export async function fetchMasterPortalData(): Promise<{
       stores = dbStores.map((raw: Record<string, unknown>) => {
         const nbId = String(raw.neighborhood_id || "centro");
         const matchedNb = neighborhoods.find((n) => n.id === nbId);
-        const rawPlan = String(raw.plan_tier || raw.plan || "free");
+        const cols = readStoreRow(raw);
 
         return {
           id: String(raw.id),
           owner_id: raw.owner_id ? String(raw.owner_id) : undefined,
           name: String(raw.name || "Loja"),
           slug: String(raw.slug || raw.id),
-          avatar_url:
-            (raw.avatar_url as string | null) ??
-            (raw.logo_url as string | null) ??
-            null,
+          avatar_url: cols.logoUrl,
           banner_url: (raw.banner_url as string | null) ?? null,
-          description: (raw.description as string | null) ?? null,
-          whatsapp: String(raw.whatsapp || ""),
-          instagram: (raw.instagram as string | null) ?? null,
+          description: cols.description,
+          whatsapp: cols.whatsapp,
+          instagram: cols.instagram,
           neighborhood_id: nbId,
           neighborhood_name: matchedNb?.name || "Centro",
-          address: String(raw.address || ""),
-          plan_tier: rawPlan === "premium" ? "premium" : "free",
+          address: cols.address || "",
+          plan_tier: cols.isPremium ? "premium" : "free",
           is_verified: Boolean(raw.is_verified),
-          accepted_payments: Array.isArray(raw.accepted_payments)
-            ? (raw.accepted_payments as MerchantStoreConfig["accepted_payments"])
-            : ["pix"],
+          accepted_payments: cols.paymentMethods ?? ["pix"],
           installment_info: (raw.installment_info as string | null) ?? null,
-          has_delivery: raw.has_delivery !== false,
-          has_pickup: raw.has_pickup !== false,
+          has_delivery: cols.hasDelivery,
+          has_pickup: cols.hasPickup,
           delivery_fee_type:
             (raw.delivery_fee_type as MerchantStoreConfig["delivery_fee_type"]) ||
             "combine",
-          delivery_fee:
-            raw.delivery_fee != null ? Number(raw.delivery_fee) : 0,
+          delivery_fee: cols.deliveryFee,
           business_hours:
             (raw.business_hours as Record<number, DaySchedule>) ||
             DEFAULT_LAPA_BUSINESS_HOURS,

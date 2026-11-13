@@ -13,6 +13,8 @@ import { Select } from "@/components/ui/Select";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateStoreSettingsAction } from "@/app/actions/painel";
+import { StoreCategoryField } from "@/components/ui/StoreCategoryField";
+import { STORE_CATEGORY_OTHER } from "@/lib/db-columns";
 import { cn, formatWhatsAppMask, normalizeWhatsAppToDb } from "@/lib/utils";
 import type {
   DaySchedule,
@@ -26,6 +28,8 @@ import type {
 export interface StoreSettingsClientProps {
   initialStore: MerchantStoreConfig;
   neighborhoods: NeighborhoodItem[];
+  /** Categorias principais do portal (categoria da loja). */
+  storeCategories?: Array<{ id: string; name: string }>;
 }
 
 type SettingsTab = "general" | "payments" | "hours";
@@ -42,6 +46,7 @@ const PAYMENT_OPTIONS: Array<{ id: PaymentMethod; label: string }> = [
 export function StoreSettingsClient({
   initialStore,
   neighborhoods,
+  storeCategories = [],
 }: StoreSettingsClientProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
@@ -60,6 +65,13 @@ export function StoreSettingsClient({
     initialStore.neighborhood_id || neighborhoods[0]?.id || "centro"
   );
   const [address, setAddress] = useState(initialStore.address || "");
+  const [categoryId, setCategoryId] = useState(
+    initialStore.global_category_id ||
+      (initialStore.category_other ? STORE_CATEGORY_OTHER : "")
+  );
+  const [categoryOther, setCategoryOther] = useState(
+    initialStore.category_other || ""
+  );
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -250,10 +262,22 @@ export function StoreSettingsClient({
     e.preventDefault();
     setFeedback(null);
 
+    if (categoryId === STORE_CATEGORY_OTHER && categoryOther.trim().length < 2) {
+      setActiveTab("general");
+      setFeedback({
+        type: "error",
+        text: "Escreva qual é a categoria da sua loja.",
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateStoreSettingsAction({
         store_id: initialStore.id,
         name,
+        category_id: categoryId || null,
+        category_other:
+          categoryId === STORE_CATEGORY_OTHER ? categoryOther.trim() : null,
         avatar_url: avatarUrl || null,
         banner_url: bannerUrl || null,
         description: description || null,
@@ -435,6 +459,14 @@ export function StoreSettingsClient({
                 </Button>
               </div>
               <Input inputSize="md" label="Nome da loja *" value={name} onChange={(e) => setName(e.target.value)} required />
+              <StoreCategoryField
+                categories={storeCategories}
+                value={categoryId}
+                onChange={setCategoryId}
+                otherText={categoryOther}
+                onOtherTextChange={setCategoryOther}
+                surface="soft"
+              />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="store-settings-bio" className={fieldLabelClasses}>Bio da loja</label>
                 <div className="relative lapa-aurora-glow rounded-[15px]">

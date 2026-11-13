@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolvePostAuthRedirect } from "@/lib/supabase/auth-redirect";
 import { notifyAdminNewUserSignup } from "@/lib/resend";
 import { queueAnalyticsEvent } from "@/lib/analytics/server";
+import { GOOGLE_AUTH_ENABLED } from "@/lib/auth-config";
 import type { AccountType } from "@/types/marketplace";
 
 export interface AuthActionResult {
@@ -190,11 +191,58 @@ export async function signupWithEmail(
 }
 
 /**
+ * Reenviar o e-mail de confirmação para o usuário logado que ainda não
+ * confirmou o endereço (acesso liberado antes da confirmação).
+ */
+export async function resendConfirmationEmail(): Promise<AuthActionResult> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Não foi possível reenviar o e-mail agora." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return { error: "Entre na sua conta para reenviar a confirmação." };
+  }
+
+  if (user.email_confirmed_at) {
+    return { success: true, message: "Seu e-mail já está confirmado." };
+  }
+
+  const siteUrl = await getBaseSiteUrl();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: user.email,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/minha-conta`,
+    },
+  });
+
+  if (error) {
+    return { error: translateAuthError(error.message) };
+  }
+
+  return {
+    success: true,
+    message: `Enviamos um novo link para ${user.email}. Confira também o spam.`,
+  };
+}
+
+/**
  * Login / Cadastro com Google OAuth (1 clique) via Server Action
  */
 export async function loginWithGoogle(
   formData: FormData
 ): Promise<AuthActionResult> {
+  if (!GOOGLE_AUTH_ENABLED) {
+    return {
+      error: "Entrar com o Google está indisponível no momento. Use seu e-mail e senha.",
+    };
+  }
+
   const rawAccountType = String(
     formData.get("account_type") || "customer"
   ).trim();

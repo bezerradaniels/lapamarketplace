@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 /**
  * Símbolo do Lapa — sacola facetada em perspectiva, alças duplas.
  * Desenho fixo (não alterar a forma). Paths de `bag-original.svg`, viewBox recortado.
- * Tema Aura: variante `aurora` (frente azul com luz colorida difusa, alças azul-escuro).
- * Abaixo de 24px a aurora vira a sólida automaticamente.
+ * Padrão do portal: azul (`solid`) sobre fundos claros e branca (`white`) sobre
+ * fundos escuros. `mono` só para impressão/1 cor.
  */
 const BAG_VIEWBOX = "39 51 690 690";
 
@@ -19,10 +19,10 @@ const BAG_HANDLES = [
 const BAG_SIDE =
   "M 279.746094 176.867188 L 307.546875 731.464844 L 207.46875 677.285156 L 107.390625 686.984375 L 185.230469 218.566406 L 231.097656 218.566406 Z";
 
-export type LapaBagVariant = "aurora" | "solid" | "white" | "mono";
+export type LapaBagVariant = "solid" | "white" | "mono";
 
 const BAG_PALETTES: Record<
-  Exclude<LapaBagVariant, "aurora">,
+  LapaBagVariant,
   { front: string; side: string; handle: string }
 > = {
   solid: { front: "#264E9C", side: "#3B82F6", handle: "#1E3A8A" },
@@ -30,39 +30,25 @@ const BAG_PALETTES: Record<
   mono: { front: "#0F172A", side: "#334155", handle: "#0F172A" },
 };
 
-/** Círculos de luz difusa da variante aurora (recortados pela frente da sacola). */
-const AURORA_LIGHTS = [
-  { cx: 150, cy: 260, r: 180, fill: "#60A5FA" },
-  { cx: 520, cy: 210, r: 150, fill: "#EF4444" },
-  { cx: 630, cy: 560, r: 160, fill: "#F59E0B" },
-  { cx: 230, cy: 700, r: 170, fill: "#10B981" },
-  { cx: 400, cy: 460, r: 110, fill: "#264E9C" },
-];
-
 export interface LapaBagProps
   extends Omit<React.SVGProps<SVGSVGElement>, "ref"> {
   /** Lado do símbolo em px. */
   size?: number;
   /**
-   * `aurora` (padrão do tema Aura), `solid` (tamanhos pequenos),
-   * `white` (sobre preto/deep night) ou `mono` (1 cor).
+   * `solid` (azul, padrão), `white` (sobre preto/deep night) ou `mono` (1 cor).
    */
   variant?: LapaBagVariant;
   title?: string;
 }
 
-/** Símbolo do Lapa Marketplace: sacola aurora (ou sólida/branca/mono). */
+/** Símbolo do Lapa Marketplace: sacola azul (ou branca/mono). */
 export function LapaBag({
   size = 64,
-  variant = "aurora",
+  variant = "solid",
   title,
   className,
   ...props
 }: LapaBagProps) {
-  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const resolved: LapaBagVariant =
-    variant === "aurora" && size < 24 ? "solid" : variant;
-
   const svgProps = {
     viewBox: BAG_VIEWBOX,
     width: size,
@@ -75,43 +61,7 @@ export function LapaBag({
     ...props,
   } as React.SVGProps<SVGSVGElement>;
 
-  if (resolved === "aurora") {
-    const clipId = `lb-c-${uid}`;
-    const blurId = `lb-f-${uid}`;
-    return (
-      <svg {...svgProps}>
-        <defs>
-          <clipPath id={clipId}>
-            <path d={BAG_BODY} />
-          </clipPath>
-          <filter
-            id={blurId}
-            filterUnits="userSpaceOnUse"
-            x="-200"
-            y="-200"
-            width="1168"
-            height="1168"
-          >
-            <feGaussianBlur stdDeviation="80" />
-          </filter>
-        </defs>
-        <path d={BAG_BODY} fill="#264E9C" />
-        <g clipPath={`url(#${clipId})`}>
-          <g filter={`url(#${blurId})`}>
-            {AURORA_LIGHTS.map((c) => (
-              <circle key={c.fill + c.cx} {...c} />
-            ))}
-          </g>
-        </g>
-        {BAG_HANDLES.map((d) => (
-          <path key={d.slice(0, 24)} d={d} fill="#1E3A8A" />
-        ))}
-        <path d={BAG_SIDE} fill="#FFFFFF" fillOpacity={0.26} />
-      </svg>
-    );
-  }
-
-  const pal = BAG_PALETTES[resolved];
+  const pal = BAG_PALETTES[variant];
   return (
     <svg {...svgProps}>
       <path d={BAG_BODY} fill={pal.front} />
@@ -124,7 +74,7 @@ export function LapaBag({
 }
 
 /**
- * Compatibilidade com a v1: `LapaSymbol` renderiza a sacola (aurora por padrão).
+ * Compatibilidade com a v1: `LapaSymbol` renderiza a sacola (azul por padrão).
  * `ink="#FFFFFF"` mapeia para a versão branca.
  */
 export interface LapaSymbolProps extends LapaBagProps {
@@ -138,7 +88,7 @@ export function LapaSymbol({ ink, variant, ...props }: LapaSymbolProps) {
       ? "white"
       : ink?.toUpperCase() === "#0F172A"
         ? "mono"
-        : "aurora");
+        : "solid");
   return <LapaBag variant={resolved} {...props} />;
 }
 
@@ -154,12 +104,12 @@ export interface LapaWordmarkProps {
 }
 
 /**
- * Logotipo horizontal: sacola aurora (ou sólida/branca/mono) + "Lapa" + "Marketplace".
+ * Logotipo horizontal: sacola azul (ou branca/mono) + "Lapa" + "Marketplace".
  */
 export function LapaWordmark({
   variant = "full",
   symbolSize = 30,
-  symbolVariant = "aurora",
+  symbolVariant = "solid",
   inverted = false,
   className,
   textClassName,
@@ -199,7 +149,7 @@ export interface VerifiedSealProps {
 }
 
 /**
- * Selo de loja verificada (Aura): círculo #0F172A com check âmbar #FDBA74.
+ * Selo de loja verificada (Aura): círculo #0F172A com check céu #7DD3FC.
  */
 export function VerifiedSeal({
   size = 18,
@@ -220,7 +170,7 @@ export function VerifiedSeal({
       <path
         d="M4.8 8.2l2.1 2.1 4.3-4.5"
         fill="none"
-        stroke="#FDBA74"
+        stroke="#7DD3FC"
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -230,7 +180,7 @@ export function VerifiedSeal({
 }
 
 /**
- * Pílula "Loja verificada em Lapa": fundo pêssego, texto preto, selo à esquerda.
+ * Pílula "Loja verificada em Lapa": fundo céu, texto preto, selo à esquerda.
  */
 export function VerifiedPill({
   label = "Loja verificada em Lapa",

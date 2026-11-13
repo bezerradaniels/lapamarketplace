@@ -416,7 +416,7 @@ export function MarketplaceHeader({
             aria-label="Lapa Marketplace, página inicial"
             className={cn("flex flex-none items-center gap-2.5 rounded-lg", focusRing)}
           >
-            <LapaBag variant="aurora" size={scrolled ? 28 : 34} />
+            <LapaBag variant="solid" size={scrolled ? 28 : 34} />
             <span
               className={cn(
                 "whitespace-nowrap font-display tracking-[-0.025em] transition-[font-size] duration-200",
@@ -504,7 +504,7 @@ export function MarketplaceHeader({
               aria-label="Lapa Marketplace, página inicial"
               className={cn("mr-auto flex flex-none items-center gap-2 rounded-lg", focusRing)}
             >
-              <LapaBag variant="aurora" size={28} />
+              <LapaBag variant="solid" size={28} />
               <span className="font-display text-xl font-semibold tracking-[-0.025em] text-ink">Lapa</span>
             </Link>
             <NeighborhoodMenu value={neighborhood} options={neighborhoods} onChange={setNeighborhood} compact />

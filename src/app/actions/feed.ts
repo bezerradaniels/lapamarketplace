@@ -15,6 +15,7 @@ import {
   LEGACY_CATEGORY_MAP,
 } from "@/lib/demo-catalog";
 import { sanitizeStoreSlug } from "@/lib/utils";
+import { readProductRow, readStoreRow } from "@/lib/db-columns";
 import type {
   GlobalCategory,
   NeighborhoodItem,
@@ -569,49 +570,38 @@ async function loadCatalogSnapshot(): Promise<{
         const matchedNb = neighborhoods.find(
           (n) => n.id === nbId || n.slug === nbId
         );
-        const rawPlan = String(raw.plan_tier || raw.plan || "free");
+        const cols = readStoreRow(raw);
 
         return {
           id: String(raw.id),
           name: String(raw.name || "Loja Parceira"),
           slug: String(raw.slug || raw.id),
-          avatar_url:
-            (raw.avatar_url as string | null) ??
-            (raw.logo_url as string | null) ??
-            null,
+          avatar_url: cols.logoUrl,
           banner_url: (raw.banner_url as string | null) ?? null,
-          description:
-            (raw.description as string | null) ??
-            (raw.bio as string | null) ??
-            null,
+          description: cols.description,
           neighborhood: matchedNb?.name || "Centro",
           neighborhood_id: nbId,
           neighborhood_slug:
             matchedNb?.slug || sanitizeStoreSlug(matchedNb?.name || "centro"),
-          address: String(raw.address || "Bom Jesus da Lapa - BA"),
-          instagram: (raw.instagram as string | null) ?? null,
-          whatsapp: String(raw.whatsapp || ""),
+          address: cols.address || "Bom Jesus da Lapa - BA",
+          instagram: cols.instagram,
+          whatsapp: cols.whatsapp,
           is_verified: Boolean(raw.is_verified),
-          plan: rawPlan === "premium" ? "premium" : "free",
+          plan: cols.isPremium ? "premium" : "free",
           business_hours:
             (raw.business_hours as StoreSummary["business_hours"]) ||
             DEFAULT_LAPA_BUSINESS_HOURS,
           special_hours: Array.isArray(raw.special_hours)
             ? (raw.special_hours as StoreSummary["special_hours"])
             : [],
-          payment_methods: Array.isArray(raw.accepted_payments)
-            ? (raw.accepted_payments as PaymentMethod[])
-            : Array.isArray(raw.payment_methods)
-            ? (raw.payment_methods as PaymentMethod[])
-            : ["pix", "credit_card", "cash"],
+          payment_methods: cols.paymentMethods ?? ["pix", "credit_card", "cash"],
           installment_info: (raw.installment_info as string | null) ?? null,
-          has_delivery: raw.has_delivery !== false,
-          has_pickup: raw.has_pickup !== false,
+          has_delivery: cols.hasDelivery,
+          has_pickup: cols.hasPickup,
           delivery_fee_type:
             (raw.delivery_fee_type as StoreSummary["delivery_fee_type"]) ||
             "combine",
-          delivery_fee:
-            raw.delivery_fee != null ? Number(raw.delivery_fee) : 0,
+          delivery_fee: cols.deliveryFee,
           followers_count: Number(raw.followers_count || 0),
           created_at: raw.created_at ? String(raw.created_at) : undefined,
         };
@@ -634,17 +624,18 @@ async function loadCatalogSnapshot(): Promise<{
         .map((p: Record<string, unknown>) => {
           const store =
             storeMap.get(String(p.store_id)) || CATALOG_STORES[0];
-          const mainCat = catMap.get(String(p.category_id));
-          const subCat = p.subcategory_id
-            ? catMap.get(String(p.subcategory_id))
+          const prod = readProductRow(p, catMap);
+          const mainCat = prod.categoryId
+            ? catMap.get(prod.categoryId)
+            : undefined;
+          const subCat = prod.subcategoryId
+            ? catMap.get(prod.subcategoryId)
             : undefined;
 
           return {
             id: String(p.id),
-            title: String(p.title || p.name || "Produto"),
-            slug: String(
-              p.slug || sanitizeStoreSlug(String(p.title || p.id))
-            ),
+            title: prod.title,
+            slug: String(p.slug || sanitizeStoreSlug(prod.title || String(p.id))),
             description: (p.description as string | null) ?? null,
             price: Number(p.price || 0),
             promotional_price:
@@ -656,17 +647,13 @@ async function loadCatalogSnapshot(): Promise<{
             gallery_urls: Array.isArray(p.gallery_urls)
               ? (p.gallery_urls as string[])
               : [],
-            sizes: Array.isArray(p.sizes)
-              ? (p.sizes as string[])
-              : Array.isArray(p.available_sizes)
-              ? (p.available_sizes as string[])
-              : [],
+            sizes: prod.sizes,
             gender: (p.gender as ProductGender | null) ?? null,
             voltage: (p.voltage as ProductVoltage | null) ?? null,
             condition: (p.condition as ProductCondition) || "new",
-            category_id: String(p.category_id || "cat-moda"),
+            category_id: prod.categoryId || "cat-moda",
             category_slug: mainCat?.slug || String(p.category_slug || "moda"),
-            subcategory_id: p.subcategory_id ? String(p.subcategory_id) : null,
+            subcategory_id: prod.subcategoryId,
             subcategory_slug: subCat?.slug || null,
             is_active: p.is_active !== false,
             views_count: Number(p.views_count || 0),

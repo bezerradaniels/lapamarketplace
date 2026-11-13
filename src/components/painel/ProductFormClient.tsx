@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { upsertProductAction } from "@/app/actions/painel";
+import { DraftRestoredNotice } from "@/components/ui/DraftRestoredNotice";
+import { useFormDraft } from "@/lib/use-form-draft";
 import {
   calculateDiscountPercentage,
   cn,
@@ -32,6 +34,8 @@ export interface ProductFormClientProps {
   categories: GlobalCategory[];
   initialProduct?: MerchantProduct | null;
   showOnboardingSuccess?: boolean;
+  /** Categoria da loja: vem marcada em produtos novos. */
+  defaultCategoryId?: string | null;
 }
 
 const GENDER_OPTIONS: ProductGender[] = [
@@ -48,6 +52,7 @@ export function ProductFormClient({
   categories,
   initialProduct = null,
   showOnboardingSuccess = false,
+  defaultCategoryId = null,
 }: ProductFormClientProps) {
   const router = useRouter();
   const isEditing = Boolean(initialProduct?.id);
@@ -74,8 +79,14 @@ export function ProductFormClient({
       : ""
   );
 
+  // Produto novo: começa na categoria da loja; sem ela, a pessoa escolhe
+  // (antes caía na primeira da lista, ex.: "Calçados & Bolsas")
   const [categoryId, setCategoryId] = useState(
-    initialProduct?.category_id || mainCategories[0]?.id || "cat-moda"
+    initialProduct?.category_id ||
+      (defaultCategoryId &&
+      mainCategories.some((c) => c.id === defaultCategoryId)
+        ? defaultCategoryId
+        : "")
   );
   const [subcategoryId, setSubcategoryId] = useState(
     initialProduct?.subcategory_id || ""
@@ -118,10 +129,51 @@ export function ProductFormClient({
   } | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Rascunho: um por produto (novo = por loja), para não perder o que foi digitado
+  const draft = useFormDraft(
+    initialProduct?.id ? `product:${initialProduct.id}` : `product-new:${storeId}`,
+    {
+      title,
+      description,
+      priceStr,
+      promoPriceStr,
+      categoryId,
+      subcategoryId,
+      gender,
+      selectedSizes,
+      voltage,
+      condition,
+      isActive,
+      mainImageUrl,
+      galleryUrls,
+    },
+    (saved) => {
+      if (saved.title !== undefined) setTitle(saved.title);
+      if (saved.description !== undefined) setDescription(saved.description);
+      if (saved.priceStr !== undefined) setPriceStr(saved.priceStr);
+      if (saved.promoPriceStr !== undefined) setPromoPriceStr(saved.promoPriceStr);
+      if (saved.categoryId && mainCategories.some((c) => c.id === saved.categoryId))
+        setCategoryId(saved.categoryId);
+      if (saved.subcategoryId !== undefined) setSubcategoryId(saved.subcategoryId);
+      if (saved.gender !== undefined) setGender(saved.gender);
+      if (saved.selectedSizes) setSelectedSizes(saved.selectedSizes);
+      if (saved.voltage !== undefined) setVoltage(saved.voltage);
+      if (saved.condition) setCondition(saved.condition);
+      if (saved.isActive !== undefined) setIsActive(saved.isActive);
+      if (saved.mainImageUrl !== undefined) setMainImageUrl(saved.mainImageUrl);
+      if (saved.galleryUrls) setGalleryUrls(saved.galleryUrls.slice(0, 3));
+    }
+  );
+
+  const handleDiscardDraft = () => {
+    draft.clear();
+    window.location.reload();
+  };
+
   // Categoria principal selecionada e seu `filter_config`
   const activeMainCategory = React.useMemo(
     () =>
-      mainCategories.find((c) => c.id === categoryId) || mainCategories[0],
+      mainCategories.find((c) => c.id === categoryId),
     [mainCategories, categoryId]
   );
 
@@ -237,6 +289,12 @@ export function ProductFormClient({
     e.preventDefault();
     setFeedback(null);
 
+    if (!categoryId) {
+      setFeedback({ type: "error", text: "Escolha a categoria do produto." });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     startTransition(async () => {
       const result = await upsertProductAction({
         id: initialProduct?.id,
@@ -259,6 +317,7 @@ export function ProductFormClient({
       if (result.error) {
         setFeedback({ type: "error", text: result.error });
       } else {
+        draft.clear();
         trackEvent(initialProduct?.id ? "product_updated" : "product_created", {
           item_id: result.id || initialProduct?.id,
         });
@@ -328,6 +387,13 @@ export function ProductFormClient({
           {isEditing ? "Editar produto" : "Novo produto"}
         </h1>
       </div>
+
+      {draft.restored && (
+        <DraftRestoredNotice
+          onDiscard={handleDiscardDraft}
+          onDismiss={draft.dismiss}
+        />
+      )}
 
       {feedback && <Notice tone={feedback.type}>{feedback.text}</Notice>}
 
@@ -400,6 +466,7 @@ export function ProductFormClient({
             <Select
               inputSize="md"
               label="Categoria"
+              placeholder="Escolha a categoria"
               value={categoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
               options={mainCategories.map((c) => ({ value: c.id, label: c.name }))}
@@ -416,7 +483,7 @@ export function ProductFormClient({
             />
 
             {/* Filtros condicionais (filter_config) */}
-            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-[linear-gradient(135deg,#FFF7ED,#FDF2F8_50%,#E0F2FE)] shadow-[inset_0_0_0_1px_#F1F5F9] flex flex-col gap-3.5">
+            <div className="sm:col-span-2 p-3.5 rounded-[18px] bg-[linear-gradient(135deg,#F0F9FF,#FDF2F8_50%,#E0F2FE)] shadow-[inset_0_0_0_1px_#F1F5F9] flex flex-col gap-3.5">
               {filterConfig.has_gender && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold text-brand-ink">Gênero · filtro da categoria</span>

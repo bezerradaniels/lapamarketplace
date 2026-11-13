@@ -27,7 +27,7 @@ export interface CategoryPillsProps {
 }
 
 /**
- * Pílulas de categoria: seleção única, ativa em pêssego, inativa branca.
+ * Pílulas de categoria: seleção única, ativa em céu, inativa branca.
  */
 export function CategoryPills({
   categories = DEFAULT_MARKETPLACE_CATEGORIES,

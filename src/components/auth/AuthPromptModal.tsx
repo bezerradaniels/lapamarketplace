@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { LapaSymbol } from "@/components/brand/LapaSymbol";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
+import { GOOGLE_AUTH_ENABLED } from "@/lib/auth-config";
 import { Button } from "@/components/ui/Button";
 
 export interface AuthPromptModalProps {
@@ -71,7 +72,9 @@ export function AuthPromptModal({
                 conta e acessar quando quiser.
               </>
             ) : (
-              "Crie sua conta ou entre em 1 clique para favoritar produtos, acompanhar novidades das lojas de Lapa e salvar seu endereço de entrega."
+              GOOGLE_AUTH_ENABLED
+                ? "Crie sua conta ou entre em 1 clique para favoritar produtos, acompanhar novidades das lojas de Lapa e salvar seu endereço de entrega."
+                : "Crie sua conta ou entre para favoritar produtos, acompanhar novidades das lojas de Lapa e salvar seu endereço de entrega."
             )}
           </p>
         </div>
@@ -85,19 +88,21 @@ export function AuthPromptModal({
           </p>
         )}
 
-        {/* Botão 1 Clique Google */}
+        {/* Botão 1 Clique Google (desligado em src/lib/auth-config.ts) */}
         <div className="space-y-3">
-          <GoogleOAuthButton
-            accountType="customer"
-            nextPath="/minha-conta"
-            label="Continuar com o Google"
-            onError={(msg) => setError(msg)}
-          />
+          {GOOGLE_AUTH_ENABLED && (
+            <GoogleOAuthButton
+              accountType="customer"
+              nextPath="/minha-conta"
+              label="Continuar com o Google"
+              onError={(msg) => setError(msg)}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-2.5">
             <Link href="/login?next=/minha-conta" className="block">
               <Button variant="secondary" size="md" fullWidth>
-                Entrar com e-mail
+                Entrar
               </Button>
             </Link>
             <Link
@@ -105,7 +110,7 @@ export function AuthPromptModal({
               className="block"
             >
               <Button
-                variant="primary"
+                variant="blue"
                 size="md"
                 fullWidth
               >

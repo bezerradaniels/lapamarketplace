@@ -9,6 +9,10 @@ export default async function NovoProdutoPage({
 }) {
   const resolvedParams = await searchParams;
   const showOnboardingSuccess = resolvedParams?.onboarding === "success";
+  // Logo após o cadastro da loja a categoria escolhida vem na URL
+  // (vale mesmo antes da coluna `stores.global_category_id` existir no banco)
+  const categoriaParam =
+    typeof resolvedParams?.categoria === "string" ? resolvedParams.categoria : null;
 
   const { store, categories } = await fetchMerchantDashboardData();
 
@@ -17,7 +21,7 @@ export default async function NovoProdutoPage({
       storeId={store.id}
       categories={categories}
       showOnboardingSuccess={showOnboardingSuccess}
+      defaultCategoryId={store.global_category_id || categoriaParam}
     />
   );
 }
-

@@ -7,11 +7,29 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeWhatsAppToDb, sanitizeStoreSlug } from "@/lib/utils";
 import { notifyAdminNewStoreCreated } from "@/lib/resend";
+import {
+  friendlyDbError,
+  resolveStoreCategory,
+  toStoreColumns,
+} from "@/lib/db-columns";
 import type {
   DaySchedule,
   DeliveryFeeType,
   PaymentMethod,
+  ServiceMode,
 } from "@/types/marketplace";
+
+const SERVICE_MODES: readonly ServiceMode[] = ["physical", "online"];
+
+/** Normaliza o Instagram para "@usuario" (ou null se vazio/inválido). */
+function normalizeInstagram(raw?: string | null): string | null {
+  const handle = (raw || "")
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@+/, "")
+    .replace(/[/?#].*$/, "");
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? `@${handle}` : null;
+}
 
 const SYSTEM_SLUG_BLACKLIST = new Set([
   "admin",
@@ -55,6 +73,14 @@ export interface CreateStorePayload {
   logo_url?: string | null;
   description?: string | null;
   whatsapp: string;
+  /** "@usuario" ou null. */
+  instagram?: string | null;
+  /** Loja física e/ou online. */
+  service_modes?: ServiceMode[];
+  /** Categoria principal da loja (`global_categories.id`, sem pai) ou "other". */
+  category_id?: string | null;
+  /** Nome digitado quando a categoria é "Outra". */
+  category_other?: string | null;
   neighborhood_id: string;
   neighborhood_name?: string;
   address: string;
@@ -189,6 +215,16 @@ export async function createStoreAction(
     return { error: "Selecione o bairro da loja em Bom Jesus da Lapa." };
   }
 
+  const serviceModes = (payload.service_modes ?? ["physical"]).filter((m) =>
+    SERVICE_MODES.includes(m)
+  );
+  if (serviceModes.length === 0) {
+    return {
+      error: "Escolha o tipo de atendimento: loja física, online ou os dois.",
+    };
+  }
+  const instagram = normalizeInstagram(payload.instagram);
+
   if (!payload.has_delivery && !payload.has_pickup) {
     return {
       error:
@@ -219,16 +255,26 @@ export async function createStoreAction(
     };
   }
 
+  // 0. Categoria: valida antes de criar a loja
+  const category = await resolveStoreCategory(
+    supabase,
+    payload.category_id,
+    payload.category_other
+  );
+  if (category && "error" in category) {
+    return { error: category.error };
+  }
+
   // 1. Inserir loja em `public.stores` com `owner_id = user.id`
-  const fullStoreRecord = {
+  // (nomes de coluna reais via `toStoreColumns`, ver src/lib/db-columns.ts)
+  const storeRecord = toStoreColumns({
     owner_id: user.id,
     name,
     slug,
-    avatar_url: payload.logo_url || null,
     logo_url: payload.logo_url || null,
     description: payload.description?.trim() || null,
-    bio: payload.description?.trim() || null,
     whatsapp: cleanWhatsapp,
+    instagram,
     neighborhood_id: payload.neighborhood_id,
     address: payload.address?.trim() || null,
     payment_methods: payload.payment_methods,
@@ -241,38 +287,23 @@ export async function createStoreAction(
         ? Number(payload.delivery_fee)
         : 0,
     business_hours: payload.business_hours,
-  };
+  });
 
-  const { error: fullInsertError } = await supabase
-    .from("stores")
-    .insert(fullStoreRecord);
+  const { error: insertError } = await supabase.from("stores").insert({
+    ...storeRecord,
+    // Colunas criadas em supabase/2026-11-13_store_service_modes.sql
+    service_modes: serviceModes,
+    ...(category && "columns" in category ? category.columns : {}),
+  });
 
-  if (fullInsertError) {
-    // Fallback progressivo caso algumas colunas opcionais tenham nomes distintos no banco
-    const coreStoreRecord = {
-      owner_id: user.id,
-      name,
-      slug,
-      avatar_url: payload.logo_url || null,
-      description: payload.description?.trim() || null,
-      whatsapp: cleanWhatsapp,
-      neighborhood_id: payload.neighborhood_id,
-      address: payload.address?.trim() || null,
-      payment_methods: payload.payment_methods,
-      business_hours: payload.business_hours,
+  if (insertError) {
+    console.error("[onboarding] Falha ao criar loja:", insertError.message);
+    return {
+      error: friendlyDbError(
+        insertError.message,
+        "Não foi possível criar sua loja agora. Seus dados continuam salvos aqui; tente de novo em instantes."
+      ),
     };
-
-    const { error: coreInsertError } = await supabase
-      .from("stores")
-      .insert(coreStoreRecord);
-
-    if (coreInsertError) {
-      return {
-        error:
-          coreInsertError.message ||
-          "Não foi possível criar sua loja no momento. Verifique os dados e tente novamente.",
-      };
-    }
   }
 
   // 2. Atualizar `role` do usuário em `public.profiles` para `'merchant'`
@@ -304,7 +335,17 @@ export async function createStoreAction(
   await queueAnalyticsEvent("store_created", { store_name: name });
 
   revalidatePath("/", "layout");
-  redirect("/painel/produtos/novo?onboarding=success");
+
+  // Primeiro produto já começa na categoria da loja
+  const storeCategoryId =
+    category && "columns" in category
+      ? (category.columns.global_category_id as string | null)
+      : null;
+  redirect(
+    storeCategoryId
+      ? `/painel/produtos/novo?onboarding=success&categoria=${encodeURIComponent(storeCategoryId)}`
+      : "/painel/produtos/novo?onboarding=success"
+  );
 }
 
 /**

@@ -182,7 +182,7 @@ export function DashboardOverviewClient({
       label: "Seguidores",
       value: totalFollowers.toLocaleString("pt-BR"),
       tag: "acompanhando a loja",
-      tone: "peach",
+      tone: "amber",
       icon: Users,
     },
   ] as const;
@@ -191,7 +191,7 @@ export function DashboardOverviewClient({
     sky: "bg-sky-soft text-sky-ink",
     pink: "bg-pink-soft text-pink-ink",
     mint: "bg-mint-soft text-mint-ink",
-    peach: "bg-peach-soft text-peach-ink",
+    amber: "bg-amber-soft text-amber-ink",
   } as const;
 
   const primaryLinkClasses = cn(

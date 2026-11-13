@@ -31,8 +31,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="pt-BR"
       className={`${googleSans.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
+      <body
+        className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans"
+        suppressHydrationWarning
+      >
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe

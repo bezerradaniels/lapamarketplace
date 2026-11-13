@@ -9,6 +9,7 @@ export type ButtonVariant =
   | "secondary"
   | "whatsapp"
   | "brand"
+  | "blue"
   | "outline"
   | "ghost";
 
@@ -29,6 +30,7 @@ export const buttonVariantClasses: Record<ButtonVariant, string> = {
   secondary: "bg-media text-ink hover:bg-line",
   whatsapp: "bg-whatsapp-strong text-white hover:bg-whatsapp-hover",
   brand: "bg-brand text-white hover:bg-brand-hover",
+  blue: "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-700",
   outline: "bg-white text-ink border border-[#f8fafc] hover:bg-media",
   ghost: "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
 };

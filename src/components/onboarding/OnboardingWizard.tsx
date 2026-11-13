@@ -28,12 +28,33 @@ import {
   sanitizeStoreSlug,
 } from "@/lib/utils";
 import type {
-  AccountType,
   DaySchedule,
   DeliveryFeeType,
   NeighborhoodItem,
   PaymentMethod,
+  ServiceMode,
 } from "@/types/marketplace";
+import { Combobox } from "@/components/ui/Combobox";
+import { DraftRestoredNotice } from "@/components/ui/DraftRestoredNotice";
+import { StoreCategoryField } from "@/components/ui/StoreCategoryField";
+import { STORE_CATEGORY_OTHER } from "@/lib/db-columns";
+import { useFormDraft } from "@/lib/use-form-draft";
+
+const SERVICE_MODE_OPTIONS: Array<{ value: ServiceMode; label: string }> = [
+  { value: "physical", label: "Loja física" },
+  { value: "online", label: "Online" },
+];
+
+/** Aceita "@loja", "loja" ou o link do perfil e devolve só o usuário. */
+function cleanInstagramInput(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@+/, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/[^A-Za-z0-9._]/g, "")
+    .slice(0, 30);
+}
 
 export interface OnboardingWizardProps {
   neighborhoods: NeighborhoodItem[];
@@ -41,6 +62,10 @@ export interface OnboardingWizardProps {
   initialWhatsapp?: string;
   initialStep?: 0 | 1 | 2 | 3;
   nextPath?: string;
+  /** Id do usuário logado: separa o rascunho salvo no aparelho por pessoa. */
+  draftOwnerId?: string;
+  /** Categorias principais do portal (para a categoria da loja). */
+  storeCategories?: Array<{ id: string; name: string }>;
 }
 
 const PAYMENT_OPTIONS: Array<{ id: PaymentMethod; label: string }> = [
@@ -135,6 +160,8 @@ export function OnboardingWizard({
   initialWhatsapp = "",
   initialStep = 0,
   nextPath,
+  draftOwnerId,
+  storeCategories = [],
 }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<0 | 1 | 2 | 3>(initialStep);
@@ -192,15 +219,20 @@ export function OnboardingWizard({
   const [logoUploadError, setLogoUploadError] = useState<string>("");
 
   const [description, setDescription] = useState("");
+  const [storeCategoryId, setStoreCategoryId] = useState("");
+  const [storeCategoryOther, setStoreCategoryOther] = useState("");
 
   // Passo 2: Localização em Lapa & WhatsApp de Vendas
   const [whatsappMask, setWhatsappMask] = useState(
     initialWhatsapp ? formatWhatsAppMask(initialWhatsapp) : ""
   );
-  const [neighborhoodId, setNeighborhoodId] = useState(
-    neighborhoods[0]?.id || "centro"
-  );
+  const [instagram, setInstagram] = useState("");
+  const [serviceModes, setServiceModes] = useState<ServiceMode[]>([
+    "physical",
+  ]);
+  const [neighborhoodId, setNeighborhoodId] = useState("");
   const [address, setAddress] = useState("");
+  const hasPhysicalStore = serviceModes.includes("physical");
 
   // Passo 3: Pagamentos, Entrega e Horário Padrão
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
@@ -253,6 +285,80 @@ export function OnboardingWizard({
       }
     };
   }, []);
+
+  // Rascunho: preserva o que já foi preenchido se o cadastro for interrompido
+  const draft = useFormDraft(
+    `onboarding-store:${draftOwnerId || "local"}`,
+    {
+      step,
+      storeName,
+      slug,
+      slugManuallyEdited,
+      logoUrl,
+      description,
+      storeCategoryId,
+      storeCategoryOther,
+      whatsappMask,
+      instagram,
+      serviceModes,
+      neighborhoodId,
+      address,
+      paymentMethods,
+      installmentInfo,
+      hasDelivery,
+      hasPickup,
+      deliveryFeeType,
+      fixedDeliveryFee,
+      businessHours,
+    },
+    (saved) => {
+      // Só retoma o passo a passo de lojista (passo 0 é a escolha de perfil)
+      if (saved.step && saved.step >= 1) setStep(saved.step);
+      if (saved.storeName !== undefined) setStoreName(saved.storeName);
+      if (saved.slug !== undefined) {
+        setSlug(saved.slug);
+        triggerDebouncedSlugCheck(saved.slug);
+      }
+      if (saved.slugManuallyEdited !== undefined)
+        setSlugManuallyEdited(saved.slugManuallyEdited);
+      if (saved.logoUrl) {
+        setLogoUrl(saved.logoUrl);
+        setLogoPreview(saved.logoUrl);
+      }
+      if (saved.description !== undefined) setDescription(saved.description);
+      if (
+        saved.storeCategoryId &&
+        (saved.storeCategoryId === STORE_CATEGORY_OTHER ||
+          storeCategories.some((c) => c.id === saved.storeCategoryId))
+      )
+        setStoreCategoryId(saved.storeCategoryId);
+      if (saved.storeCategoryOther !== undefined)
+        setStoreCategoryOther(saved.storeCategoryOther);
+      if (saved.whatsappMask) setWhatsappMask(saved.whatsappMask);
+      if (saved.instagram !== undefined) setInstagram(saved.instagram);
+      if (saved.serviceModes?.length) setServiceModes(saved.serviceModes);
+      if (
+        saved.neighborhoodId &&
+        neighborhoods.some((nb) => nb.id === saved.neighborhoodId)
+      )
+        setNeighborhoodId(saved.neighborhoodId);
+      if (saved.address !== undefined) setAddress(saved.address);
+      if (saved.paymentMethods) setPaymentMethods(saved.paymentMethods);
+      if (saved.installmentInfo !== undefined)
+        setInstallmentInfo(saved.installmentInfo);
+      if (saved.hasDelivery !== undefined) setHasDelivery(saved.hasDelivery);
+      if (saved.hasPickup !== undefined) setHasPickup(saved.hasPickup);
+      if (saved.deliveryFeeType) setDeliveryFeeType(saved.deliveryFeeType);
+      if (saved.fixedDeliveryFee !== undefined)
+        setFixedDeliveryFee(saved.fixedDeliveryFee);
+      if (saved.businessHours) setBusinessHours(saved.businessHours);
+    }
+  );
+
+  const handleDiscardDraft = () => {
+    draft.clear();
+    window.location.reload();
+  };
 
   const handleStoreNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -369,6 +475,17 @@ export function OnboardingWizard({
       setFormError(slugStatus.message);
       return false;
     }
+    if (!storeCategoryId) {
+      setFormError("Escolha a categoria principal da sua loja.");
+      return false;
+    }
+    if (
+      storeCategoryId === STORE_CATEGORY_OTHER &&
+      storeCategoryOther.trim().length < 2
+    ) {
+      setFormError("Escreva qual é a categoria da sua loja.");
+      return false;
+    }
     return true;
   };
 
@@ -381,11 +498,17 @@ export function OnboardingWizard({
       );
       return false;
     }
-    if (!neighborhoodId) {
-      setFormError("Selecione o bairro da sua loja em Bom Jesus da Lapa.");
+    if (serviceModes.length === 0) {
+      setFormError("Escolha o tipo de atendimento: loja física, online ou os dois.");
       return false;
     }
-    if (!address.trim()) {
+    if (!neighborhoodId) {
+      setFormError(
+        "Digite e escolha o bairro da sua loja em Bom Jesus da Lapa."
+      );
+      return false;
+    }
+    if (hasPhysicalStore && !address.trim()) {
       setFormError(
         "Informe o endereço ou ponto de referência da loja em Bom Jesus da Lapa."
       );
@@ -433,12 +556,22 @@ export function OnboardingWizard({
     );
 
     startSubmitTransition(async () => {
+      // Sucesso redireciona direto para o painel: apaga o rascunho antes e
+      // salva de novo só se o envio falhar.
+      draft.clear();
       const result = await createStoreAction({
         name: storeName.trim(),
         slug: sanitizeStoreSlug(slug),
         logo_url: logoUrl,
         description: description.trim() || null,
         whatsapp: normalizeWhatsAppToDb(whatsappMask),
+        instagram: instagram ? `@${instagram}` : null,
+        service_modes: serviceModes,
+        category_id: storeCategoryId || null,
+        category_other:
+          storeCategoryId === STORE_CATEGORY_OTHER
+            ? storeCategoryOther.trim()
+            : null,
         neighborhood_id: neighborhoodId,
         address: address.trim(),
         payment_methods: paymentMethods,
@@ -455,22 +588,10 @@ export function OnboardingWizard({
 
       if (result?.error) {
         setFormError(result.error);
+        draft.saveNow();
       }
     });
   };
-
-  // Bairros: mostra os primeiros em pílulas e o restante sob "+N bairros"
-  const [showAllNeighborhoods, setShowAllNeighborhoods] = useState(false);
-  const NEIGHBORHOOD_PREVIEW_COUNT = 6;
-  const selectedNeighborhoodIndex = neighborhoods.findIndex(
-    (nb) => nb.id === neighborhoodId
-  );
-  const visibleNeighborhoods = neighborhoods.filter(
-    (_, idx) =>
-      idx < NEIGHBORHOOD_PREVIEW_COUNT || idx === selectedNeighborhoodIndex
-  );
-  const hiddenNeighborhoodsCount =
-    neighborhoods.length - visibleNeighborhoods.length;
 
   // Resumo do horário: agrupa Seg–Sex quando todos os dias úteis são iguais
   const weekdaySummaries = [1, 2, 3, 4, 5].map((d) =>
@@ -656,6 +777,13 @@ export function OnboardingWizard({
         )}
       </div>
 
+      {draft.restored && (
+        <DraftRestoredNotice
+          onDiscard={handleDiscardDraft}
+          onDismiss={draft.dismiss}
+        />
+      )}
+
       {formError && <Notice tone="error">{formError}</Notice>}
 
       {/* ============ PASSO 1: IDENTIDADE ============ */}
@@ -714,9 +842,11 @@ export function OnboardingWizard({
             <label htmlFor="store-slug" className={fieldLabelClasses}>
               Link do seu catálogo
             </label>
+            {/* Halo aurora no wrapper; o campo branco fica por cima */}
+            <div className="relative lapa-aurora-glow rounded-full">
             <div
               className={cn(
-                "h-13 rounded-full flex items-center px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150",
+                "h-13 rounded-full flex items-center px-5.5 text-[15px] transition-colors duration-150",
                 slugIsValid
                   ? "bg-white border border-whatsapp"
                   : slugHasError
@@ -745,6 +875,7 @@ export function OnboardingWizard({
                   aria-hidden="true"
                 />
               )}
+            </div>
             </div>
             <span
               id="store-slug-status"
@@ -780,6 +911,14 @@ export function OnboardingWizard({
             </span>
           </div>
 
+          <StoreCategoryField
+            categories={storeCategories}
+            value={storeCategoryId}
+            onChange={setStoreCategoryId}
+            otherText={storeCategoryOther}
+            onOtherTextChange={setStoreCategoryOther}
+          />
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="store-bio" className={fieldLabelClasses}>
               Bio da loja
@@ -809,7 +948,8 @@ export function OnboardingWizard({
             <label htmlFor="store-whatsapp" className={fieldLabelClasses}>
               WhatsApp de atendimento
             </label>
-            <div className="h-13 rounded-full bg-white border border-[#f8fafc] flex items-center gap-2.5 px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150 focus-within:border-[#f8fafc]">
+            <div className="relative lapa-aurora-glow rounded-full">
+            <div className="h-13 rounded-full bg-white border border-[#f8fafc] flex items-center gap-2.5 px-5.5 text-[15px] transition-colors duration-150 focus-within:border-[#f8fafc]">
               <span className="px-2 py-1 rounded-lg bg-white text-[13px] font-semibold text-slate-900 shrink-0">
                 +55
               </span>
@@ -826,34 +966,79 @@ export function OnboardingWizard({
                 className="flex-1 min-w-0 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
               />
             </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-instagram" className={fieldLabelClasses}>
+              Instagram{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <div className="relative lapa-aurora-glow rounded-full">
+              <div className="h-13 rounded-full bg-white border border-[#f8fafc] flex items-center gap-1 px-5.5 text-[15px]">
+                <span className="text-slate-500 shrink-0" aria-hidden="true">
+                  @
+                </span>
+                <input
+                  id="store-instagram"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="sualojalapa"
+                  value={instagram}
+                  onChange={(e) =>
+                    setInstagram(cleanInstagramInput(e.target.value))
+                  }
+                  className="flex-1 min-w-0 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2.5">
-            <span className={fieldLabelClasses}>Bairro da loja</span>
+            <span className={fieldLabelClasses}>Tipo de atendimento</span>
             <PillGroup
-              ariaLabel="Bairro da loja"
+              ariaLabel="Tipo de atendimento"
               tone="brand"
-              value={neighborhoodId || null}
-              onToggle={(id) => setNeighborhoodId(id)}
-              options={(showAllNeighborhoods
-                ? neighborhoods
-                : visibleNeighborhoods
-              ).map((nb) => ({ value: nb.id, label: nb.name }))}
+              value={serviceModes}
+              onToggle={(mode) =>
+                setServiceModes((prev) =>
+                  prev.includes(mode)
+                    ? prev.filter((m) => m !== mode)
+                    : [...prev, mode]
+                )
+              }
+              options={SERVICE_MODE_OPTIONS}
             />
-            {!showAllNeighborhoods && hiddenNeighborhoodsCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAllNeighborhoods(true)}
-                className="self-start px-3.5 py-2.25 rounded-full ring-line text-[13px] font-semibold text-slate-500 hover:text-slate-900 cursor-pointer transition-colors duration-150"
-              >
-                +{hiddenNeighborhoodsCount} bairros
-              </button>
-            )}
+            <span className="text-xs text-slate-500">
+              Pode marcar os dois.
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="store-neighborhood" className={fieldLabelClasses}>
+              Bairro da loja
+            </label>
+            <Combobox
+              id="store-neighborhood"
+              options={neighborhoods.map((nb) => ({
+                value: nb.id,
+                label: nb.name,
+              }))}
+              value={neighborhoodId}
+              onChange={setNeighborhoodId}
+              placeholder="Digite o bairro"
+              emptyText="Nenhum bairro com esse nome"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="store-address" className={fieldLabelClasses}>
               Endereço ou ponto de referência
+              {!hasPhysicalStore && (
+                <span className="font-normal text-slate-500"> (opcional)</span>
+              )}
             </label>
             <div className="relative lapa-aurora-glow rounded-2xl">
               <textarea

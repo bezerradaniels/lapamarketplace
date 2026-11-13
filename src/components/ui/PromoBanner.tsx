@@ -61,7 +61,7 @@ export function PromoBanner({
                   : "text-slate-500"
               )}
             >
-              <LapaSymbol size={18} variant={variant === "dark" ? "white" : "aurora"} />
+              <LapaSymbol size={18} variant={variant === "dark" ? "white" : "solid"} />
               {tag}
             </span>
 

@@ -61,6 +61,8 @@ export function Switch({
 export interface SegmentedOption<T extends string> {
   value: T;
   label: React.ReactNode;
+  /** Nome acessível (obrigatório quando o `label` é só um ícone). */
+  ariaLabel?: string;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -68,14 +70,17 @@ export interface SegmentedProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   ariaLabel?: string;
-  /** Cor do item ativo: branco (padrão) ou pêssego (plano Premium). */
+  /** Cor do item ativo: branco (padrão) ou preto (plano Premium). */
   tone?: "white" | "brand";
   size?: "sm" | "md";
+  /** Item ativo sem sombra (abas de ícones). */
+  flat?: boolean;
   className?: string;
 }
 
 /**
- * Segmented control: trilho #F1F5F9, item ativo branco com sombra suave.
+ * Segmented control: trilho #F1F5F9, item ativo branco com sombra suave
+ * (ou chapado, com `flat`).
  */
 export function Segmented<T extends string>({
   options,
@@ -84,6 +89,7 @@ export function Segmented<T extends string>({
   ariaLabel,
   tone = "white",
   size = "md",
+  flat = false,
   className,
 }: SegmentedProps<T>) {
   return (
@@ -105,15 +111,19 @@ export function Segmented<T extends string>({
             type="button"
             role="tab"
             aria-selected={isActive}
+            aria-label={opt.ariaLabel}
+            title={opt.ariaLabel}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "font-display font-bold transition duration-150 ease-out cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light",
+              "inline-flex items-center justify-center font-display font-bold transition duration-150 ease-out cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light",
               size === "md"
                 ? "h-10 px-3 rounded-[13px] text-[13px]"
                 : "h-7.5 px-2.5 rounded-[9px] text-xs",
               isActive
                 ? tone === "brand"
                   ? "bg-brand text-white"
+                  : flat
+                  ? "bg-white text-slate-900"
                   : "bg-white text-slate-900 shadow-seg"
                 : "text-slate-500 hover:text-slate-900"
             )}
@@ -137,7 +147,7 @@ export interface PillGroupProps<T extends string> {
   /** Valor único ou lista (multi). */
   value: T | T[] | null;
   onToggle: (value: T) => void;
-  /** Cor do ativo: `ink` (filtros/seleção única) ou `brand` (pêssego). */
+  /** Cor do ativo: `ink` (filtros/seleção única) ou `brand` (preto). */
   tone?: "ink" | "brand";
   /** Fundo do inativo: branco (sobre #F8FAFC), `soft` #F1F5F9 (sobre card branco) ou `ring` (branco com contorno). */
   surface?: "white" | "soft" | "ring";

@@ -68,7 +68,7 @@ export default function NovaSenhaPage() {
   };
 
   return (
-    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+    <div className="my-auto flex flex-col gap-5.5">
       <Link
         href="/"
         aria-label="Lapa Marketplace — voltar para o início"
@@ -167,7 +167,6 @@ export default function NovaSenhaPage() {
             />
           </form>
 
-          <div className="flex-1 md:hidden" />
 
           <Button
             type="submit"

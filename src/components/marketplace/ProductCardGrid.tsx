@@ -15,7 +15,7 @@ import {
   storeStatusLine,
 } from "@/lib/aura-display";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
-import { useBagStore } from "@/store/useBagStore";
+import { useBagHydrated, useBagStore } from "@/store/useBagStore";
 import type { ProductItem } from "@/types/marketplace";
 
 export type ProductCardVariant = "home" | "catalogo";
@@ -77,8 +77,9 @@ export function ProductCardGrid({
   const discountPct = calculateDiscountPercentage(product.price, product.promotional_price);
   const isNew = isNewProduct(product);
   const requiresSize = (product.sizes?.length ?? 0) > 0;
+  const isHydrated = useBagHydrated();
   const bagItem = items.find((i) => i.productId === product.id);
-  const inBag = Boolean(bagItem);
+  const inBag = isHydrated && Boolean(bagItem);
 
   const status = storeStatusLine(product.store);
   const stock = product.stock;

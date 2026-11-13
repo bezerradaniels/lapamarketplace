@@ -14,8 +14,10 @@ import { Notice } from "@/components/ui/Notice";
 import { LapaWordmark } from "@/components/brand/LapaSymbol";
 import { Input } from "@/components/ui/Input";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
+import { GOOGLE_AUTH_ENABLED } from "@/lib/auth-config";
 import { signupWithEmail } from "@/app/(auth)/actions";
 import { cn } from "@/lib/utils";
+import { useFormDraft } from "@/lib/use-form-draft";
 
 function SignupFormContent() {
   const searchParams = useSearchParams();
@@ -25,6 +27,20 @@ function SignupFormContent() {
   const [error, setError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isPending, startTransition] = useTransition();
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Rascunho de nome e e-mail (a senha nunca é salva)
+  const draft = useFormDraft(
+    "signup",
+    { fullName, email },
+    (saved) => {
+      if (saved.fullName) setFullName(saved.fullName);
+      if (saved.email) setEmail(saved.email);
+    },
+    { ttlDays: 1 }
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,9 +53,12 @@ function SignupFormContent() {
     }
 
     startTransition(async () => {
+      // Sucesso pode redirecionar direto: apaga antes e salva de novo se falhar
+      draft.clear();
       const result = await signupWithEmail(formData);
       if (result?.error) {
         setError(result.error);
+        draft.saveNow();
       } else if (result?.success && result.message) {
         setSuccessMessage(result.message);
       }
@@ -47,7 +66,7 @@ function SignupFormContent() {
   };
 
   return (
-    <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+    <div className="my-auto flex flex-col gap-5.5">
       <Link
         href="/"
         aria-label="Lapa Marketplace — voltar para o início"
@@ -61,9 +80,12 @@ function SignupFormContent() {
         />
       </Link>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 text-center">
         <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
-          Crie sua conta na Lapa
+          <span className="block">Seja bem-vindo.</span>
+          <span className="block">
+            Crie sua conta <span className="aura-text">grátis!</span>
+          </span>
         </h1>
         <p className="text-[15px] text-slate-500 leading-[1.45]">
           Cadastre-se para favoritar peças, seguir lojas e agilizar seus pedidos.
@@ -90,18 +112,6 @@ function SignupFormContent() {
         </>
       ) : (
         <>
-          <GoogleOAuthButton
-            nextPath={nextPath || undefined}
-            label="Continuar com o Google"
-            onError={(msg) => setError(msg)}
-          />
-
-          <div className="flex items-center gap-3 text-[13px] text-slate-500">
-            <span className="flex-1 h-px bg-slate-200" />
-            ou cadastre-se com seu e-mail
-            <span className="flex-1 h-px bg-slate-200" />
-          </div>
-
           <form
             id="signup-form"
             onSubmit={handleSubmit}
@@ -115,6 +125,8 @@ function SignupFormContent() {
               label="Nome completo"
               placeholder="Maria Silva"
               autoComplete="name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               required
             />
 
@@ -124,6 +136,8 @@ function SignupFormContent() {
               label="E-mail"
               placeholder="voce@exemplo.com"
               autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
 
@@ -137,18 +151,33 @@ function SignupFormContent() {
             />
           </form>
 
-          <div className="flex-1 md:hidden" />
 
           <Button
             type="submit"
             form="signup-form"
-            variant="primary"
+            variant="blue"
             size="lg"
             fullWidth
             isLoading={isPending}
           >
             Criar conta
           </Button>
+
+          {GOOGLE_AUTH_ENABLED && (
+            <>
+              <div className="flex items-center gap-3 text-[13px] text-slate-500">
+                <span className="flex-1 h-px bg-slate-200" />
+                ou
+                <span className="flex-1 h-px bg-slate-200" />
+              </div>
+
+              <GoogleOAuthButton
+                nextPath={nextPath || undefined}
+                label="Continuar com o Google"
+                onError={(msg) => setError(msg)}
+              />
+            </>
+          )}
         </>
       )}
 
