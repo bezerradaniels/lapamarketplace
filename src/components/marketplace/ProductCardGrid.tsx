@@ -4,13 +4,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Heart, Plus, Truck } from "lucide-react";
-import { cn, formatCurrencyBRL } from "@/lib/utils";
+import { calculateDiscountPercentage, cn, formatCurrencyBRL } from "@/lib/utils";
 import {
   STATUS_TONE,
   discountLabel,
   installmentsFor,
   isNewProduct,
-  perkFor,
   priceOf,
   shippingFor,
   storeStatusLine,
@@ -28,8 +27,8 @@ export interface ProductCardGridProps {
   onAddToBag?: (product: ProductItem) => void;
   href?: string;
   /**
-   * `home` (descoberta: benefício sobre a foto, nome em 1 linha) ou
-   * `catalogo` (comparação: status, tamanhos, parcelas e entrega).
+   * `home` (descoberta visual: sem botões de compra direta no feed/anunciantes) ou
+   * `catalogo` (catálogo da loja: com adição direta à sacola).
    */
   variant?: ProductCardVariant;
   /** @deprecated A foto é sempre 4:5 no card v2. Mantido por compatibilidade. */
@@ -49,8 +48,9 @@ const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light";
 
 /**
- * Card de produto v2 (tema Aura). Um componente, duas densidades.
- * O card inteiro abre o produto via link esticado no nome; os botões ficam acima (z-10).
+ * Card de produto em grade v2 (tema Aura).
+ * Em áreas de múltiplos anunciantes (`variant="home"`), exibe apenas informações
+ * visuais (título e valores) e botão de favoritar, sem botões de adicionar à sacola.
  */
 export function ProductCardGrid({
   product,
@@ -74,13 +74,13 @@ export function ProductCardGrid({
   const productUrl = href ?? `/${product.store.slug}/${product.slug || product.id}`;
   const { final, compareAt } = priceOf(product);
   const off = discountLabel(product.price, product.promotional_price);
+  const discountPct = calculateDiscountPercentage(product.price, product.promotional_price);
   const isNew = isNewProduct(product);
   const requiresSize = (product.sizes?.length ?? 0) > 0;
   const bagItem = items.find((i) => i.productId === product.id);
   const inBag = Boolean(bagItem);
 
   const status = storeStatusLine(product.store);
-  const perk = !cat ? perkFor(product.store, status) : null;
   const stock = product.stock;
   const scarcity =
     cat && stock != null && stock >= 1 && stock <= 3
@@ -91,13 +91,7 @@ export function ProductCardGrid({
 
   const photoBadge = scarcity
     ? { label: scarcity, dot: "bg-premium", text: "text-amber-ink" }
-    : perk
-      ? {
-          label: perk.label,
-          dot: perk.tone === "success" ? "bg-whatsapp" : "bg-aura-sky",
-          text: perk.tone === "success" ? "text-mint-ink" : "text-sky-ink",
-        }
-      : null;
+    : null;
 
   const sizes = cat ? (product.sizes ?? []) : [];
   const shownSizes = sizes.length > MAX_SIZES ? sizes.slice(0, MAX_SIZES - 1) : sizes;
@@ -105,7 +99,8 @@ export function ProductCardGrid({
   const colors = cat ? (product.colors ?? []).filter((c) => HEX.test(c)) : [];
   const shownColors = colors.slice(0, MAX_COLORS);
   const extraColors = colors.length - shownColors.length;
-  const installments = cat ? installmentsFor(product.store, final) : null;
+  const installments = installmentsFor(product.store, final);
+  const hasPix = product.store.payment_methods?.includes("pix") ?? false;
   const shipping = cat ? shippingFor(product.store, status) : null;
   const tone = STATUS_TONE[status.tone];
 
@@ -131,7 +126,7 @@ export function ProductCardGrid({
   return (
     <article
       className={cn(
-        "group relative flex flex-col gap-2.5 rounded-3xl border border-media bg-white p-2 pb-3 shadow-card transition-shadow duration-300 hover:shadow-card-brand",
+        "group relative flex flex-col gap-2.5 rounded-3xl border border-media bg-white p-2 pb-3",
         "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand-light",
         className
       )}
@@ -209,7 +204,7 @@ export function ProductCardGrid({
         <h3
           className={cn(
             "font-display text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-ink",
-            cat ? "line-clamp-2 min-h-9.5" : "line-clamp-1 min-h-4.75"
+            cat ? "line-clamp-2 min-h-9.5" : "line-clamp-2 min-h-9.5"
           )}
         >
           <Link
@@ -276,46 +271,57 @@ export function ProductCardGrid({
           </div>
         )}
 
-        {/* Preço + sacola */}
-        <div className="flex items-end justify-between gap-2 pt-1">
-          <div className="flex min-w-0 flex-col gap-px">
-            {compareAt != null && (
-              <span className="whitespace-nowrap text-xs text-muted line-through">
-                <span className="sr-only">de </span>
+        {/* Preço */}
+        <div className="flex flex-col gap-0.5 pt-1">
+          {compareAt != null && discountPct != null ? (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center rounded bg-[#00a650] px-1.25 py-0.5 font-display text-[10px] font-bold text-white">
+                {discountPct}% OFF
+              </span>
+              <span className="text-xs text-slate-400 line-through">
                 {formatCurrencyBRL(compareAt)}
               </span>
-            )}
-            <span className="whitespace-nowrap font-display text-[19px] font-extrabold leading-[1.1] tracking-[-0.02em] text-ink">
-              {compareAt != null && <span className="sr-only">por </span>}
+            </div>
+          ) : compareAt != null ? (
+            <span className="text-xs text-slate-400 line-through">
+              {formatCurrencyBRL(compareAt)}
+            </span>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-2">
+            <span className="whitespace-nowrap font-display text-[19px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
               {formatCurrencyBRL(final)}
             </span>
-            {installments && (
-              <span className="whitespace-nowrap text-xs text-muted">{installments}</span>
+
+            {cat && interactive && (
+              <button
+                type="button"
+                onClick={handleBagClick}
+                aria-label={
+                  inBag
+                    ? `${product.title} na sacola. Remover`
+                    : `Adicionar ${product.title} à sacola`
+                }
+                className={cn(
+                  "relative z-10 grid size-9.5 flex-none cursor-pointer place-items-center rounded-full text-white transition-colors duration-200 touch-manipulation active:scale-[0.98]",
+                  focusRing,
+                  inBag ? "bg-whatsapp hover:bg-[#059669]" : "bg-brand hover:bg-brand-hover"
+                )}
+              >
+                {inBag ? (
+                  <Check className="size-4" strokeWidth={2.2} aria-hidden="true" />
+                ) : (
+                  <Plus className="size-4" strokeWidth={2.2} aria-hidden="true" />
+                )}
+              </button>
             )}
           </div>
 
-          {interactive && (
-            <button
-              type="button"
-              onClick={handleBagClick}
-              aria-label={
-                inBag
-                  ? `${product.title} na sacola. Remover`
-                  : `Adicionar ${product.title} à sacola`
-              }
-              className={cn(
-                "relative z-10 grid size-10 flex-none cursor-pointer place-items-center rounded-full text-white transition-colors duration-200 touch-manipulation active:scale-[0.98]",
-                focusRing,
-                inBag ? "bg-whatsapp hover:bg-[#059669]" : "bg-brand hover:bg-brand-hover"
-              )}
-            >
-              {inBag ? (
-                <Check className="size-4.5" strokeWidth={2.2} aria-hidden="true" />
-              ) : (
-                <Plus className="size-4.5" strokeWidth={2.2} aria-hidden="true" />
-              )}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-[#00a650]">
+            {hasPix && <span>no Pix</span>}
+            {hasPix && installments && <span className="text-slate-300">·</span>}
+            {installments && <span>{installments.replace(/^ou\s+/, "")} sem juros</span>}
+          </div>
         </div>
 
         {shipping && (
@@ -346,7 +352,7 @@ export function ProductCardSkeleton({ variant = "home" }: { variant?: ProductCar
         {cat && <div className="h-6 w-4/5 rounded-full bg-media" />}
         <div className="flex items-end justify-between pt-1">
           <div className="h-4.75 w-20 rounded-full bg-media" />
-          <div className="size-10 rounded-full bg-media" />
+          {cat && <div className="size-10 rounded-full bg-media" />}
         </div>
       </div>
     </div>

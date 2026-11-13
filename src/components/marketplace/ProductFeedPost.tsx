@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -9,24 +9,18 @@ import {
   MessageCircle,
   MoreHorizontal,
   Share2,
-  ShoppingBag,
   Store,
   UserMinus,
 } from "lucide-react";
-import { buildWhatsAppUrl, cn, formatCurrencyBRL } from "@/lib/utils";
 import {
-  STATUS_TONE,
-  discountLabel,
-  initialsOf,
-  installmentsFor,
-  perkFor,
-  priceOf,
-  storeStatusLine,
-} from "@/lib/aura-display";
+  buildWhatsAppUrl,
+  calculateDiscountPercentage,
+  cn,
+  formatCurrencyBRL,
+} from "@/lib/utils";
+import { initialsOf, installmentsFor, priceOf } from "@/lib/aura-display";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
-import { useBagStore } from "@/store/useBagStore";
-import { incrementProductWhatsappClickAction } from "@/app/actions/feed";
-import { productToItem, trackEvent } from "@/lib/analytics";
+import { trackEvent } from "@/lib/analytics";
 import type { ProductItem } from "@/types/marketplace";
 
 export interface ProductFeedPostProps {
@@ -48,38 +42,25 @@ const focusRing =
 
 /**
  * Post do feed v2 (tema Aura): cabeçalho da loja com Seguir, carrossel 4:5,
- * nome → preço → descrição → tamanhos em grade → entrega → botões gêmeos.
+ * apenas título e valores (sem botões de compra direta no feed).
  */
 export function ProductFeedPost({
   product,
   isFavorite: controlledFavorite,
   onToggleFavorite,
-  onAddToBag,
   isFollowing = false,
   onToggleFollow,
   hasStory = false,
   onOpenStory,
   className,
 }: ProductFeedPostProps) {
-  const sizeLabelId = useId();
   const [internalFav, setInternalFav] = useState(false);
   const [slide, setSlide] = useState(0);
-  const [size, setSize] = useState<string | null>(null);
-  const [sizeError, setSizeError] = useState(false);
-  const sizesRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
-
-  const items = useBagStore((s) => s.items);
-  const addProduct = useBagStore((s) => s.addProduct);
-  const removeItem = useBagStore((s) => s.removeItem);
 
   const store = product.store;
   const isFav = controlledFavorite ?? internalFav;
   const productUrl = `/${store.slug}/${product.slug || product.id}`;
-  const sizes = product.sizes ?? [];
-  const needSize = sizes.length > 0 && !size;
-  const cartItemId = `${product.id}::${size || "unico"}`;
-  const bagItem = items.find((i) => i.cartItemId === cartItemId);
 
   const images = useMemo(() => {
     const list = [product.image_url];
@@ -90,52 +71,14 @@ export function ProductFeedPost({
   }, [product.image_url, product.gallery_urls]);
 
   const { final, compareAt } = priceOf(product);
-  const off = discountLabel(product.price, product.promotional_price);
-  const status = storeStatusLine(store);
-  const tone = STATUS_TONE[status.tone];
-  const perk = perkFor(store, status);
+  const discountPct = calculateDiscountPercentage(product.price, product.promotional_price);
   const installments = installmentsFor(store, final);
-
-  const runGuarded = (fn: () => void) => {
-    if (needSize) {
-      setSizeError(true);
-      sizesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-    fn();
-  };
+  const hasPix = store.payment_methods?.includes("pix") ?? false;
 
   const handleFavorite = () => {
     const next = !isFav;
     setInternalFav(next);
     onToggleFavorite?.(product, next);
-  };
-
-  const handleBag = () => {
-    if (bagItem) {
-      removeItem(bagItem.cartItemId);
-      return;
-    }
-    addProduct(product, size);
-    onAddToBag?.(product, size);
-  };
-
-  const handleWhatsAppOrder = () => {
-    void incrementProductWhatsappClickAction(product.id);
-    trackEvent("whatsapp_order", {
-      lead_source: "feed",
-      store_id: store.id,
-      store_name: store.name,
-      items: [productToItem(product, { variant: size })],
-    });
-    const url = buildWhatsAppUrl({
-      phone: store.whatsapp,
-      storeName: store.name,
-      productTitle: product.title,
-      productPrice: final,
-      selectedSize: size,
-    });
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const scrollToSlide = (i: number) => {
@@ -224,7 +167,7 @@ export function ProductFeedPost({
   return (
     <article
       className={cn(
-        "flex flex-col rounded-[28px] border border-media bg-white px-3 pb-4 pt-3 shadow-card",
+        "flex flex-col rounded-[28px] border border-media bg-white px-3 pb-4 pt-3",
         className
       )}
     >
@@ -414,7 +357,7 @@ export function ProductFeedPost({
         </div>
       </div>
 
-      {/* Fotos */}
+      {/* Fotos com carrossel 4:5 e botão de favoritar */}
       <div className="relative aspect-4/5 overflow-hidden rounded-[20px] bg-media">
         <div
           ref={railRef}
@@ -444,12 +387,6 @@ export function ProductFeedPost({
           ))}
         </div>
 
-        {off && (
-          <span className="pointer-events-none absolute left-3 top-3 inline-flex h-7 items-center rounded-full bg-offer-strong px-2.75 font-display text-[13px] font-bold text-white">
-            {off}
-          </span>
-        )}
-
         <button
           type="button"
           onClick={handleFavorite}
@@ -466,24 +403,6 @@ export function ProductFeedPost({
             aria-hidden="true"
           />
         </button>
-
-        {perk && (
-          <span
-            className={cn(
-              "pointer-events-none absolute bottom-3 left-3 inline-flex h-7 items-center gap-1.5 rounded-full bg-white/88 pl-2.25 pr-2.75 text-xs font-semibold backdrop-blur-[10px]",
-              perk.tone === "success" ? "text-mint-ink" : "text-sky-ink"
-            )}
-          >
-            <span
-              className={cn(
-                "size-1.75 rounded-full",
-                perk.tone === "success" ? "bg-whatsapp" : "bg-aura-sky"
-              )}
-              aria-hidden="true"
-            />
-            {perk.label}
-          </span>
-        )}
 
         {images.length > 1 && (
           <div
@@ -508,115 +427,43 @@ export function ProductFeedPost({
         )}
       </div>
 
-      {/* Corpo */}
-      <div className="flex flex-col gap-3.5 px-1 pt-4">
-        <div className="flex flex-col gap-1.5">
-          <h3 className="line-clamp-2 font-display text-lg font-semibold leading-[1.3] tracking-[-0.01em] text-ink">
-            <Link href={productUrl} className={cn("rounded", focusRing)}>
-              {product.title}
-            </Link>
-          </h3>
-          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            {compareAt != null && (
-              <span className="sr-only">de {formatCurrencyBRL(compareAt)} por</span>
-            )}
-            <span className="whitespace-nowrap font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-ink">
-              {formatCurrencyBRL(final)}
-            </span>
-            {compareAt != null && (
-              <span aria-hidden="true" className="whitespace-nowrap text-sm text-muted line-through">
+      {/* Informações: apenas nome e valores */}
+      <div className="flex flex-col gap-2 px-1 pt-3">
+        <h3 className="line-clamp-2 font-display text-[17px] font-semibold leading-[1.3] tracking-[-0.01em] text-ink">
+          <Link
+            href={productUrl}
+            className={cn("rounded hover:underline focus:outline-none", focusRing)}
+          >
+            {product.title}
+          </Link>
+        </h3>
+
+        <div className="flex flex-col gap-1 pt-0.5">
+          {compareAt != null && discountPct != null ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-md bg-[#00a650] px-1.5 py-0.5 font-display text-xs font-bold text-white">
+                {discountPct}% OFF
+              </span>
+              <span className="text-sm text-slate-400 line-through">
                 {formatCurrencyBRL(compareAt)}
               </span>
-            )}
-            {installments && (
-              <span className="whitespace-nowrap text-[13px] text-muted">{installments}</span>
-            )}
-          </p>
-          {product.description && (
-            <p className="mt-0.5 line-clamp-2 text-sm leading-normal text-slate-600">
-              {product.description}
-            </p>
-          )}
-        </div>
+            </div>
+          ) : compareAt != null ? (
+            <span className="text-sm text-slate-400 line-through">
+              {formatCurrencyBRL(compareAt)}
+            </span>
+          ) : null}
 
-        {sizes.length > 0 && (
-          <div ref={sizesRef} className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <span id={sizeLabelId} className="text-[13px] font-semibold text-slate-700">
-                Tamanho
-                {size && <span className="font-medium text-muted">: {size}</span>}
-              </span>
-              <Link
-                href={`${productUrl}#medidas`}
-                className="whitespace-nowrap text-[13px] font-semibold text-ink underline decoration-aura-amber decoration-2 underline-offset-[3px]"
-              >
-                Guia de medidas
-              </Link>
-            </div>
-            <div
-              role="radiogroup"
-              aria-labelledby={sizeLabelId}
-              className="grid gap-2"
-              style={{
-                gridTemplateColumns: `repeat(${Math.max(4, sizes.length)}, minmax(0, 1fr))`,
-              }}
-            >
-              {sizes.map((label) => {
-                const on = size === label;
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    onClick={() => {
-                      setSize(label);
-                      setSizeError(false);
-                    }}
-                    className={cn(
-                      "h-11 min-w-0 cursor-pointer truncate rounded-full px-1 font-display text-[15px] font-semibold transition-colors duration-150",
-                      focusRing,
-                      on ? "bg-brand text-white" : "bg-white text-ink shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-slate-50"
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            {sizeError && needSize && (
-              <p role="alert" className="text-[13px] font-semibold text-error-ink">
-                Escolha um tamanho para continuar
-              </p>
+          <span className="whitespace-nowrap font-display text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
+            {formatCurrencyBRL(final)}
+          </span>
+
+          <div className="flex flex-col gap-0.5 text-[13px] font-medium text-[#00a650]">
+            {hasPix && <span>no Pix</span>}
+            {installments && (
+              <span>{installments.replace(/^ou\s+/, "")} sem juros</span>
             )}
           </div>
-        )}
-
-        {/* Botões gêmeos: sempre 1fr 1fr */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => runGuarded(handleBag)}
-            className={cn(
-              "flex h-13 min-w-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 font-display text-[15px] font-semibold transition-colors touch-manipulation active:scale-[0.98]",
-              focusRing,
-              bagItem ? "bg-mint-soft text-mint-ink" : "bg-media text-ink hover:bg-line"
-            )}
-          >
-            <ShoppingBag className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
-            {bagItem ? "Adicionado" : "Adicionar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => runGuarded(handleWhatsAppOrder)}
-            className={cn(
-              "flex h-13 min-w-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-whatsapp-strong px-3 font-display text-[15px] font-semibold text-white transition-colors hover:bg-whatsapp-hover touch-manipulation active:scale-[0.98]",
-              focusRing
-            )}
-          >
-            <MessageCircle className="size-4.5 flex-none" strokeWidth={1.8} aria-hidden="true" />
-            WhatsApp
-          </button>
         </div>
       </div>
     </article>
@@ -633,11 +480,9 @@ export function ProductFeedPostSkeleton() {
       </div>
       <div className="aspect-4/5 rounded-[20px] bg-media" />
       <div className="h-5 w-3/4 rounded-full bg-media" />
+      <div className="h-4 w-1/3 rounded-full bg-media" />
       <div className="h-7 w-1/2 rounded-full bg-media" />
-      <div className="grid grid-cols-2 gap-2">
-        <div className="h-13 rounded-full bg-media" />
-        <div className="h-13 rounded-full bg-media" />
-      </div>
+      <div className="h-3.5 w-1/3 rounded-full bg-media" />
     </div>
   );
 }
