@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -10,12 +12,13 @@ import {
 } from "@/components/ui/Input";
 import { PillGroup, Segmented, Switch } from "@/components/ui/Switch";
 import { Notice } from "@/components/ui/Notice";
-import { LapaSymbol } from "@/components/brand/LapaSymbol";
+import { LapaSymbol, LapaWordmark } from "@/components/brand/LapaSymbol";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   checkSlugAvailability,
   createStoreAction,
+  setAccountRoleAction,
   type SlugCheckResult,
 } from "@/app/actions/onboarding";
 import {
@@ -25,6 +28,7 @@ import {
   sanitizeStoreSlug,
 } from "@/lib/utils";
 import type {
+  AccountType,
   DaySchedule,
   DeliveryFeeType,
   NeighborhoodItem,
@@ -35,6 +39,8 @@ export interface OnboardingWizardProps {
   neighborhoods: NeighborhoodItem[];
   initialStoreName?: string;
   initialWhatsapp?: string;
+  initialStep?: 0 | 1 | 2 | 3;
+  nextPath?: string;
 }
 
 const PAYMENT_OPTIONS: Array<{ id: PaymentMethod; label: string }> = [
@@ -127,9 +133,49 @@ export function OnboardingWizard({
   neighborhoods,
   initialStoreName = "",
   initialWhatsapp = "",
+  initialStep = 0,
+  nextPath,
 }: OnboardingWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const router = useRouter();
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(initialStep);
+  const [selectedAccountType, setSelectedAccountType] =
+    useState<"customer" | "merchant">("customer");
+  const [isSavingRole, startSavingRole] = useTransition();
   const [formError, setFormError] = useState<string>("");
+
+  const accountOptions: Array<{
+    value: "customer" | "merchant";
+    title: string;
+    sub: string;
+  }> = [
+    {
+      value: "customer",
+      title: "Quero comprar em Lapa",
+      sub: "Favoritar, seguir lojas e pedir rápido",
+    },
+    {
+      value: "merchant",
+      title: "Sou lojista, quero vender",
+      sub: "Catálogo grátis com pedidos no WhatsApp",
+    },
+  ];
+
+  const handleAccountTypeSubmit = () => {
+    setFormError("");
+    startSavingRole(async () => {
+      const result = await setAccountRoleAction(selectedAccountType, nextPath);
+      if (result.error) {
+        setFormError(result.error);
+        return;
+      }
+      if (selectedAccountType === "customer") {
+        router.push(result.redirect || nextPath || "/minha-conta");
+      } else {
+        setStep(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  };
 
   // Passo 1: Identidade da Loja
   const [storeName, setStoreName] = useState(initialStoreName);
@@ -360,6 +406,7 @@ export function OnboardingWizard({
 
   const handlePrevStep = () => {
     setFormError("");
+    if (step === 1) setStep(0);
     if (step === 2) setStep(1);
     if (step === 3) setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -477,6 +524,90 @@ export function OnboardingWizard({
   const timeInputClasses =
     "h-9 rounded-[10px] bg-slate-100 px-2 text-[13px] text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-brand-light";
 
+  if (step === 0) {
+    return (
+      <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
+        <Link
+          href="/"
+          aria-label="Lapa Marketplace — voltar para o início"
+          className="self-center"
+        >
+          <LapaWordmark
+            variant="full"
+            symbolVariant="solid"
+            symbolSize={34}
+            textClassName="text-[22px]"
+          />
+        </Link>
+
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-[28px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
+            Como você quer usar a Lapa?
+          </h1>
+          <p className="text-sm text-slate-500">
+            Escolha como você quer começar. Você pode mudar isso a qualquer momento.
+          </p>
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label="Tipo de conta"
+          className="grid grid-cols-2 gap-2.5"
+        >
+          {accountOptions.map((opt) => {
+            const selected = selectedAccountType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setSelectedAccountType(opt.value)}
+                className={cn(
+                  "p-3.5 rounded-[22px] flex flex-col gap-2.5 text-left cursor-pointer transition-[background-color,box-shadow] duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2 border border-[#f8fafc]",
+                  selected
+                    ? "bg-white shadow-[0_10px_24px_-12px_rgba(244,114,182,0.6)]"
+                    : "bg-white"
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "w-5.5 h-5.5 rounded-full bg-white transition-shadow duration-150",
+                    selected
+                      ? "shadow-[inset_0_0_0_6px_#0F172A]"
+                      : "shadow-[inset_0_0_0_1.5px_#CBD5E1]"
+                  )}
+                />
+                <span className="font-display text-[15px] font-bold leading-[1.2] text-slate-900">
+                  {opt.title}
+                </span>
+                <span className="text-xs text-slate-500 leading-[1.35]">
+                  {opt.sub}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {formError && <Notice tone="error">{formError}</Notice>}
+
+        <div className="flex-1 md:hidden" />
+
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={isSavingRole}
+          onClick={handleAccountTypeSubmit}
+        >
+          Continuar
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={handleFinishSubmit}
@@ -488,17 +619,13 @@ export function OnboardingWizard({
           <span className="font-semibold text-slate-900">
             Passo {step} de 3
           </span>
-          {step === 1 ? (
-            <span className="text-slate-500">~3 min no total</span>
-          ) : (
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              className="text-slate-500 underline hover:text-slate-900 cursor-pointer"
-            >
-              Voltar
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            className="text-slate-500 underline hover:text-slate-900 cursor-pointer"
+          >
+            Voltar
+          </button>
         </div>
         <div
           role="progressbar"
@@ -594,7 +721,7 @@ export function OnboardingWizard({
                   ? "bg-white border border-whatsapp"
                   : slugHasError
                   ? "bg-white border border-offer"
-                  : "bg-white border border-slate-200 focus-within:border-brand"
+                  : "bg-white border border-[#f8fafc] focus-within:border-[#f8fafc]"
               )}
             >
               <span className="text-slate-500 shrink-0">
@@ -682,7 +809,7 @@ export function OnboardingWizard({
             <label htmlFor="store-whatsapp" className={fieldLabelClasses}>
               WhatsApp de atendimento
             </label>
-            <div className="h-13 rounded-full bg-white border border-slate-200 flex items-center gap-2.5 px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150 focus-within:border-brand">
+            <div className="h-13 rounded-full bg-white border border-[#f8fafc] flex items-center gap-2.5 px-5.5 text-[15px] lapa-aurora-glow transition-colors duration-150 focus-within:border-[#f8fafc]">
               <span className="px-2 py-1 rounded-lg bg-white text-[13px] font-semibold text-slate-900 shrink-0">
                 +55
               </span>

@@ -96,19 +96,19 @@ export async function resolvePostAuthRedirect(
     return "/painel";
   }
 
-  // 3. Verifica se a intenção inicial ou metadado é `merchant`
-  const effectiveAccountType =
-    options?.accountTypeIntent ||
-    (user.user_metadata?.account_type as string | undefined) ||
-    (user.user_metadata?.role as string | undefined) ||
-    profileRole ||
-    "customer";
-
-  if (effectiveAccountType === "merchant") {
+  // 3. Se for lojista (por intenção ou role já definida), vai para o onboarding/criação de loja
+  if (options?.accountTypeIntent === "merchant" || profileRole === "merchant") {
     return "/onboarding";
   }
 
-  // 4. Cliente (`customer`): redireciona para `nextPath` seguro ou `/minha-conta` / `/`
+  // 4. Se o usuário ainda não escolheu seu perfil (novo cadastro), direciona para o onboarding escolher
+  if (!profileRole && !options?.accountTypeIntent) {
+    return options?.nextPath
+      ? `/onboarding?next=${encodeURIComponent(options.nextPath)}`
+      : "/onboarding";
+  }
+
+  // 5. Cliente (`customer` com role já definida): redireciona para `nextPath` seguro ou `/minha-conta`
   if (
     options?.nextPath &&
     options.nextPath.startsWith("/") &&

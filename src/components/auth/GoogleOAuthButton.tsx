@@ -65,7 +65,7 @@ export function GoogleOAuthButton({
       isLoading={isPending}
       leftIcon={<GoogleIcon />}
       onClick={handleGoogleLogin}
-      className="h-13.5 rounded-[17px] text-[15px] gap-2.5"
+      className="h-13.5 rounded-[17px] text-[15px] gap-2.5 border border-[#f8fafc]"
     >
       {label}
     </Button>

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Figtree, Inter_Tight } from "next/font/google";
+import { Google_Sans } from "next/font/google";
 import { FloatingBagBar } from "@/components/layout/FloatingBagBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PendingAnalyticsEvent } from "@/components/analytics/PendingAnalyticsEvent";
@@ -8,17 +8,10 @@ import "./globals.css";
 
 const GTM_ID = "GTM-MS8T2DQV";
 
-const figtree = Figtree({
-  variable: "--font-figtree",
+const googleSans = Google_Sans({
+  variable: "--font-google-sans",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  display: "swap",
-});
-
-const interTight = Inter_Tight({
-  variable: "--font-inter-tight",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -37,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${figtree.variable} ${interTight.variable} h-full antialiased`}
+      className={`${googleSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
         {/* Google Tag Manager (noscript) */}

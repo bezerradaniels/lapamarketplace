@@ -19,7 +19,7 @@ export interface InputProps
 }
 
 export const fieldBaseClasses =
-  "w-full bg-white text-slate-900 border border-slate-200 outline-none transition-[border-color] duration-150 ease-out placeholder:text-slate-400 focus:border-brand focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed";
+  "w-full bg-white text-slate-900 border border-[#f8fafc] outline-none transition-[border-color] duration-150 ease-out placeholder:text-slate-400 focus:border-[#f8fafc] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed";
 
 export const fieldLabelClasses = "text-[13px] font-semibold text-slate-900";
 

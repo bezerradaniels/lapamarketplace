@@ -21,10 +21,16 @@ const FALLBACK_LAPA_NEIGHBORHOODS: NeighborhoodItem[] = [
   { id: "joao-paulo-ii", name: "João Paulo II", slug: "joao-paulo-ii" },
 ];
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tipo?: string; next?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
   let neighborhoods: NeighborhoodItem[] = FALLBACK_LAPA_NEIGHBORHOODS;
   let initialWhatsapp = "";
   let alreadyHasStore = false;
+  let currentRole: string | null = null;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -47,7 +53,7 @@ export default async function OnboardingPage() {
       // Mantém a lista completa de bairros de Bom Jesus da Lapa
     }
 
-    // 2. Verificar se o lojista já possui loja criada
+    // 2. Verificar se o usuário já possui loja criada ou role definida
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -70,12 +76,15 @@ export default async function OnboardingPage() {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("whatsapp")
+          .select("whatsapp, role")
           .eq("id", user.id)
           .maybeSingle();
 
         if (profile?.whatsapp) {
           initialWhatsapp = String(profile.whatsapp);
+        }
+        if (profile?.role) {
+          currentRole = String(profile.role);
         }
       } catch {
         // Ignora erro caso perfil não tenha whatsapp salvo
@@ -87,10 +96,20 @@ export default async function OnboardingPage() {
     redirect("/painel");
   }
 
+  // Se o usuário já escolheu ser comprador e não pediu explicitamente tipo=merchant, segue para minha conta
+  if (currentRole === "customer" && resolvedParams.tipo !== "merchant") {
+    redirect(resolvedParams.next || "/minha-conta");
+  }
+
+  const initialStep: 0 | 1 =
+    currentRole === "merchant" || resolvedParams.tipo === "merchant" ? 1 : 0;
+
   return (
     <OnboardingWizard
       neighborhoods={neighborhoods}
       initialWhatsapp={initialWhatsapp}
+      initialStep={initialStep}
+      nextPath={resolvedParams.next}
     />
   );
 }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Notice } from "@/components/ui/Notice";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
-import { LapaSymbol } from "@/components/brand/LapaSymbol";
+import { LapaWordmark } from "@/components/brand/LapaSymbol";
 import { loginWithEmail } from "@/app/(auth)/actions";
 
 function LoginFormContent() {
@@ -39,9 +39,14 @@ function LoginFormContent() {
         <Link
           href="/"
           aria-label="Lapa Marketplace — voltar para o início"
-          className="w-16 h-16 rounded-[22px] bg-brand-soft grid place-items-center"
+          className="self-center"
         >
-          <LapaSymbol size={40} />
+          <LapaWordmark
+            variant="full"
+            symbolVariant="solid"
+            symbolSize={34}
+            textClassName="text-[22px]"
+          />
         </Link>
         <div className="flex flex-col gap-1.5">
           <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">

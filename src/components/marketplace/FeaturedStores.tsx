@@ -2,16 +2,9 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  STATUS_TONE,
-  initialsOf,
-  isNewStore,
-  storeChips,
-  storeStatusLine,
-  type StoreChip,
-} from "@/lib/aura-display";
+import { initialsOf, isNewStore } from "@/lib/aura-display";
 import { VerifiedSeal } from "@/components/brand/LapaSymbol";
 import type { StoreSummary } from "@/types/marketplace";
 
@@ -24,12 +17,6 @@ export interface StoreShowcase {
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light";
-
-const CHIP_TONE: Record<StoreChip["tone"], string> = {
-  success: "bg-mint-soft text-mint-ink",
-  sky: "bg-sky-soft text-sky-ink",
-  neutral: "bg-media text-slate-700",
-};
 
 export interface StoreCardProps {
   store: StoreSummary;
@@ -53,9 +40,6 @@ export function StoreCard({
   while (thumbs.length < 3) thumbs.push("");
   const count = showcase?.productCount ?? 0;
   const more = Math.max(0, count - 3);
-  const status = storeStatusLine(store);
-  const tone = STATUS_TONE[status.tone];
-  const chips = storeChips(store, status);
   const isNew = isNewStore(store);
   const meta = [showcase?.category, store.neighborhood].filter(Boolean).join(" · ");
 
@@ -80,7 +64,7 @@ export function StoreCard({
   return (
     <article
       className={cn(
-        "group relative flex h-full flex-col rounded-3xl border border-media bg-white px-2.5 pb-3.5 pt-2.5 shadow-card transition-shadow duration-300 hover:shadow-card-brand",
+        "group relative flex h-full flex-col rounded-3xl border border-media bg-white px-2.5 pb-3.5 pt-2.5",
         "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand-light"
       )}
     >
@@ -146,31 +130,8 @@ export function StoreCard({
         {store.description}
       </p>
 
-      {/* Status + chips */}
-      <div className="mt-auto flex flex-col gap-2 px-1 pt-3">
-        <p className={cn("flex min-w-0 items-center gap-1.5 text-[13px] font-semibold", tone.text)}>
-          <span className={cn("size-2 flex-none rounded-full", tone.dot)} aria-hidden="true" />
-          <span className="truncate">{status.label}</span>
-        </p>
-        {chips.length > 0 && (
-          <ul className="flex flex-wrap gap-1">
-            {chips.map((c) => (
-              <li
-                key={c.label}
-                className={cn(
-                  "inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.25 text-xs font-semibold",
-                  CHIP_TONE[c.tone]
-                )}
-              >
-                {c.label}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       {/* Ações */}
-      <div className="relative z-10 flex gap-2 pt-3.5">
+      <div className="relative z-10 mt-auto flex gap-2 pt-3.5">
         <Link
           href={`/${store.slug}`}
           tabIndex={-1}
@@ -187,14 +148,16 @@ export function StoreCard({
           className={cn(
             "grid size-10.5 flex-none cursor-pointer place-items-center rounded-full transition-colors duration-200",
             focusRing,
-            following ? "bg-brand text-white" : "bg-white text-ink ring-ink hover:bg-media"
+            following
+              ? "bg-offer/10 text-offer ring-1 ring-offer/30 hover:bg-offer/15"
+              : "bg-white text-ink ring-ink hover:bg-media"
           )}
         >
-          {following ? (
-            <Check className="size-4.5" strokeWidth={2.2} aria-hidden="true" />
-          ) : (
-            <Plus className="size-4.5" strokeWidth={2.2} aria-hidden="true" />
-          )}
+          <Heart
+            className={cn("size-5 transition-transform duration-200", following ? "fill-offer text-offer scale-110" : "text-ink")}
+            strokeWidth={1.8}
+            aria-hidden="true"
+          />
         </button>
       </div>
     </article>
@@ -221,27 +184,19 @@ export function StoreCardSkeleton() {
   );
 }
 
-const TABS = [
-  { key: "destaque", label: "Em destaque" },
-  { key: "abertas", label: "Abertas agora" },
-  { key: "perto", label: "Perto de você" },
-  { key: "novas", label: "Novas" },
-] as const;
-type TabKey = (typeof TABS)[number]["key"];
-
 export interface FeaturedStoresSectionProps {
   stores: StoreSummary[];
   showcases?: Record<string, StoreShowcase>;
   storyStoreIds?: Set<string>;
   followingIds: Set<string>;
   onToggleFollow: (store: StoreSummary) => void;
-  /** Bairro escolhido no header (aba "Perto de você"). */
+  /** Bairro escolhido no header. */
   neighborhood?: string | null;
   className?: string;
   idPrefix?: string;
 }
 
-/** Seção "Lojas em destaque" v2: abas, setas e carrossel com scroll-snap. */
+/** Seção "Lojas em destaque" v2: carrossel com scroll-snap. */
 export function FeaturedStoresSection({
   stores,
   showcases,
@@ -253,25 +208,18 @@ export function FeaturedStoresSection({
   idPrefix,
 }: FeaturedStoresSectionProps) {
   const railRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<TabKey>("destaque");
   const [edge, setEdge] = useState({ start: true, end: false });
   const headingId = idPrefix ? `${idPrefix}-lojas-destaque` : "lojas-destaque";
 
   const visible = useMemo(() => {
-    if (tab === "abertas") {
-      return stores.filter((s) => storeStatusLine(s).tone !== "closed");
-    }
-    if (tab === "novas") return stores.filter((s) => isNewStore(s));
-    if (tab === "perto" && neighborhood) {
-      const nb = neighborhood.toLowerCase();
-      return [...stores].sort(
-        (a, b) =>
-          Number(b.neighborhood?.toLowerCase() === nb) -
-          Number(a.neighborhood?.toLowerCase() === nb)
-      );
-    }
-    return stores;
-  }, [stores, tab, neighborhood]);
+    if (!neighborhood) return stores;
+    const nb = neighborhood.toLowerCase();
+    return [...stores].sort(
+      (a, b) =>
+        Number(b.neighborhood?.toLowerCase() === nb) -
+        Number(a.neighborhood?.toLowerCase() === nb)
+    );
+  }, [stores, neighborhood]);
 
   const updateEdges = () => {
     const el = railRef.current;
@@ -336,35 +284,9 @@ export function FeaturedStoresSection({
         </div>
       </div>
 
-      <div role="tablist" aria-label="Filtrar lojas" className="hidden flex-wrap gap-2 md:flex">
-        {TABS.map((t) => {
-          const sel = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              role="tab"
-              type="button"
-              aria-selected={sel}
-              onClick={() => {
-                setTab(t.key);
-                railRef.current?.scrollTo({ left: 0 });
-                setEdge({ start: true, end: false });
-              }}
-              className={cn(
-                "h-9 cursor-pointer rounded-full px-3.5 font-display text-sm font-semibold transition-colors",
-                focusRing,
-                sel ? "bg-brand text-white" : "bg-white text-ink shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-slate-50"
-              )}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
       {visible.length === 0 ? (
         <p className="mx-4 rounded-3xl bg-white p-6 text-center text-sm text-muted md:mx-0">
-          Nenhuma loja nesta aba agora.
+          Nenhuma loja disponível no momento.
         </p>
       ) : (
         <div
@@ -375,7 +297,7 @@ export function FeaturedStoresSection({
           {visible.map((s) => (
             <div
               key={s.id}
-              className="w-62 flex-none snap-start md:w-[calc((100%-16px)/2)] xl:w-[calc((100%-48px)/4)]"
+              className="w-62 flex-none snap-start md:w-[calc((100%-16px)/2)] lg:w-[calc((100%-32px)/3)] xl:w-[calc((100%-32px)/3)]"
             >
               <StoreCard
                 store={s}

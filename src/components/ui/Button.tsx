@@ -29,7 +29,7 @@ export const buttonVariantClasses: Record<ButtonVariant, string> = {
   secondary: "bg-media text-ink hover:bg-line",
   whatsapp: "bg-whatsapp-strong text-white hover:bg-whatsapp-hover",
   brand: "bg-brand text-white hover:bg-brand-hover",
-  outline: "bg-white text-ink ring-ink hover:bg-media",
+  outline: "bg-white text-ink border border-[#f8fafc] hover:bg-media",
   ghost: "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900",
 };
 

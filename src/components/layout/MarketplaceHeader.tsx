@@ -378,19 +378,15 @@ export function MarketplaceHeader({
     ? `Sacola, ${count} ${count === 1 ? "item" : "itens"}, ${totalLabel}`
     : "Sacola vazia";
   const bagClasses = cn(
-    "flex h-12 flex-none cursor-pointer items-center gap-2.5 rounded-full bg-brand pl-4 pr-2 text-white transition-colors hover:bg-brand-hover active:scale-[0.98]",
+    "flex h-10 flex-none cursor-pointer items-center gap-2 rounded-full bg-brand pl-3 pr-1.5 text-white transition-colors hover:bg-brand-hover active:scale-[0.98]",
     focusRing
   );
   const bagInner = (
     <>
-      <ShoppingBag className="size-5" strokeWidth={1.8} aria-hidden="true" />
-      <span className="flex flex-col text-left leading-[1.15]">
-        {hasItems && <span className="text-[11px] font-medium text-slate-300">{totalLabel}</span>}
-        <span className="font-display text-[15px] font-semibold">Sacola</span>
-      </span>
+      <ShoppingBag className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
       <span
         className={cn(
-          "grid h-7.5 min-w-7.5 place-items-center rounded-full px-2 font-display text-[13px] font-bold",
+          "grid h-6.5 min-w-6.5 place-items-center rounded-full px-1.5 font-display text-[12px] font-bold",
           hasItems ? "bg-white text-ink" : "bg-white/16 text-slate-300"
         )}
       >

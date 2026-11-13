@@ -146,6 +146,7 @@ export interface LapaWordmarkProps {
   /** `full` mostra "Lapa Marketplace"; `short` só "Lapa" (assinatura de canto / navbar mobile). */
   variant?: "full" | "short";
   symbolSize?: number;
+  symbolVariant?: LapaBagVariant;
   /** Versão negativa (sobre preto ou deep night). */
   inverted?: boolean | "brand" | "slate";
   className?: string;
@@ -153,11 +154,12 @@ export interface LapaWordmarkProps {
 }
 
 /**
- * Logotipo horizontal: sacola aurora + "Lapa" (Figtree 600, -0.025em) + "Marketplace" (Figtree 500, muted).
+ * Logotipo horizontal: sacola aurora (ou sólida/branca/mono) + "Lapa" + "Marketplace".
  */
 export function LapaWordmark({
   variant = "full",
   symbolSize = 30,
+  symbolVariant = "aurora",
   inverted = false,
   className,
   textClassName,
@@ -165,7 +167,7 @@ export function LapaWordmark({
   const negative = Boolean(inverted);
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LapaBag size={symbolSize} variant="aurora" />
+      <LapaBag size={symbolSize} variant={symbolVariant} />
       <span
         className={cn(
           "font-display text-[22px] leading-none whitespace-nowrap",

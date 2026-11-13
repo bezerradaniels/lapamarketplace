@@ -307,3 +307,56 @@ export async function createStoreAction(
   redirect("/painel/produtos/novo?onboarding=success");
 }
 
+/**
+ * Define o perfil inicial escolhido no onboarding ("Como você quer usar a Lapa?"):
+ * - `customer`: salva o role em `profiles` e redireciona para `/minha-conta` ou `nextPath`
+ * - `merchant`: salva o role em `profiles` para prosseguir na criação da loja
+ */
+export async function setAccountRoleAction(
+  role: "customer" | "merchant",
+  nextPath?: string
+): Promise<{ success: boolean; redirect?: string; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return {
+      success: true,
+      redirect: role === "customer" ? (nextPath || "/minha-conta") : undefined,
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { success: false, error: "Sessão expirada. Faça login novamente." };
+  }
+
+  try {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        role,
+      },
+      { onConflict: "id" }
+    );
+  } catch {
+    // Segue normalmente
+  }
+
+  await queueAnalyticsEvent("onboarding_role_selected", { role });
+
+  revalidatePath("/", "layout");
+
+  const safeNext =
+    nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+      ? nextPath
+      : "/minha-conta";
+
+  return {
+    success: true,
+    redirect: role === "customer" ? safeNext : undefined,
+  };
+}
+

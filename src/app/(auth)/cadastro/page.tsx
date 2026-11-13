@@ -16,18 +16,12 @@ import { Input } from "@/components/ui/Input";
 import { GoogleOAuthButton } from "@/components/auth/GoogleOAuthButton";
 import { signupWithEmail } from "@/app/(auth)/actions";
 import { cn } from "@/lib/utils";
-import type { AccountType } from "@/types/marketplace";
 
 function SignupFormContent() {
   const searchParams = useSearchParams();
-  const initialType =
-    searchParams.get("tipo") === "merchant" ||
-    searchParams.get("account_type") === "merchant"
-      ? "merchant"
-      : "customer";
   const nextPath = searchParams.get("next") || "";
+  const tipoIntent = searchParams.get("tipo") || searchParams.get("account_type") || "";
 
-  const [accountType, setAccountType] = useState<AccountType>(initialType);
   const [error, setError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isPending, startTransition] = useTransition();
@@ -38,7 +32,9 @@ function SignupFormContent() {
     setSuccessMessage("");
 
     const formData = new FormData(e.currentTarget);
-    formData.set("account_type", accountType);
+    if (tipoIntent) {
+      formData.set("account_type", tipoIntent);
+    }
 
     startTransition(async () => {
       const result = await signupWithEmail(formData);
@@ -50,73 +46,28 @@ function SignupFormContent() {
     });
   };
 
-  const accountOptions: Array<{
-    value: AccountType;
-    title: string;
-    sub: string;
-  }> = [
-    {
-      value: "customer",
-      title: "Quero comprar em Lapa",
-      sub: "Favoritar, seguir lojas e pedir rápido",
-    },
-    {
-      value: "merchant",
-      title: "Sou lojista, quero vender",
-      sub: "Catálogo grátis com pedidos no WhatsApp",
-    },
-  ];
-
   return (
     <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
-      <Link href="/" aria-label="Lapa Marketplace — voltar para o início">
-        <LapaWordmark variant="short" symbolSize={28} textClassName="text-xl" />
+      <Link
+        href="/"
+        aria-label="Lapa Marketplace — voltar para o início"
+        className="self-center"
+      >
+        <LapaWordmark
+          variant="full"
+          symbolVariant="solid"
+          symbolSize={34}
+          textClassName="text-[22px]"
+        />
       </Link>
 
-      <h1 className="text-[28px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
-        Como você quer usar a Lapa?
-      </h1>
-
-      {/* Tipo de conta: dois cards de escolha */}
-      <div
-        role="radiogroup"
-        aria-label="Tipo de conta"
-        className="grid grid-cols-2 gap-2.5"
-      >
-        {accountOptions.map((opt) => {
-          const selected = accountType === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => setAccountType(opt.value)}
-              className={cn(
-                "p-3.5 rounded-[22px] flex flex-col gap-2.5 text-left cursor-pointer transition-[background-color,box-shadow] duration-150 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-light focus-visible:ring-offset-2",
-                selected
-                  ? "bg-white shadow-[inset_0_0_0_2px_#0F172A,0_10px_24px_-12px_rgba(244,114,182,0.6)]"
-                  : "bg-white ring-line"
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "w-5.5 h-5.5 rounded-full bg-white transition-shadow duration-150",
-                  selected
-                    ? "shadow-[inset_0_0_0_6px_#0F172A]"
-                    : "shadow-[inset_0_0_0_1.5px_#CBD5E1]"
-                )}
-              />
-              <span className="font-display text-[15px] font-bold leading-[1.2] text-slate-900">
-                {opt.title}
-              </span>
-              <span className="text-xs text-slate-500 leading-[1.35]">
-                {opt.sub}
-              </span>
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900 text-balance">
+          Crie sua conta na Lapa
+        </h1>
+        <p className="text-[15px] text-slate-500 leading-[1.45]">
+          Cadastre-se para favoritar peças, seguir lojas e agilizar seus pedidos.
+        </p>
       </div>
 
       {error && <Notice tone="error">{error}</Notice>}
@@ -140,27 +91,28 @@ function SignupFormContent() {
       ) : (
         <>
           <GoogleOAuthButton
-            accountType={accountType}
             nextPath={nextPath || undefined}
             label="Continuar com o Google"
             onError={(msg) => setError(msg)}
           />
+
+          <div className="flex items-center gap-3 text-[13px] text-slate-500">
+            <span className="flex-1 h-px bg-slate-200" />
+            ou cadastre-se com seu e-mail
+            <span className="flex-1 h-px bg-slate-200" />
+          </div>
 
           <form
             id="signup-form"
             onSubmit={handleSubmit}
             className="flex flex-col gap-3"
           >
-            <input type="hidden" name="account_type" value={accountType} />
+            {tipoIntent && <input type="hidden" name="account_type" value={tipoIntent} />}
 
             <Input
               name="full_name"
               type="text"
-              label={
-                accountType === "merchant"
-                  ? "Nome do responsável pela loja"
-                  : "Nome completo"
-              }
+              label="Nome completo"
               placeholder="Maria Silva"
               autoComplete="name"
               required
@@ -195,9 +147,7 @@ function SignupFormContent() {
             fullWidth
             isLoading={isPending}
           >
-            {accountType === "merchant"
-              ? "Criar conta e abrir minha loja"
-              : "Criar minha conta"}
+            Criar conta
           </Button>
         </>
       )}

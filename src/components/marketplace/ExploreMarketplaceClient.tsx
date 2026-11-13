@@ -781,7 +781,7 @@ export function ExploreMarketplaceClient({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar em lojas da Lapa"
             aria-label="Pesquisar produtos ou lojas"
-            className="w-full h-12 rounded-full bg-white border border-slate-200 pl-11.5 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-brand focus:outline-none transition-colors duration-150 [&::-webkit-search-cancel-button]:hidden"
+            className="w-full h-12 rounded-full bg-white border border-[#f8fafc] pl-11.5 pr-4 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-[#f8fafc] focus:outline-none transition-colors duration-150 [&::-webkit-search-cancel-button]:hidden"
           />
         </form>
         <span className="hidden md:block flex-1" />

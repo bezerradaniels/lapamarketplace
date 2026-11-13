@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Notice } from "@/components/ui/Notice";
-import { LapaSymbol } from "@/components/brand/LapaSymbol";
+import { LapaWordmark } from "@/components/brand/LapaSymbol";
 import { updatePassword } from "@/app/(auth)/actions";
 import { cn } from "@/lib/utils";
 
@@ -69,9 +69,18 @@ export default function NovaSenhaPage() {
 
   return (
     <div className="flex-1 md:flex-none md:my-auto flex flex-col gap-5.5">
-      <span className="w-16 h-16 rounded-[22px] bg-brand-soft grid place-items-center">
-        <LapaSymbol size={40} />
-      </span>
+      <Link
+        href="/"
+        aria-label="Lapa Marketplace — voltar para o início"
+        className="self-center"
+      >
+        <LapaWordmark
+          variant="full"
+          symbolVariant="solid"
+          symbolSize={34}
+          textClassName="text-[22px]"
+        />
+      </Link>
 
       <div className="flex flex-col gap-2">
         <h1 className="text-[30px] font-extrabold tracking-[-0.03em] leading-[1.05] text-slate-900">
